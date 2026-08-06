@@ -1,0 +1,28 @@
+vite-react-app/
+├── .gitignore
+├── .oxlintrc.json
+├── dist/
+├── index.html
+├── node_modules/
+├── package-lock.json
+├── package.json
+├── public/
+├── README.md
+└── src/
+    ├── App.jsx
+    ├── main.jsx
+    ├── assets/
+    ├── components/
+    │   ├── Footer.jsx
+    │   ├── LoginPage.jsx
+    │   └── Navbar.jsx
+    ├── pages/
+    │   ├── Dashboard.jsx
+    │   ├── Home.jsx
+    │   ├── landing.jsx
+    │   ├── Login.jsx
+    │   ├── profile.jsx
+    │   └── Signup.jsx
+    └── styles/
+        ├── App.css
+        └── index.css
