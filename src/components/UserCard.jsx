@@ -1,44 +1,13 @@
-import { Star, MapPin } from "lucide-react";
-
-export default function UserCard({ name, location, rating, offers, wants, percent, initials, color }) {
+export default function UserCard({ image, name, role, children }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 p-6 hover:shadow-lg hover:shadow-slate-200/60 hover:-translate-y-0.5 transition-all">
-      <div className="flex items-center gap-3">
-        <div
-          className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-sm"
-          style={{ backgroundColor: color }}
-        >
-          {initials}
-        </div>
-        <div>
-          <p className="font-semibold text-[#0B1B33]">{name}</p>
-          <p className="text-xs text-slate-500 flex items-center gap-1">
-            <MapPin className="w-3 h-3" /> {location}
-          </p>
-        </div>
+    <div className="group relative overflow-hidden border border-white/10 bg-[#080a09]">
+      <img src={image} alt={name} className="aspect-[4/5] h-full w-full object-cover grayscale transition duration-700 ease-[cubic-bezier(.16,1,.3,1)] group-hover:scale-[1.03] group-hover:grayscale-0" />
+      <div className="absolute inset-0 bg-gradient-to-t from-[#060807] via-[#060807]/10 to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 p-6">
+        <p className="text-xs uppercase tracking-[0.18em] text-[#c7ff39]">{role}</p>
+        <p className="mt-2 text-2xl font-semibold tracking-tight text-white">{name}</p>
+        {children}
       </div>
-
-      <div className="mt-3 flex items-center gap-1 text-sm">
-        <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-        <span className="font-medium text-[#0B1B33]">{rating}</span>
-      </div>
-
-      <div className="mt-4 space-y-1.5">
-        <p className="text-xs text-slate-500">Offers</p>
-        <p className="text-sm font-medium text-[#2F6FED]">{offers}</p>
-        <p className="text-xs text-slate-500 mt-2">Wants</p>
-        <p className="text-sm font-medium text-[#0B1B33]">{wants}</p>
-      </div>
-
-      <div className="mt-4 flex items-center justify-between">
-        <span className="text-xs font-bold text-[#16A34A] bg-[#ECFDF3] rounded-full px-2.5 py-1">
-          {percent}% Match
-        </span>
-      </div>
-
-      <button className="mt-4 w-full text-sm font-semibold text-[#0B1B33] border border-slate-200 hover:border-slate-300 rounded-full py-2.5 transition-colors">
-        View Profile
-      </button>
     </div>
   );
 }

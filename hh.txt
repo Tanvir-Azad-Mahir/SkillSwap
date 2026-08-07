@@ -1,0 +1,287 @@
+Recreate the website "Lumina Learning Platform" with high visual fidelity as a Tailwind CSS-driven single-page application that uses conditional rendering to switch between a landing page, login screen, dashboard shell, and payment portal.
+
+Preserve source quirks:
+- The navbar remains in the DOM during login but is translated off-screen using `-translate-y-full` for dashboard/payment views.
+- Custom scrollbar styling (6px width, zinc-950 track, zinc-800 thumb) must be applied globally.
+- Specific "opacity-50" is applied to the company logo section and the "locked" lessons in the course viewer.
+
+CRITICAL FIDELITY CONSTRAINTS
+- Background pattern: Use a 40px grid pattern created via `linear-gradient` with `mask-image: linear-gradient(to bottom, white, transparent)`.
+- Glass Panel: Navigation must use `rgba(24, 24, 27, 0.6)` with `backdrop-filter: blur(12px)` and a `border-bottom: 1px solid rgba(255, 255, 255, 0.08)`.
+- Layer Order: The hero section must have a 1000px wide indigo glow (`bg-indigo-500/20`, blur-120px) positioned absolutely at the top center, behind the content but above the grid.
+
+TECH STACK / DEPENDENCIES
+- Tailwind CSS (CDN)
+- Iconify-icon (`lucide` library)
+- Google Fonts: Inter (300, 400, 500, 600)
+
+GLOBAL STYLE
+- Body: `bg-zinc-950`, `text-zinc-400`, `antialiased`.
+- Selection: `bg-indigo-500/30`, `text-indigo-200`.
+- Animations: Define a `fade-in` keyframe (opacity 0 -> 1, translateY 10px -> 0) over 0.4s.
+
+ASSET MAP
+- Icon library: `iconify-icon` with `lucide` prefix.
+- Logos: Plain text for ACME, STRIPE, VERCEL, LINEAR, RAYCAST in `font-semibold tracking-tighter`.
+- Placeholders: Use gradients for course thumbnails (Indigo-900/20, Teal-900/40, Purple-900/20).
+
+LAYER STACK / POSITIONING MAP
+- Navigation: `fixed top-0`, `z-50`, height `h-16`.
+- Hero: `relative`, `min-h-[90vh]`. Layer 1: Grid pattern. Layer 2: Indigo blur. Layer 3: Main content.
+- Dashboard: `flex` layout. Sidebar: `w-64`, `sticky top-0`, `h-screen`. Content: `flex-1 overflow-y-auto`.
+- Modal/Payment: `fixed` or `min-h-screen`, `z-index` higher than navbar logic.
+
+SECTION 1 - HERO (LANDING)
+- Badge: "New courses added monthly" with an `animate-pulse` indigo dot.
+- H1: Master your craft with <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-white to-indigo-400">structured learning.</span>
+- CTA: White pill button with `lucide:arrow-right` icon.
+
+SECTION 2 - BENEFITS
+- Grid: 3-column on medium screens. Cards: `bg-zinc-900/50`, `border-white/5`, `hover:border-white/10`.
+- Icons: 40x40px zinc-800 boxes containing white Lucide icons (`layers`, `play-circle`, `award`).
+
+SECTION 3 - FREE SPOTLIGHT
+- Layout: Flex-col on mobile, flex-row on LG.
+- Background: `absolute inset-0 bg-zinc-900/30 skew-y-3 transform origin-bottom-right scale-110`.
+- Video Card: Aspect-video, `shadow-2xl shadow-black/50`, containing a white play icon on a glass-blur circle.
+
+SECTION 4 - COURSE PREVIEW
+- Filter: "Free" tag (Teal) and "Pro" tag (Indigo).
+- Interactions: Cards use `hover:translate-y-[-2px]` and title changes to `text-indigo-400` on hover.
+
+SECTION 5 - PRICING
+- Pro Card: Highlighted with `border-indigo-500/30`, `shadow-indigo-900/20`, and a floating "Most Popular" badge at `-top-3`.
+- Button: Starter uses a ghost border; Pro uses solid white `bg-white text-zinc-950`.
+
+SECTION 6 - DASHBOARD SHELL
+- Sidebar: `border-r border-white/5`. Bottom profile section contains a `bg-gradient-to-tr from-indigo-500 to-purple-500` avatar.
+- Header: `sticky top-0`, `z-30`, `backdrop-blur-md` with "Upgrade to Pro" button (`bg-indigo-600`).
+- State: 20% progress bar (`h-2 bg-zinc-950` with `bg-indigo-500` fill) in the welcome banner.
+
+GLOBAL ANIMATION / INTERACTION RULES
+- Page Transitions: Apply `.fade-in` class to main content containers when switching views.
+- Smooth Scroll: Enabled on `<html>` for landing page anchors (Benefits, Courses, Pricing).
+- Dashboard Navigation: Switch visibility between `view-dashboard`, `view-my-courses`, `view-certificates`, and `view-course-detail` based on button clicks.
+
+IMPLEMENTATION REQUIREMENTS
+- Use the exact HEX codes for Zinc (Tailwind 950/900/800/500/400) and Indigo (500).
+- Do not substitute Lucide icons with others.
+- Ensure the Sidebar is hidden on mobile screens (`hidden md:flex`).
+- Course Viewer: Include a fake video player with a `0:00 / 12:45` timestamp and a vertical scrolling sidebar for "Course Content".
+
+
+
+
+
+
+
+
+
+
+Recreate the website "Northline Creative Agency" with high visual fidelity as a Tailwind CSS and Vanilla JavaScript site.
+
+The result must match the supplied reference website, not a cleaned-up reinterpretation.
+
+Preserve source quirks:
+- The copyright year is explicitly set to "2026".
+- Navigation links use specific `focus:ring-offset-4` and `focus:ring-offset-[#060807]` logic.
+- The "01 / 07" pagination in the hero section is static text.
+- The scroll reveal timing uses a specific cubic-bezier: `.16,1,.3,1`.
+
+CRITICAL FIDELITY CONSTRAINTS
+- Do not use standard system colors; use the exact palette: Background `#060807`, Accent `#c7ff39`, Secondary Text `#a1a1aa` (Zinc-400).
+- Selection color must be `background: #c7ff39; color: #061008;`.
+- Implementation must include a custom `.noise` grid background (44px x 44px linear gradients).
+- No external animation libraries (like GSAP) should be used unless for polyfills; use the documented IntersectionObserver and CSS transitions.
+
+TECH STACK / DEPENDENCIES
+- Tailwind CSS (CDN: https://cdn.tailwindcss.com)
+- Lucide Icons (CDN: https://unpkg.com/lucide@latest)
+- Inter Font Family
+
+GLOBAL STYLE
+- Body: `bg-[#060807] text-[#f2f4ef] antialiased`.
+- `.noise`: `background-image: linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.02) 1px, transparent 1px); background-size: 44px 44px;`.
+- `.reveal`: `opacity: 0; transform: translateY(1.5rem); transition: opacity 700ms cubic-bezier(.16,1,.3,1), transform 700ms cubic-bezier(.16,1,.3,1);`.
+- `.reveal.is-visible`: `opacity: 1; transform: translateY(0);`.
+
+ASSET MAP
+- Hero Object: https://hoirqrkdgbmvpwutwuwj.supabase.co/storage/v1/object/public/assets/assets/edf1ae4a-bdc2-4858-8003-d04cc2b9ff8f_3840w.png
+- Aster House: https://hoirqrkdgbmvpwutwuwj.supabase.co/storage/v1/object/public/assets/assets/f3a9e561-b7c1-45db-ab87-7eb9a9155beb_3840w.png
+- Luma: https://hoirqrkdgbmvpwutwuwj.supabase.co/storage/v1/object/public/assets/assets/f8fd2334-59e6-46a0-b9cc-0722a9c55446_3840w.png
+- Field Notes: https://hoirqrkdgbmvpwutwuwj.supabase.co/storage/v1/object/public/assets/assets/7d12d817-8a38-4664-a772-5b5b8e1b7cca_3840w.png
+- Maya Chen Portrait: https://hoirqrkdgbmvpwutwuwj.supabase.co/storage/v1/object/public/assets/assets/f91d1b00-1830-4cb8-9e1b-fde333b129d1_3840w.png
+
+VECTOR / ICON SHAPES
+- Custom Logo SVG: `<svg viewBox="0 0 24 24" fill="none"><path d="M4 18V6l8 8 8-8v12" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"></path></svg>`
+- All other icons are Lucide: `arrow-up-right`, `arrow-down`, `menu`, `x`, `compass`, `shapes`, `panels-top-left`, `search`, `pen-tool`, `rocket`, `plus`.
+
+LAYER STACK / POSITIONING MAP
+- Header: `fixed inset-x-0 top-0 z-50`. Becomes `bg-[#080a09]/85 backdrop-blur-md` on scroll > 100px.
+- Mobile Menu: `absolute inset-x-0 top-0 z-50` (visible via JS toggle).
+- Hero Section: Stacking order (bottom to top): 1. `.noise` background, 2. `radial-gradient` ellipse at 68% 17% (height 36rem), 3. Content grid, 4. Bottom border navigation info.
+
+SECTION 1 - NAVIGATION
+- Logo: "NORTHLINE" with a span for the `.` in `#c7ff39`.
+- Desktop Nav: Links with `transition hover:text-white`.
+- Mobile Toggle: 11x11 grid button (`grid place-items-center`) with `border-white/15`.
+
+SECTION 2 - HERO
+- Tagline: "Independent design practice · Amsterdam" in uppercase tracked 0.18em.
+- Heading: "Digital work with a [clear point of view.]" (Zinc-500 for the span).
+- Image Card: `aspect-[4/5]` with grayscale image that scales to 1.03 on hover. Floating badge at `-bottom-4 -left-4` in `#0c120d`.
+
+SECTION 3 - STATS
+- Horizontal bar with `bg-[#0a0d0b]`. Three-column grid (`sm:grid-cols-3`) showing "12", "34", and "1:1" in accent color.
+
+SECTION 4 - WORK GRID
+- Layout: Large featured card (2 columns) followed by two 1-column cards.
+- Featured Card: `lg:grid-cols-[1.15fr_.85fr]` split. Images are grayscale, becoming colored and scaling `1.03` or `1.04` on group-hover.
+
+SECTION 5 - SERVICES & PROCESS
+- Services: `lg:grid-cols-12` grid with sticky-style appearance. Icons (`compass`, `shapes`, `panels-top-left`) turn accent color on hover.
+- Process: 3-column grid of cards with borders `border-white/15`. "Step 02" (Build the system) has a distinct background `#0c120d` and tinted icon container.
+
+SECTION 6 - ABOUT (MAYA CHEN)
+- Layout: 2-column grid. Left side: Portrait with gradient overlay and name label. Right side: "Senior thinking..." and blockquote with `border-l border-[#c7ff39]`.
+
+SECTION 7 - FAQ
+- FAQ logic: CSS Grid-based transition (`grid-template-rows: 0fr` to `1fr`). Icon rotates 45 degrees on open.
+
+SECTION 8 - CONTACT (CTA)
+- Background: `radial-gradient(ellipse_at_50%_100%,rgba(82,188,76,.30),transparent_51%)`.
+- Button: `bg-[#c7ff39] text-[#071008]` with specific `min-h-12` height.
+
+GLOBAL ANIMATION / INTERACTION RULES
+- Scroll Reveal: Use `IntersectionObserver` with `threshold: 0.14`. Add `is-visible` to `.reveal` elements.
+- Header Scroll: Add classes `bg-[#080a09]/85 backdrop-blur-md border-b border-white/10` when `scrollY > 100`.
+- Mobile Menu: Toggle `hidden` class on `#mobile-menu` and `overflow-hidden` on body.
+
+COMMON MISTAKES TO AVOID
+- Do not simplify the noise pattern; it must be the CSS linear-gradient grid.
+- Do not forget `grayscale` on the work images (it should only be removed on hover).
+- Do not use standard standard Tailwind spacing for the reveal transform; it must be exactly `translateY(1.5rem)`.
+
+IMPLEMENTATION REQUIREMENTS
+- Use exact text and assets.
+- Preserve responsive behavior (breakpoints: 768px for menu/mobile, 1024px for grid layouts).
+- Final result must be a single-page landing with smooth scrolling and functional interaction states.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Recreate the website "Automata AI Automation Agency" with high visual fidelity as a Tailwind CSS and HTML landing page.
+
+The result must match the supplied reference website, not a cleaned-up reinterpretation.
+
+Preserve source quirks:
+- The navigation bar uses a specific fixed width calculation: `w-[calc(100vw-2rem)]` on mobile and `md:min-w-[42rem]` on desktop.
+- The dashboard section contains specific percentage-based height classes for the bar charts (e.g., `h-pc-85`, `h-pc-70`).
+- The page uses a mix of three specific font families: Inter for body, Space Grotesk for headings, and JetBrains Mono for data/UI elements.
+- The grain texture overlay is applied globally via a fixed data-URI SVG.
+
+CRITICAL FIDELITY CONSTRAINTS
+- Backgrounds must use the specific hex `#0A0B0D` with specific layer patterns (grid and radial gradients).
+- No external UI libraries like Headless UI or Radix; everything is built with pure Tailwind and Iconify icons.
+- The marquee MUST pause on hover using the `hover:[animation-play-state:paused]` class.
+- Buttons MUST use the specific `btn-shimmer` linear gradient logic defined in the CSS.
+
+TECH STACK / DEPENDENCIES
+- CSS Framework: Tailwind CSS (via CDN: https://cdn.tailwindcss.com)
+- Icons: Iconify (via CDN: https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js)
+- Fonts: Google Fonts (Inter, JetBrains Mono, Space Grotesk)
+
+GLOBAL STYLE
+- Colors: Background: `#0A0B0D`, Accent: `#00E5A0`, Text: `#EDEFF2`, Muted Text: `#9BA3AF`, Border: `white/5`.
+- Custom scrollbar: Width `0.375rem`, thumb color `rgba(255,255,255,0.08)`, hover accent `#00E5A0/40`.
+- Grain overlay: `opacity-[0.035]`, `mix-blend-overlay`, fixed inset-0.
+- Grid pattern: `background-size: 4rem 4rem`, linear-gradient `rgba(255,255,255,0.022)`.
+
+ASSET MAP
+- Logo/Hero Icon: Custom SVG with nested circles and dasharrays.
+- Icons: `solar:magnifer-linear`, `solar:arrow-right-up-linear`, `solar:play-circle-linear`, `solar:clock-circle-linear`, `solar:wad-of-money-linear`, `solar:user-cross-linear`, `solar:chat-round-line-linear`, `solar:git-branch-linear`, `solar:database-linear`, `solar:phone-calling-linear`, `solar:programming-linear`, `solar:bell-linear`, `solar:check-circle-linear`, `solar:arrow-right-linear`.
+
+VECTOR / ICON SHAPES
+- Hero Logo SVG: `viewBox="0 0 32 32"`. Inner circle `r="2.5"`, middle `r="7"` (dasharray 30 12), outer `r="13"` (dasharray 60 20).
+- Sparkline SVGs in Dashboard: `viewBox="0 0 100 20"`. Path for KPI 1: `M0,20 L10,18 L20,15 L30,17 L40,12 L50,14 L60,8 L70,10 L80,5 L90,2 L100,0`.
+
+MEDIA BEHAVIOR
+- Animations:
+  - `pulse-ring`: 0% scale 1, 50% scale 1.35 + glow, 100% scale 1.
+  - `marquee`: translateX 0 to -50% (linear infinite).
+  - `flow-down`: vertical translation for scroll indicator.
+  - `spin-slow`: 24s linear rotation.
+  - `spin-slow-reverse`: 16s reverse rotation.
+
+LAYER STACK / POSITIONING MAP
+- Background Base: `#0A0B0D` (z-index 0).
+- Grid Layer: Fixed `inset-0`, `bg-grid`, `z-0`.
+- Noise Layer: Fixed `inset-0`, `z-[999]`, `opacity-[0.035]`, `pointer-events-none`.
+- Navigation: Fixed `top-5`, `left-1/2`, `-translate-x-1/2`, `z-50`, `backdrop-blur-xl`.
+- Section Content: Relative, `z-10`.
+
+SECTION 1 - NAVIGATION
+- Layout: Rounded-full pill, border `white/10`, background `rgba(10, 11, 13, 0.72)`.
+- Links: `text-sm`, `font-light`, `white/60`. Hover: `white`. Underline effect: absolute span, `scale-x-0` to `scale-x-100` on hover.
+- Buttons: Search with `⌘K` label, CTA "Book a call" with `btn-shimmer` class.
+
+SECTION 2 - HERO
+- Background: `hero-gradient` (radial gradients at 88% 12% and center). Swarm simulation via two large rotating blur-3xl rounded-full divs (`40rem` and `60rem`).
+- Badge: "Now shipping — Claude 3.7 + GPT-5 orchestration". Pulse ring dot on left.
+- Heading: `text-5xl md:text-7xl lg:text-[7.25rem]`, `tracking-tighter`. Word highlight in `#00E5A0`.
+- Stats Row: Horizontal row on LG, grid on mobile. Separated by `1px` vertical dividers.
+
+SECTION 3 - LOGO MARQUEE
+- Title: "/ CLIENTS" in mono text with green square bullet.
+- Animation: Infinite horizontal scroll. Masked edges using `mask-image: linear-gradient(90deg, transparent, black 6%, black 94%, transparent)`.
+- Items: All-caps brand names (Linear, Notion, Vercel, etc.) in `white/40`. Hover: `white`, `scale-105`.
+
+SECTION 4 - PROBLEM
+- Layout: Two-column grid (`6fr_4fr`).
+- Right Column: Vertical stack of three cards. Each card features a `radial-gradient` hover reveal follows cursor (simulated by `group-hover:opacity-100` on a div with `radial-gradient(circle_at_var(--mouse-x)...)`).
+
+SECTION 5 - SERVICES
+- Layout: 3-column grid of cards.
+- Card Design: Border `white/5`, `rounded-2xl`, `p-8`. Large mono number (e.g., 01) in top right at `text-[4.5rem]` with `white/[0.03]` opacity.
+- Hover State: `-translate-y-1`, border becomes `#00E5A0/20`, icon scales and rotates `6deg`.
+
+SECTION 6 - CONTROL ROOM (DASHBOARD)
+- Container: `rounded-2xl`, shadow with `0 0 1px inset rgba(0, 229, 160, 0.08)`.
+- Sidebar: Mono list of "Active Agents" with pulsing status dots.
+- Main Area: 4 KPI cards with green sparklines. 1 Bar chart with success/fail segments. 1 Latency histogram with progress bars.
+- Table: Data grid with fixed column widths (`2fr_1.5fr_1fr_1fr_1fr_1fr`). Alternating row colors.
+
+SECTION 7 - PROCESS
+- Layout: Left-aligned vertical timeline line in `white/[0.08]`.
+- Step Items: Numbered circles `1-4`. On group hover, circle border and text turn `#00E5A0`.
+- Content: Heading, mono time label (e.g., "Day 0"), body text, and list of items with green arrow icons.
+
+SECTION 8 - CASE STUDIES
+- Alternate Layouts: Image left/Text right, then Text left/Image right.
+- Image Containers: `aspect-[4/3]`, `bg-grid` overlay, `radial-gradient` accent. Group-hover scales background.
+- Content: Metric numbers (e.g., "38 min") in large Space Grotesk font.
+
+GLOBAL ANIMATION / INTERACTION RULES
+- Use CSS `cubic-bezier(0.76, 0, 0.24, 1)` for smooth flap-top/flap-bottom text transitions in footer.
+- Mouse-tracking gradients on cards should be implemented via CSS variables `--mouse-x` and `--mouse-y` updated by a simple JS listener.
+- Scroll behavior: `scroll-smooth` on HTML tag.
+
+IMPLEMENTATION REQUIREMENTS
+- Use original asset URLs and icon classes.
+- Ensure all text matches exactly, including punctuation and mono-spaced segments.
+- Maintain specific padding-y values: `py-32 md:py-40` for major sections.
+- Replicate the complex z-indexing for the grain and grid layers to ensure content sits above the background but below the navigation.

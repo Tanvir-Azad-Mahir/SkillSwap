@@ -1,23 +1,24 @@
-import { Star } from "lucide-react";
+import { Plus } from "lucide-react";
 
-export default function TestimonialCard({ name, initials, color, quote }) {
+export default function TestimonialCard({ question, answer, open, onClick }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 p-6 hover:shadow-lg hover:shadow-slate-200/60 transition-shadow">
-      <div className="flex gap-0.5">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-        ))}
-      </div>
-      <p className="mt-4 text-sm text-slate-600 leading-relaxed">"{quote}"</p>
-      <div className="mt-5 flex items-center gap-3">
-        <div
-          className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold"
-          style={{ backgroundColor: color }}
-        >
-          {initials}
+    <article className="border-t border-white/10 last:border-b">
+      <button
+        type="button"
+        onClick={onClick}
+        className="group flex w-full items-center justify-between gap-5 py-6 text-left focus:outline-none focus:ring-2 focus:ring-[#c7ff39] focus:ring-inset"
+        aria-expanded={open}
+      >
+        <span className="text-lg font-medium text-white md:text-xl">{question}</span>
+        <span className={`grid h-9 w-9 shrink-0 place-items-center border border-white/15 text-zinc-400 transition duration-300 ${open ? "rotate-45 border-[#c7ff39]/50 text-[#c7ff39]" : "group-hover:text-white"}`}>
+          <Plus size={17} />
+        </span>
+      </button>
+      <div className={`faq-grid ${open ? "is-open" : ""}`}>
+        <div className="overflow-hidden">
+          <p className="max-w-3xl pb-7 pr-12 text-sm leading-7 text-zinc-400">{answer}</p>
         </div>
-        <p className="text-sm font-semibold text-[#0B1B33]">{name}</p>
       </div>
-    </div>
+    </article>
   );
 }

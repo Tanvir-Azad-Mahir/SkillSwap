@@ -1,32 +1,45 @@
-import { useEffect, useState } from 'react'
-import { supabase } from './lib/supabase'
+import { useEffect } from "react";
+import Navbar from "./components/Navbar";
+import Hero from "./components/Hero";
+import Stats from "./components/Stats";
+import PopularSkills from "./components/PopularSkills";
+import WhySkillSwap from "./components/WhySkillSwap";
+import HowItWorks from "./components/HowItWorks";
+import FeaturedMembers from "./components/FeaturedMembers";
+import Testimonials from "./components/Testimonials";
+import CTASection from "./components/CTASection";
+import Footer from "./components/Footer";
 
-function App() {
-  const [status, setStatus] = useState('Checking Supabase...')
-
+export default function App() {
   useEffect(() => {
-    async function checkConnection() {
-      const { data, error } = await supabase
-        .from('skills')
-        .select('*')
-        .limit(1)
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.14 }
+    );
 
-      if (error) {
-        setStatus(`❌ Error: ${error.message}`)
-      } else {
-        setStatus('✅ Supabase connected!')
-      }
-    }
-
-    checkConnection()
-  }, [])
+    document.querySelectorAll(".reveal").forEach((element) => observer.observe(element));
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <div className="min-h-screen bg-white text-black p-10">
-      <h1 className="text-4xl font-bold mb-4">SkillSwap</h1>
-      <p className="text-xl">{status}</p>
+    <div className="min-h-screen overflow-x-hidden bg-[#060807] text-[#f2f4ef] antialiased">
+      <Navbar />
+      <Hero />
+      <Stats />
+      <PopularSkills />
+      <WhySkillSwap />
+      <HowItWorks />
+      <FeaturedMembers />
+      <Testimonials />
+      <CTASection />
+      <Footer />
     </div>
-  )
+  );
 }
-
-export default App

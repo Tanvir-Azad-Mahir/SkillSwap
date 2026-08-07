@@ -1,88 +1,124 @@
-// Add to index.html <head>:
-// <link rel="preconnect" href="https://fonts.googleapis.com">
-// <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-// Then in tailwind.config.js, extend theme.fontFamily.sans with ['Plus Jakarta Sans', 'sans-serif']
-
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
-import logo from "../assets/logo.png";
 
-const LINKS = [
-  { label: "Home", href: "#" },
-  { label: "Skills", href: "#skills" },
-  { label: "How It Works", href: "#how-it-works" },
-  { label: "Community", href: "#community" },
-  { label: "Testimonials", href: "#testimonials" },
+const links = [
+  ["Discover", "#discover"],
+  ["How it works", "#how-it-works"],
+  ["Community", "#community"],
+  ["FAQ", "#faq"],
 ];
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 100);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    document.body.classList.toggle("overflow-hidden", open);
+    return () => document.body.classList.remove("overflow-hidden");
+  }, [open]);
 
   return (
-    <header className="sticky top-0 z-50 h-24 border-b border-emerald-200/90 bg-gradient-to-r from-[#ECFDF5] via-[#D9FCE5] to-[#E8F8EE] text-slate-950 backdrop-blur-xl shadow-sm overflow-visible">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 h-full">
-        <a href="#" className="flex items-center">
-          <img src={logo} alt="logo" className="h-[150px] w-[200px] object-contain" />
+    <header
+      className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
+        scrolled
+          ? "border-b border-white/10 bg-[#080a09]/85 backdrop-blur-md"
+          : "border-b border-transparent bg-transparent"
+      }`}
+    >
+      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 md:px-8 lg:px-10">
+        <a
+          href="#top"
+          className="group inline-flex items-center gap-2 rounded-sm text-xl font-black tracking-[-0.045em] text-white outline-none focus:ring-2 focus:ring-[#c7ff39] focus:ring-offset-4 focus:ring-offset-[#060807] md:text-2xl"
+          aria-label="SkillSwap home"
+        >
+          <span className="relative">SKILLSWAP</span>
+          <span className="text-[#c7ff39] transition-transform duration-300 group-hover:rotate-12">+</span>
         </a>
 
-        <div className="hidden lg:flex items-center gap-6">
-          {LINKS.map((link) => (
+        <nav className="hidden items-center gap-8 md:flex" aria-label="Primary navigation">
+          {links.map(([label, href]) => (
             <a
-              key={link.label}
-              href={link.href}
-              className="text-sm font-medium text-slate-700 transition hover:text-slate-950"
+              key={label}
+              href={href}
+              className="rounded-sm text-sm font-medium text-zinc-400 transition hover:text-white focus:outline-none focus:ring-2 focus:ring-[#c7ff39] focus:ring-offset-4 focus:ring-offset-[#060807]"
             >
-              {link.label}
+              {label}
             </a>
           ))}
-          <a href="#" className="text-sm font-medium text-slate-700 transition hover:text-slate-950">
-            Log In
+        </nav>
+
+        <div className="hidden items-center gap-3 md:flex">
+          <a
+            href="#signin"
+            className="rounded-sm px-3 py-2 text-sm text-zinc-400 transition hover:text-white focus:outline-none focus:ring-2 focus:ring-[#c7ff39] focus:ring-offset-4 focus:ring-offset-[#060807]"
+          >
+            Sign in
           </a>
           <a
-            href="#"
-            className="rounded-full bg-emerald-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-800"
+            href="#join"
+            className="inline-flex min-h-11 items-center justify-center bg-[#c7ff39] px-5 text-sm font-semibold text-[#071008] transition hover:bg-[#d4ff67] focus:outline-none focus:ring-2 focus:ring-[#c7ff39] focus:ring-offset-4 focus:ring-offset-[#060807]"
           >
-            Join
+            Join SkillSwap+
           </a>
         </div>
 
         <button
-          className="lg:hidden rounded-full border border-slate-800 bg-slate-950/90 p-2 text-slate-100 shadow-sm shadow-slate-950/30"
+          type="button"
           onClick={() => setOpen((value) => !value)}
+          className="grid h-11 w-11 place-items-center border border-white/15 text-white transition hover:border-white/30 focus:outline-none focus:ring-2 focus:ring-[#c7ff39] focus:ring-offset-4 focus:ring-offset-[#060807] md:hidden"
           aria-label={open ? "Close menu" : "Open menu"}
+          aria-expanded={open}
         >
-          {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          {open ? <X size={18} /> : <Menu size={18} />}
         </button>
       </div>
 
-      {open && (
-        <div className="lg:hidden rounded-b-3xl border-t border-emerald-200/80 bg-[#ECFDF5] px-6 py-4 shadow-2xl shadow-emerald-200/20">
-          {LINKS.map((link) => (
+      <div
+        id="mobile-menu"
+        className={`absolute inset-x-0 top-0 z-50 min-h-screen bg-[#060807] px-5 pt-5 md:hidden ${
+          open ? "block" : "hidden"
+        }`}
+      >
+        <div className="flex items-center justify-between">
+          <a href="#top" onClick={() => setOpen(false)} className="text-2xl font-black tracking-[-0.045em] text-white">
+            SKILLSWAP<span className="text-[#c7ff39]">+</span>
+          </a>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="grid h-11 w-11 place-items-center border border-white/15 text-white"
+            aria-label="Close menu"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <nav className="mt-20 flex flex-col border-t border-white/10">
+          {links.map(([label, href]) => (
             <a
-              key={link.label}
-              href={link.href}
-              className="block rounded-3xl px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-emerald-100"
+              key={label}
+              href={href}
               onClick={() => setOpen(false)}
+              className="border-b border-white/10 py-5 text-2xl tracking-tight text-zinc-300"
             >
-              {link.label}
+              {label}
             </a>
           ))}
-          <div className="mt-3 flex flex-col gap-2">
-            <a
-              href="#"
-              className="rounded-3xl border border-slate-800 px-4 py-3 text-sm font-medium text-slate-200 transition hover:bg-slate-900"
-            >
-              Log In
-            </a>
-            <a
-              href="#"
-              className="inline-flex justify-center rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
-            >
-              Join Skill Swap+
-            </a>
-          </div>
-        </div>
-      )}
+          <a
+            href="#join"
+            onClick={() => setOpen(false)}
+            className="mt-8 inline-flex min-h-12 items-center justify-center bg-[#c7ff39] px-6 font-semibold text-[#071008]"
+          >
+            Join SkillSwap+
+          </a>
+        </nav>
+      </div>
     </header>
   );
 }

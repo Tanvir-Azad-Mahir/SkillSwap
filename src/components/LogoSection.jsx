@@ -1,13 +1,12 @@
-import logo from "../assets/logo.png";
+import TrustedBy from "./TrustedBy";
 
-export default function LogoSection({ className = "", labelClass = "", titleClass = "" }) {
+export default function LogoSection() {
   return (
-    <div className={`flex items-center gap-4 ${className}`}>
-      <img src={logo} alt="Skill Swap+" className="h-10 w-10 rounded-2xl object-cover shadow-lg shadow-slate-900/20" />
-      <div>
-        <p className={`text-xs uppercase tracking-[0.28em] ${labelClass}`}>Skill Swap+</p>
-        <p className={`text-lg font-semibold ${titleClass}`}>Your exchange-first skill network</p>
+    <section className="border-b border-white/10 bg-[#080a09]">
+      <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-6 md:flex-row md:items-center md:justify-between md:px-8 lg:px-10">
+        <span className="text-[10px] uppercase tracking-[0.18em] text-[#c7ff39]">Popular categories</span>
+        <TrustedBy />
       </div>
-    </div>
+    </section>
   );
 }

@@ -1,123 +1,65 @@
-import { ArrowRightLeft, Sparkles, Users, ShieldCheck } from "lucide-react";
-import logo from "../assets/logo.png";
+import { ArrowDown, ArrowUpRight } from "lucide-react";
+import CommunityPulse from "./CommunityPulse";
+
+const HERO_IMAGE = "https://akpcainfbirpjvexinzt.supabase.co/storage/v1/object/sign/image/hero.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8xZDM3MGYyYy02Nzk4LTQ3MjItOWNmYy1lNmFlOWE0YTU1YzUiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJpbWFnZS9oZXJvLnBuZyIsInNjb3BlIjoiZG93bmxvYWQiLCJpYXQiOjE3ODYxMjc3MDEsImV4cCI6MTgxNzY2MzcwMX0.1yCWblTXX-1IVAabWU4Ix0i-CsgN4UrAisTmopU5RF4";
 
 export default function Hero() {
   return (
-    <section className="relative overflow-hidden bg-[radial-gradient(circle_at_top_left,#96F7B1_0%,rgba(255,255,255,0.5)_45%),radial-gradient(circle_at_bottom_right,#54D58A_0%,rgba(255,255,255,0.6)_40%),linear-gradient(180deg,#D8FFE4_0%,#FFFFFF_100%)] text-slate-950">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.16),transparent_25%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.14),transparent_24%)]" />
-      <div className="relative mx-auto flex max-w-7xl flex-col px-6 py-24 lg:flex-row lg:items-center lg:justify-between">
-        <div className="space-y-8 lg:max-w-xl">
-          <div className="inline-flex items-center gap-3 rounded-full bg-white/80 px-4 py-3 text-sm font-semibold uppercase tracking-[0.32em] text-slate-950 ring-1 ring-slate-200 backdrop-blur-sm">
-            <img src={logo} alt="Skill Swap+" className="h-10 w-10 object-contain" />
-            <span>Now live</span>
-          </div>
+    <section id="top" className="relative isolate min-h-screen overflow-hidden pt-20">
+      <div className="noise absolute inset-0 -z-30 opacity-70" />
+      <div className="absolute left-[68%] top-[17%] -z-20 h-[36rem] w-[36rem] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(199,255,57,0.16),rgba(199,255,57,0.035)_42%,transparent_70%)] blur-3xl" />
 
-          <div className="space-y-5">
-            <h1 className="text-5xl font-extrabold tracking-tight sm:text-6xl">
-              Swap skills with confidence and grow your network without course fees.
-            </h1>
-            <p className="text-lg leading-relaxed text-slate-700">
-              Skill Swap+ brings learners and teachers together for fast, friendly skill exchanges—no subscriptions, no hidden costs.
-            </p>
-          </div>
+      <div className="mx-auto grid min-h-[calc(100vh-5rem)] max-w-7xl items-center gap-14 px-5 py-20 md:px-8 lg:grid-cols-[1.08fr_.92fr] lg:px-10 lg:py-24">
+        <div className="reveal relative z-10 max-w-4xl">
+          <p className="mb-7 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-400 md:text-xs">
+            Peer-to-peer learning · Built for curious people
+          </p>
 
-          <div className="flex flex-wrap gap-4">
+          <h1 className="text-[3.3rem] font-semibold leading-[0.95] tracking-[-0.055em] text-[#f2f4ef] sm:text-6xl md:text-7xl lg:text-[6.6rem]">
+            Learn what matters.
+            <span className="mt-2 block text-zinc-500">Share what you know.</span>
+          </h1>
+
+          <p className="mt-8 max-w-xl text-base leading-7 text-zinc-400 md:text-lg md:leading-8">
+            SkillSwap+ connects people who want to exchange practical skills, one meaningful match at a time. No endless courses. No passive feeds. Just people teaching people.
+          </p>
+
+          <div className="mt-9 flex flex-wrap gap-3">
             <a
-              href="#skills"
-              className="inline-flex items-center justify-center rounded-full bg-slate-950 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-slate-950/20 transition hover:bg-slate-800"
+              href="#discover"
+              className="inline-flex min-h-12 items-center justify-center gap-2 bg-[#c7ff39] px-6 text-sm font-semibold text-[#071008] transition hover:bg-[#d4ff67] focus:outline-none focus:ring-2 focus:ring-[#c7ff39] focus:ring-offset-4 focus:ring-offset-[#060807]"
             >
-              Explore Skills
+              Explore skills <ArrowUpRight size={17} />
             </a>
             <a
               href="#how-it-works"
-              className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white/90 px-6 py-3.5 text-sm font-semibold text-slate-950 transition hover:border-slate-400"
+              className="inline-flex min-h-12 items-center justify-center gap-2 border border-white/15 px-6 text-sm font-medium text-white transition hover:border-white/30 hover:bg-white/[0.03] focus:outline-none focus:ring-2 focus:ring-[#c7ff39] focus:ring-offset-4 focus:ring-offset-[#060807]"
             >
-              How it works
+              How it works <ArrowDown size={16} />
             </a>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="rounded-[1.75rem] border border-slate-200 bg-white/90 px-5 py-4">
-              <p className="text-sm text-slate-600">No monthly fees</p>
-              <p className="mt-2 text-lg font-semibold text-slate-950">Pay only with skills</p>
-            </div>
-            <div className="rounded-[1.75rem] border border-slate-200 bg-white/90 px-5 py-4">
-              <p className="text-sm text-slate-600">Verified exchanges</p>
-              <p className="mt-2 text-lg font-semibold text-slate-950">Trusted partnerships</p>
-            </div>
-            <div className="rounded-[1.75rem] border border-slate-200 bg-white/90 px-5 py-4">
-              <p className="text-sm text-slate-600">Global community</p>
-              <p className="mt-2 text-lg font-semibold text-slate-950">Creators worldwide</p>
-            </div>
           </div>
         </div>
 
-        <div className="relative mt-14 lg:mt-0 lg:w-[520px]">
-          <div className="absolute -left-16 top-14 h-64 w-64 rounded-full bg-[#34D399]/20 blur-3xl" />
-          <div className="absolute -right-10 bottom-16 h-56 w-56 rounded-full bg-[#6EE7B7]/20 blur-3xl" />
-
-          <div className="relative rounded-[2.5rem] border border-slate-200/70 bg-white/90 p-6 shadow-2xl shadow-slate-950/10 backdrop-blur-xl">
-            <div className="mb-6 flex items-center justify-between gap-3 rounded-3xl bg-slate-100 px-4 py-3 text-slate-950">
-              <div>
-                <p className="text-xs uppercase tracking-[0.3em] text-emerald-600">Featured swap</p>
-                <p className="mt-1 text-sm text-slate-700">Creative portfolio exchange</p>
-              </div>
-              <div className="inline-flex h-11 w-11 items-center justify-center rounded-3xl bg-emerald-100 text-emerald-700">
-                <ShieldCheck className="h-5 w-5" />
-              </div>
-            </div>
-
-            <div className="rounded-[2rem] bg-slate-50 p-5 shadow-inner shadow-slate-950/10">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.28em] text-emerald-700">You teach</p>
-                  <p className="mt-2 text-xl font-semibold text-slate-950">UX design</p>
-                </div>
-                <div className="rounded-3xl bg-emerald-100 px-3 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-emerald-700">
-                  Matched
-                </div>
-              </div>
-
-              <div className="mt-6 grid gap-4">
-                <div className="rounded-3xl bg-white p-4 shadow-sm shadow-slate-950/5">
-                  <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Partner</p>
-                  <p className="mt-1 text-lg font-semibold text-slate-950">Maya • Python mentor</p>
-                </div>
-                <div className="rounded-3xl bg-white p-4 shadow-sm shadow-slate-950/5">
-                  <div className="flex items-center justify-between text-slate-500 text-sm">
-                    <span>Swap length</span>
-                    <span>2 hrs</span>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between text-slate-900 text-sm">
-                    <span>Status</span>
-                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">Confirmed</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 grid grid-cols-2 gap-4">
-              <div className="rounded-3xl bg-white p-4 shadow-sm shadow-slate-950/5">
-                <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Connections</p>
-                <p className="mt-2 text-2xl font-semibold text-slate-950">128</p>
-              </div>
-              <div className="rounded-3xl bg-white p-4 shadow-sm shadow-slate-950/5">
-                <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Success rate</p>
-                <p className="mt-2 text-2xl font-semibold text-slate-950">95%</p>
-              </div>
-            </div>
+        <div className="reveal relative mx-auto w-full max-w-[31rem] lg:justify-self-end" style={{ transitionDelay: "110ms" }}>
+          <div className="group relative aspect-[4/5] overflow-hidden border border-white/10 bg-[#0a0d0b]">
+            <img
+              src={HERO_IMAGE}
+              alt="Abstract collaborative object representing SkillSwap connections"
+              className="h-full w-full object-cover grayscale transition duration-700 ease-[cubic-bezier(.16,1,.3,1)] group-hover:scale-[1.03] group-hover:grayscale-0"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#060807]/45 via-transparent to-transparent" />
           </div>
+          <CommunityPulse />
+        </div>
+      </div>
 
-          <div className="mt-8 flex flex-col gap-3 rounded-[2rem] bg-white/85 px-5 py-4 text-slate-700 shadow-sm shadow-slate-950/10 sm:flex-row sm:items-center sm:justify-between">
-            <div className="inline-flex items-center gap-2 text-sm font-medium text-slate-950">
-              <Sparkles className="h-4 w-4 text-emerald-600" />
-              AI-powered match suggestions
-            </div>
-            <div className="inline-flex items-center gap-2 text-sm text-slate-700">
-              <Users className="h-4 w-4 text-emerald-600" />
-              10K+ learners joined
-            </div>
-          </div>
+      <div className="relative z-10 border-t border-white/10">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 text-[11px] uppercase tracking-[0.18em] text-zinc-500 md:px-8 lg:px-10">
+          <span>01 / 07</span>
+          <span className="hidden sm:block">Skill exchange, redesigned for real connection</span>
+          <a href="#stats" className="inline-flex items-center gap-2 text-zinc-400 transition hover:text-white">
+            Scroll <ArrowDown size={14} />
+          </a>
         </div>
       </div>
     </section>

@@ -1,46 +1,37 @@
-import { PiggyBank, Users2, Share2, Award } from "lucide-react";
+import { Compass, Shapes, PanelsTopLeft } from "lucide-react";
+import MatchCard from "./MatchCard";
 
-const BENEFITS = [
+const items = [
   {
-    icon: PiggyBank,
-    title: "Learn Without Expensive Courses",
-    text: "Exchange your knowledge instead of paying large course fees.",
+    icon: Compass,
+    title: "Find the right person",
+    description: "Search by skill, level, availability, and what someone wants in return. Matching stays human and specific.",
   },
   {
-    icon: Users2,
-    title: "Real Human Connections",
-    text: "Learn directly from people with real-world experience.",
+    icon: Shapes,
+    title: "Exchange value, not money",
+    description: "Offer a skill you already know and receive focused learning in return. Every exchange starts with mutual value.",
   },
   {
-    icon: Share2,
-    title: "Share What You Know",
-    text: "Your existing skills have value to someone else.",
-  },
-  {
-    icon: Award,
-    title: "Build Your Reputation",
-    text: "Earn ratings, reviews, badges, and credibility as you help others.",
+    icon: PanelsTopLeft,
+    title: "Keep learning practical",
+    description: "Plan short sessions, share resources, track progress, and leave feedback without turning learning into another feed.",
   },
 ];
 
 export default function WhySkillSwap() {
   return (
-    <section className="bg-white py-24">
-      <div className="w-full px-6">
-        <h2 className="text-3xl sm:text-4xl font-extrabold text-[#0B1B33] tracking-tight text-center">
-          Why Skill Swap+
-        </h2>
-
-        <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {BENEFITS.map((b) => (
-            <div key={b.title} className="rounded-2xl border border-slate-100 p-6 hover:shadow-lg hover:shadow-slate-200/60 transition-shadow">
-              <div className="w-11 h-11 rounded-xl bg-[#ECFDF3] flex items-center justify-center">
-                <b.icon className="w-5 h-5 text-[#16A34A]" strokeWidth={2} />
-              </div>
-              <p className="mt-4 font-semibold text-[#0B1B33]">{b.title}</p>
-              <p className="mt-2 text-sm text-slate-500 leading-relaxed">{b.text}</p>
-            </div>
-          ))}
+    <section className="border-y border-white/10 bg-[#080a09] py-28 md:py-36 lg:py-40">
+      <div className="mx-auto grid max-w-7xl gap-14 px-5 md:px-8 lg:grid-cols-12 lg:px-10">
+        <div className="reveal lg:col-span-5">
+          <div className="lg:sticky lg:top-28">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#c7ff39]">/ Why SkillSwap+</p>
+            <h2 className="mt-4 max-w-lg text-4xl font-semibold tracking-[-0.045em] text-white md:text-5xl">A better way to learn from people.</h2>
+            <p className="mt-6 max-w-md text-sm leading-7 text-zinc-400">SkillSwap+ is designed around direct exchange: your experience is useful to someone, and theirs can move you forward.</p>
+          </div>
+        </div>
+        <div className="reveal lg:col-span-7">
+          {items.map((item, index) => <MatchCard key={item.title} {...item} index={index + 1} />)}
         </div>
       </div>
     </section>
