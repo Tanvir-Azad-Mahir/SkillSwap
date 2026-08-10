@@ -1,45 +1,43 @@
-import { useEffect } from "react";
-import Navbar from "./components/Navbar";
-import Hero from "./components/Hero";
-import Stats from "./components/Stats";
-import PopularSkills from "./components/PopularSkills";
-import WhySkillSwap from "./components/WhySkillSwap";
-import HowItWorks from "./components/HowItWorks";
-import FeaturedMembers from "./components/FeaturedMembers";
-import Testimonials from "./components/Testimonials";
-import CTASection from "./components/CTASection";
-import Footer from "./components/Footer";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+
+import Landing from "./pages/landing";
+import Signup from "./pages/Signup";
+import Login from "./pages/Login";
+import AuthCallback from "./pages/AuthCallback";
+import ChooseUsername from "./pages/ChooseUsername";
+import ProfileSetup from "./pages/ProfileSetup";
+
+// Import Dashboard after you create it
+// import Dashboard from "./pages/Dashboard";
 
 export default function App() {
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("is-visible");
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.14 }
-    );
-
-    document.querySelectorAll(".reveal").forEach((element) => observer.observe(element));
-    return () => observer.disconnect();
-  }, []);
-
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#060807] text-[#f2f4ef] antialiased">
-      <Navbar />
-      <Hero />
-      <Stats />
-      <PopularSkills />
-      <WhySkillSwap />
-      <HowItWorks />
-      <FeaturedMembers />
-      <Testimonials />
-      <CTASection />
-      <Footer />
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Landing />} />
+
+        <Route path="/signup" element={<Signup />} />
+
+        <Route path="/login" element={<Login />} />
+
+        <Route
+          path="/auth/callback"
+          element={<AuthCallback />}
+        />
+
+        <Route
+          path="/choose-username"
+          element={<ChooseUsername />}
+        />
+
+        <Route
+          path="/profile-setup"
+          element={<ProfileSetup />}
+        />
+
+        {/* Add after Dashboard is created */}
+        {/* <Route path="/dashboard" element={<Dashboard />} /> */}
+      </Routes>
+    </BrowserRouter>
   );
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 
 const links = [
@@ -55,18 +56,18 @@ export default function Navbar() {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <a
-            href="#signin"
+          <Link
+            to="/login"
             className="rounded-sm px-3 py-2 text-sm text-zinc-400 transition hover:text-white focus:outline-none focus:ring-2 focus:ring-[#c7ff39] focus:ring-offset-4 focus:ring-offset-[#060807]"
           >
             Sign in
-          </a>
-          <a
-            href="#join"
+          </Link>
+          <Link
+            to="/signup"
             className="inline-flex min-h-11 items-center justify-center bg-[#c7ff39] px-5 text-sm font-semibold text-[#071008] transition hover:bg-[#d4ff67] focus:outline-none focus:ring-2 focus:ring-[#c7ff39] focus:ring-offset-4 focus:ring-offset-[#060807]"
           >
             Join SkillSwap+
-          </a>
+          </Link>
         </div>
 
         <button
@@ -110,13 +111,13 @@ export default function Navbar() {
               {label}
             </a>
           ))}
-          <a
-            href="#join"
+          <Link
+            to="/signup"
             onClick={() => setOpen(false)}
             className="mt-8 inline-flex min-h-12 items-center justify-center bg-[#c7ff39] px-6 font-semibold text-[#071008]"
           >
             Join SkillSwap+
-          </a>
+          </Link>
         </nav>
       </div>
     </header>

@@ -1,148 +1,256 @@
 import { useState } from "react";
-import "../styles/login.css";
-
-function MailIcon() {
-  return (
-    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <rect x="3" y="5" width="18" height="14" rx="2" />
-      <path d="M3 7l9 6 9-6" />
-    </svg>
-  );
-}
-
-function LockIcon() {
-  return (
-    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <rect x="5" y="11" width="14" height="9" rx="2" />
-      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-    </svg>
-  );
-}
-
-function EyeIcon({ off }) {
-  return off ? (
-    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="M3 3l18 18" />
-      <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
-      <path d="M6.6 6.7C4.5 8.1 3 10 3 12c0 0 3.5 6 9 6 1.8 0 3.4-.6 4.7-1.5M9.9 4.6A9.6 9.6 0 0 1 12 4.4c5.5 0 9 5.6 9 5.6a15.6 15.6 0 0 1-2.2 2.9" />
-    </svg>
-  ) : (
-    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-
-function GoogleIcon() {
-  return (
-    <svg viewBox="0 0 18 18" width="18" height="18">
-      <path fill="#4285F4" d="M17.6 9.2c0-.6-.1-1.2-.2-1.8H9v3.4h4.8a4.1 4.1 0 0 1-1.8 2.7v2.2h2.9c1.7-1.6 2.7-3.9 2.7-6.5z" />
-      <path fill="#34A853" d="M9 18c2.4 0 4.5-.8 6-2.2l-2.9-2.2c-.8.5-1.9.9-3.1.9-2.4 0-4.4-1.6-5.1-3.8H.9v2.3A9 9 0 0 0 9 18z" />
-      <path fill="#FBBC05" d="M3.9 10.7a5.4 5.4 0 0 1 0-3.4V5H.9a9 9 0 0 0 0 8l3-2.3z" />
-      <path fill="#EA4335" d="M9 3.6c1.3 0 2.5.5 3.4 1.3l2.6-2.6A9 9 0 0 0 .9 5l3 2.3C4.6 5.1 6.6 3.6 9 3.6z" />
-    </svg>
-  );
-}
-
-function AppleIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-      <path d="M16.4 1c.1 1.1-.3 2.2-1 3-.7.8-1.8 1.5-2.9 1.4-.1-1.1.4-2.2 1-2.9.8-.9 2-1.5 2.9-1.5zM20 17.2c-.5 1.1-.8 1.6-1.4 2.6-.9 1.4-2.2 3.1-3.8 3.1-1.4 0-1.8-.9-3.7-.9-1.9 0-2.3.9-3.7.9-1.6 0-2.8-1.6-3.7-2.9C1.4 17.4.5 13.5 2 10.9c.9-1.6 2.5-2.6 4.2-2.6 1.5 0 2.4.9 3.7.9 1.2 0 2-1 3.7-1 1.4 0 2.9.8 3.9 2.1-3.5 2-2.9 6.8.5 7.9z" />
-    </svg>
-  );
-}
+import { Link, useNavigate } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
+import { supabase } from "../lib/supabase";
 
 export default function Login() {
+  const navigate = useNavigate();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  function handleSubmit(e) {
-    e.preventDefault();
-    // await supabase.auth.signInWithPassword({ email, password })
-    console.log("Sign in submitted:", { email });
-  }
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const routeUser = async (user) => {
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("profile_completed")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error("Profile check error:", profileError);
+      throw new Error("PROFILE_CHECK_FAILED");
+    }
+
+    if (!profile || !profile.profile_completed) {
+      navigate("/profile-setup", { replace: true });
+      return;
+    }
+
+    navigate("/dashboard", { replace: true });
+  };
+
+  const handleLogin = async (event) => {
+    event.preventDefault();
+
+    if (!email.trim() || !password) {
+      setError("Enter your email and password.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError("");
+
+      const { data, error: loginError } =
+        await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+
+      if (loginError) {
+        console.error("Login error:", loginError);
+        setError("Invalid email or password.");
+        return;
+      }
+
+      if (!data.user) {
+        setError("We couldn't sign you in. Please try again.");
+        return;
+      }
+
+      await routeUser(data.user);
+    } catch (err) {
+      console.error("Login flow error:", err);
+      setError("We couldn't sign you in right now. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      setGoogleLoading(true);
+      setError("");
+
+      const { error: googleError } =
+        await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: {
+            redirectTo: `${window.location.origin}/auth/callback`,
+          },
+        });
+
+      if (googleError) {
+        console.error("Google login error:", googleError);
+        setError("Google sign-in could not be started.");
+        setGoogleLoading(false);
+      }
+    } catch (err) {
+      console.error("Google login error:", err);
+      setError("Google sign-in could not be started.");
+      setGoogleLoading(false);
+    }
+  };
 
   return (
-    <>
-      <div className="bg">
-        <div className="blob blob-teal" />
-        <div className="blob blob-amber" />
-        <div className="blob blob-mint" />
-      </div>
+    <main className="relative min-h-screen overflow-hidden bg-[#060807] text-[#f2f4ef]">
+      <div className="noise pointer-events-none fixed inset-0" />
 
-      <main className="wrap">
-        <div className="card">
-          <div className="brand">
-            <span className="brand-mark">S+</span>
-            <span className="brand-name">SkillSwap+</span>
+      <div
+        className="pointer-events-none fixed inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse at 22% 38%, rgba(199,255,57,.08), transparent 42%)",
+        }}
+      />
+
+      <div className="relative z-10 grid min-h-screen lg:grid-cols-2">
+        {/* Left */}
+        <section className="hidden border-r border-white/10 px-10 py-10 lg:flex lg:flex-col lg:justify-between">
+          <Link
+            to="/"
+            className="w-fit text-lg font-semibold tracking-[-0.03em] text-[#f2f4ef]"
+          >
+            SKILLSWAP<span className="text-[#c7ff39]">+</span>
+          </Link>
+
+          <div className="max-w-xl">
+            <p className="text-xs uppercase tracking-[0.18em] text-[#c7ff39]">
+              Welcome back
+            </p>
+
+            <h1 className="mt-5 text-5xl font-medium leading-[1.02] tracking-[-0.055em] xl:text-7xl">
+              Learn what you need.
+              <br />
+              Share what you know.
+            </h1>
+
+            <p className="mt-6 max-w-lg text-base leading-7 text-[#a1a1aa]">
+              Sign in to continue your SkillSwap+ journey, connect with
+              members, learn new skills and earn SS Credits by teaching.
+            </p>
           </div>
 
-          <h1>Welcome back</h1>
-          <p className="sub">Sign in to keep learning, teaching, and trading skills.</p>
+          <p className="text-xs text-white/30">© 2026 SkillSwap+</p>
+        </section>
 
-          <form onSubmit={handleSubmit}>
-            <div className="field">
-              <label htmlFor="email">Email</label>
-              <div className="input-wrap">
-                <MailIcon />
+        {/* Right */}
+        <section className="flex min-h-screen items-center justify-center px-5 py-24 sm:px-8 lg:px-12">
+          <div className="w-full max-w-md">
+            <Link
+              to="/"
+              className="mb-12 inline-block text-lg font-semibold tracking-[-0.03em] lg:hidden"
+            >
+              SKILLSWAP<span className="text-[#c7ff39]">+</span>
+            </Link>
+
+            <p className="text-xs uppercase tracking-[0.18em] text-[#c7ff39]">
+              Sign in
+            </p>
+
+            <h2 className="mt-3 text-4xl font-medium tracking-[-0.045em]">
+              Continue to SkillSwap+.
+            </h2>
+
+            <p className="mt-3 text-sm leading-6 text-[#a1a1aa]">
+              Enter your account details or continue with Google.
+            </p>
+
+            {error && (
+              <div
+                role="alert"
+                className="mt-6 border border-[#ff6b6b]/30 bg-[#ff6b6b]/[0.04] px-4 py-3 text-sm text-[#ff8b8b]"
+              >
+                {error}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              disabled={googleLoading || loading}
+              className="mt-7 flex min-h-[52px] w-full items-center justify-center gap-3 border border-white/15 bg-[#0a0d0b] px-4 text-sm font-medium transition hover:border-white/30 hover:bg-white/[0.03] disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-[#c7ff39] focus:ring-offset-4 focus:ring-offset-[#060807]"
+            >
+              <span className="grid h-6 w-6 place-items-center rounded-full bg-white text-xs font-bold text-black">
+                G
+              </span>
+              {googleLoading ? "Opening Google..." : "Continue with Google"}
+            </button>
+
+            <div className="my-7 flex items-center gap-4">
+              <div className="h-px flex-1 bg-white/10" />
+              <span className="text-[10px] uppercase tracking-[0.16em] text-white/30">
+                or
+              </span>
+              <div className="h-px flex-1 bg-white/10" />
+            </div>
+
+            <form onSubmit={handleLogin} className="space-y-5">
+              <label className="block text-sm font-medium">
+                Email
                 <input
-                  id="email"
                   type="email"
-                  placeholder="you@example.com"
-                  required
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                  className="mt-2 min-h-[52px] w-full rounded-md border border-white/15 bg-[#060807] px-4 text-[#f2f4ef] placeholder:text-white/25 transition hover:border-white/25 focus:border-[#c7ff39]/70 focus:outline-none focus:ring-1 focus:ring-[#c7ff39]/30"
                 />
-              </div>
-            </div>
+              </label>
 
-            <div className="field">
-              <div className="field-row">
-                <label htmlFor="password">Password</label>
-                <a href="#" className="link-muted">Forgot?</a>
-              </div>
-              <div className="input-wrap">
-                <LockIcon />
-                <input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-                <button
-                  type="button"
-                  className={`icon-btn${showPassword ? " is-active" : ""}`}
-                  onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  <EyeIcon off={showPassword} />
-                </button>
-              </div>
-            </div>
+              <label className="block text-sm font-medium">
+                Password
+                <div className="relative mt-2">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder="Enter your password"
+                    autoComplete="current-password"
+                    className="min-h-[52px] w-full rounded-md border border-white/15 bg-[#060807] px-4 pr-12 text-[#f2f4ef] placeholder:text-white/25 transition hover:border-white/25 focus:border-[#c7ff39]/70 focus:outline-none focus:ring-1 focus:ring-[#c7ff39]/30"
+                  />
 
-            <button type="submit" className="btn-primary">Sign in</button>
-          </form>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((current) => !current)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    className="absolute right-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center text-[#a1a1aa] transition hover:text-white"
+                  >
+                    {showPassword ? (
+                      <EyeOff size={17} strokeWidth={1.5} />
+                    ) : (
+                      <Eye size={17} strokeWidth={1.5} />
+                    )}
+                  </button>
+                </div>
+              </label>
 
-          <div className="divider"><span>or continue with</span></div>
+              <button
+                type="submit"
+                disabled={loading || googleLoading}
+                className="flex min-h-[52px] w-full items-center justify-center bg-[#c7ff39] px-5 font-semibold text-[#071008] transition hover:bg-[#d2ff64] disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-[#c7ff39] focus:ring-offset-4 focus:ring-offset-[#060807]"
+              >
+                {loading ? "Signing in..." : "Sign in →"}
+              </button>
+            </form>
 
-          <div className="oauth-row">
-            <button type="button" className="btn-oauth">
-              <GoogleIcon /> Google
-            </button>
-            <button type="button" className="btn-oauth">
-              <AppleIcon /> Apple
-            </button>
+            <p className="mt-7 text-center text-sm text-[#a1a1aa]">
+              New to SkillSwap+?{" "}
+              <Link
+                to="/signup"
+                className="font-medium text-[#c7ff39] hover:underline"
+              >
+                Create an account
+              </Link>
+            </p>
           </div>
-
-          <p className="signup-line">
-            Don't have an account? <a href="/signup">Sign up</a>
-          </p>
-        </div>
-      </main>
-    </>
+        </section>
+      </div>
+    </main>
   );
 }
