@@ -3,40 +3,76 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Landing from "./pages/landing";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import AuthCallback from "./pages/AuthCallback";
 import ChooseUsername from "./pages/ChooseUsername";
 import ProfileSetup from "./pages/ProfileSetup";
-
-// Import Dashboard after you create it
-// import Dashboard from "./pages/Dashboard";
+import EditProfile from "./pages/EditProfile";
+import Dashboard from "./pages/Dashboard";
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Landing />} />
+        {/* Landing */}
+        <Route
+          path="/"
+          element={<Landing />}
+        />
 
-        <Route path="/signup" element={<Signup />} />
+        {/* Authentication */}
+        <Route
+          path="/signup"
+          element={<Signup />}
+        />
 
-        <Route path="/login" element={<Login />} />
+        <Route
+          path="/login"
+          element={<Login />}
+        />
 
+        {/* Forgot password */}
+        <Route
+          path="/forgot-password"
+          element={<ForgotPassword />}
+        />
+
+        {/* Reset password */}
+        <Route
+          path="/reset-password"
+          element={<ResetPassword />}
+        />
+
+        {/* OAuth callback */}
         <Route
           path="/auth/callback"
           element={<AuthCallback />}
         />
 
+        {/* Google first-time username */}
         <Route
           path="/choose-username"
           element={<ChooseUsername />}
         />
 
+        {/* New-user onboarding */}
         <Route
           path="/profile-setup"
           element={<ProfileSetup />}
         />
 
-        {/* Add after Dashboard is created */}
-        {/* <Route path="/dashboard" element={<Dashboard />} /> */}
+        {/* Existing-user profile editing */}
+        <Route
+          path="/profile/edit"
+          element={<EditProfile />}
+        />
+
+        {/* Dashboard */}
+        <Route
+          path="/dashboard"
+          element={<Dashboard />}
+        />
       </Routes>
     </BrowserRouter>
   );
