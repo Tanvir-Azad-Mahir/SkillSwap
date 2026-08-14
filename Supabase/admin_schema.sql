@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   email TEXT NOT NULL,
   role user_role DEFAULT 'Learner',
   status user_status DEFAULT 'Active',
+  is_active BOOLEAN DEFAULT true,
   credits INTEGER DEFAULT 100,
   bio TEXT,
   location TEXT,
@@ -57,6 +58,7 @@ CREATE TABLE IF NOT EXISTS public.categories (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT UNIQUE NOT NULL,
   status user_status DEFAULT 'Active',
+  is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -67,6 +69,7 @@ CREATE TABLE IF NOT EXISTS public.skills (
   category_id UUID REFERENCES public.categories(id) ON DELETE SET NULL,
   difficulty skill_difficulty DEFAULT 'Intermediate',
   status user_status DEFAULT 'Active',
+  is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
