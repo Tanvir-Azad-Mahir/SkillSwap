@@ -1,6 +1,16 @@
 -- SkillSwap+ Admin & Main Platform Schema
 
 -- 1. Custom Types
+DROP TYPE IF EXISTS user_role CASCADE;
+DROP TYPE IF EXISTS user_status CASCADE;
+DROP TYPE IF EXISTS skill_difficulty CASCADE;
+DROP TYPE IF EXISTS request_status CASCADE;
+DROP TYPE IF EXISTS session_status CASCADE;
+DROP TYPE IF EXISTS course_status CASCADE;
+DROP TYPE IF EXISTS transaction_type CASCADE;
+DROP TYPE IF EXISTS report_status CASCADE;
+DROP TYPE IF EXISTS media_type CASCADE;
+
 CREATE TYPE user_role AS ENUM ('Learner', 'Mentor', 'Swap Master', 'Super Admin', 'Moderator', 'Finance Admin', 'Content Admin');
 CREATE TYPE user_status AS ENUM ('Active', 'Pending', 'Suspended');
 CREATE TYPE skill_difficulty AS ENUM ('Beginner', 'Intermediate', 'Advanced');
@@ -11,7 +21,21 @@ CREATE TYPE transaction_type AS ENUM ('Session Earned', 'Session Spent', 'Welcom
 CREATE TYPE report_status AS ENUM ('Pending', 'Under Review', 'Resolved', 'Dismissed');
 CREATE TYPE media_type AS ENUM ('Image', 'Video', 'Document', 'Other');
 
--- 2. Tables
+-- 2. Clean up existing tables if any
+DROP TABLE IF EXISTS public.platform_settings CASCADE;
+DROP TABLE IF EXISTS public.media CASCADE;
+DROP TABLE IF EXISTS public.reviews CASCADE;
+DROP TABLE IF EXISTS public.reports CASCADE;
+DROP TABLE IF EXISTS public.ss_transactions CASCADE;
+DROP TABLE IF EXISTS public.courses CASCADE;
+DROP TABLE IF EXISTS public.sessions CASCADE;
+DROP TABLE IF EXISTS public.mentorship_requests CASCADE;
+DROP TABLE IF EXISTS public.user_skills CASCADE;
+DROP TABLE IF EXISTS public.skills CASCADE;
+DROP TABLE IF EXISTS public.categories CASCADE;
+DROP TABLE IF EXISTS public.profiles CASCADE;
+
+-- 3. Tables
 
 -- EXTENDED PROFILES
 CREATE TABLE IF NOT EXISTS public.profiles (
@@ -140,7 +164,7 @@ CREATE TABLE IF NOT EXISTS public.platform_settings (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 3. Row Level Security (RLS) policies
+-- 4. Row Level Security (RLS) policies
 
 -- (Note: In a true production environment, policies would be extremely strict. 
 -- For the sake of this prompt, we enable generic reading and allow admins full access.)
