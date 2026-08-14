@@ -10,6 +10,7 @@ import ChooseUsername from "./pages/ChooseUsername";
 import ProfileSetup from "./pages/ProfileSetup";
 import EditProfile from "./pages/EditProfile";
 import Dashboard from "./pages/Dashboard";
+import PublicProfile from "./pages/PublicProfile";
 
 export default function App() {
   return (
@@ -72,6 +73,12 @@ export default function App() {
         <Route
           path="/dashboard"
           element={<Dashboard />}
+        />
+
+        {/* Public profile */}
+        <Route
+          path="/profile/:username"
+          element={<PublicProfile />}
         />
       </Routes>
     </BrowserRouter>

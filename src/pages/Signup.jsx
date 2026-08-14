@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import SignupHeader from "../components/SignupHeader";
 import SignupIntro from "../components/SignupIntro";
@@ -81,7 +82,8 @@ function validate(form) {
     errors.confirmPassword =
       "Confirm your password.";
   } else if (
-    form.password !== form.confirmPassword
+    form.password !==
+    form.confirmPassword
   ) {
     errors.confirmPassword =
       "Passwords do not match.";
@@ -98,35 +100,41 @@ function validate(form) {
 
 /* =========================================================
    FRIENDLY SUPABASE ERRORS
-
-   Raw database / Supabase errors should stay in console.
-   Users receive clean messages.
 ========================================================= */
 
 function friendlySignupError(error) {
   const code = error?.code || "";
+
   const status = error?.status;
+
   const message =
     error?.message?.toLowerCase() || "";
 
-  console.error("Supabase signup error:", {
-    code,
-    status,
-    message: error?.message,
-  });
+  console.error(
+    "Supabase signup error:",
+    {
+      code,
+      status,
+      message: error?.message,
+    }
+  );
 
   /* Email rate limit */
   if (
-    code === "over_email_send_rate_limit" ||
+    code ===
+      "over_email_send_rate_limit" ||
     status === 429 ||
-    message.includes("email rate limit")
+    message.includes(
+      "email rate limit"
+    )
   ) {
     return "Too many verification emails have been requested. Please wait a while and try again.";
   }
 
-  /* General request rate limit */
+  /* General rate limit */
   if (
-    code === "over_request_rate_limit" ||
+    code ===
+      "over_request_rate_limit" ||
     message.includes("rate limit")
   ) {
     return "Too many signup attempts have been made. Please wait a few minutes and try again.";
@@ -177,12 +185,13 @@ function friendlySignupError(error) {
 
   /* Email provider disabled */
   if (
-    code === "email_provider_disabled"
+    code ===
+    "email_provider_disabled"
   ) {
     return "Email registration is currently unavailable.";
   }
 
-  /* Username/database unique error */
+  /* Username unique error */
   if (
     message.includes("username") &&
     (
@@ -194,7 +203,6 @@ function friendlySignupError(error) {
     return "That username is already taken. Choose another one.";
   }
 
-  /* Generic safe message */
   return "We couldn't create your account right now. Please try again.";
 }
 
@@ -203,23 +211,36 @@ function friendlySignupError(error) {
 ========================================================= */
 
 export default function Signup() {
+  const [searchParams] =
+    useSearchParams();
+
   const [visible, setVisible] =
     useState(false);
 
-  const [formData, setFormData] =
-    useState(initialForm);
+  const [
+    formData,
+    setFormData,
+  ] = useState(initialForm);
 
-  const [fieldErrors, setFieldErrors] =
-    useState({});
+  const [
+    fieldErrors,
+    setFieldErrors,
+  ] = useState({});
 
-  const [generalError, setGeneralError] =
-    useState("");
+  const [
+    generalError,
+    setGeneralError,
+  ] = useState("");
 
-  const [loading, setLoading] =
-    useState(false);
+  const [
+    loading,
+    setLoading,
+  ] = useState(false);
 
-  const [success, setSuccess] =
-    useState(false);
+  const [
+    success,
+    setSuccess,
+  ] = useState(false);
 
   const [
     confirmationRequired,
@@ -232,13 +253,37 @@ export default function Signup() {
 
   useEffect(() => {
     const frame =
-      requestAnimationFrame(() => {
-        setVisible(true);
-      });
+      requestAnimationFrame(
+        () => {
+          setVisible(true);
+        }
+      );
 
     return () =>
       cancelAnimationFrame(frame);
   }, []);
+
+  /* =======================================================
+     GOOGLE LOGIN → ACCOUNT NOT FOUND
+
+     AuthCallback redirects here:
+
+     /signup?reason=google-account-not-found
+  ======================================================= */
+
+  useEffect(() => {
+    const reason =
+      searchParams.get("reason");
+
+    if (
+      reason ===
+      "google-account-not-found"
+    ) {
+      setGeneralError(
+        "No SkillSwap+ account was found for that Google account. Please create an account first."
+      );
+    }
+  }, [searchParams]);
 
   /* =======================================================
      INPUT CHANGE
@@ -253,13 +298,17 @@ export default function Signup() {
         ? value.toLowerCase()
         : value;
 
-    setFormData((current) => ({
-      ...current,
-      [field]: nextValue,
-    }));
+    setFormData(
+      (current) => ({
+        ...current,
+        [field]: nextValue,
+      })
+    );
 
-    /* Clear field error while editing */
-    if (fieldErrors[field]) {
+    /* Clear field error */
+    if (
+      fieldErrors[field]
+    ) {
       setFieldErrors(
         (current) => ({
           ...current,
@@ -268,7 +317,12 @@ export default function Signup() {
       );
     }
 
-    /* Clear general error */
+    /*
+      Clear Google account-not-found
+      notice or other general error
+      once user starts creating account.
+    */
+
     if (generalError) {
       setGeneralError("");
     }
@@ -283,24 +337,20 @@ export default function Signup() {
       const {
         data,
         error,
-      } = await supabase.rpc(
-        "is_username_available",
-        {
-          p_username: username,
-        }
-      );
+      } =
+        await supabase.rpc(
+          "is_username_available",
+          {
+            p_username:
+              username,
+          }
+        );
 
       if (error) {
         console.error(
           "Username availability error:",
           error
         );
-
-        /*
-          Do NOT assume the username
-          is available if the database
-          check fails.
-        */
 
         throw new Error(
           "USERNAME_CHECK_FAILED"
@@ -318,20 +368,28 @@ export default function Signup() {
     async (event) => {
       event.preventDefault();
 
-      if (loading || success) {
+      if (
+        loading ||
+        success
+      ) {
         return;
       }
 
       setGeneralError("");
 
       /* Validate frontend */
+
       const errors =
         validate(formData);
 
       if (
-        Object.keys(errors).length > 0
+        Object.keys(errors)
+          .length > 0
       ) {
-        setFieldErrors(errors);
+        setFieldErrors(
+          errors
+        );
+
         return;
       }
 
@@ -364,7 +422,9 @@ export default function Signup() {
             await checkUsernameAvailability(
               username
             );
-        } catch (usernameError) {
+        } catch (
+          usernameError
+        ) {
           console.error(
             "Username check failed:",
             usernameError
@@ -377,7 +437,9 @@ export default function Signup() {
           return;
         }
 
-        if (!usernameAvailable) {
+        if (
+          !usernameAvailable
+        ) {
           setFieldErrors(
             (current) => ({
               ...current,
@@ -398,38 +460,37 @@ export default function Signup() {
           data,
           error,
         } =
-          await supabase.auth.signUp({
-            email,
+          await supabase.auth.signUp(
+            {
+              email,
 
-            password:
-              formData.password,
+              password:
+                formData.password,
 
-            options: {
-              /*
-                These values become:
+              options: {
+                /*
+                  Username + full name
+                  are stored in Auth
+                  metadata.
+                */
 
-                auth.users
-                  ↓
-                raw_user_meta_data
+                data: {
+                  username,
+                  full_name:
+                    fullName,
+                },
 
-                Your database registration
-                trigger can then read them.
-              */
+                /*
+                  Email confirmation
+                  returns user to
+                  Profile Setup.
+                */
 
-              data: {
-                username,
-                full_name: fullName,
+                emailRedirectTo:
+                  `${window.location.origin}/profile-setup`,
               },
-
-              /*
-                After email confirmation,
-                user returns to Profile Setup.
-              */
-
-              emailRedirectTo:
-                `${window.location.origin}/profile-setup`,
-            },
-          });
+            }
+          );
 
         if (error) {
           throw error;
@@ -442,21 +503,8 @@ export default function Signup() {
         }
 
         /* ===============================================
-           3. EMAIL CONFIRMATION STATE
+           3. EMAIL CONFIRMATION
         =============================================== */
-
-        /*
-          If email confirmation is ON:
-
-          data.user    -> exists
-          data.session -> null
-
-          User must verify email.
-
-          If confirmation is OFF:
-
-          data.session -> exists
-        */
 
         const needsConfirmation =
           !data.session;
@@ -466,14 +514,6 @@ export default function Signup() {
         );
 
         setSuccess(true);
-
-        /* ===============================================
-           4. OPTIONAL CLEANUP
-
-           We leave values in the form so
-           SignupForm can display email/name
-           in its success state if desired.
-        =============================================== */
       } catch (error) {
         console.error(
           "Signup error:",
@@ -481,7 +521,9 @@ export default function Signup() {
         );
 
         setGeneralError(
-          friendlySignupError(error)
+          friendlySignupError(
+            error
+          )
         );
       } finally {
         setLoading(false);
@@ -522,14 +564,20 @@ export default function Signup() {
         <SignupForm
           visible={visible}
           formData={formData}
-          fieldErrors={fieldErrors}
-          generalError={generalError}
+          fieldErrors={
+            fieldErrors
+          }
+          generalError={
+            generalError
+          }
           loading={loading}
           success={success}
           confirmationRequired={
             confirmationRequired
           }
-          onChange={handleChange}
+          onChange={
+            handleChange
+          }
           onSubmit={
             handleCreateAccount
           }

@@ -14,13 +14,19 @@ export default function Login() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
 
+  /* =========================================================
+     ROUTE EMAIL/PASSWORD USER
+  ========================================================= */
+
   const routeUser = async (user) => {
-    const { data: profile, error: profileError } =
-      await supabase
-        .from("profiles")
-        .select("profile_completed")
-        .eq("id", user.id)
-        .maybeSingle();
+    const {
+      data: profile,
+      error: profileError,
+    } = await supabase
+      .from("profiles")
+      .select("profile_completed")
+      .eq("id", user.id)
+      .maybeSingle();
 
     if (profileError) {
       console.error(
@@ -28,26 +34,49 @@ export default function Login() {
         profileError
       );
 
-      throw new Error("PROFILE_CHECK_FAILED");
+      throw new Error(
+        "PROFILE_CHECK_FAILED"
+      );
     }
 
+    /* Profile not completed */
+
     if (!profile?.profile_completed) {
-      navigate("/profile-setup", {
-        replace: true,
-      });
+      navigate(
+        "/profile-setup",
+        {
+          replace: true,
+        }
+      );
 
       return;
     }
 
-    navigate("/dashboard", {
-      replace: true,
-    });
+    /* Completed account */
+
+    navigate(
+      "/dashboard",
+      {
+        replace: true,
+      }
+    );
   };
+
+  /* =========================================================
+     EMAIL + PASSWORD LOGIN
+  ========================================================= */
 
   const handleLogin = async (event) => {
     event.preventDefault();
 
-    if (!email.trim() || !password) {
+    const cleanEmail = email
+      .trim()
+      .toLowerCase();
+
+    if (
+      !cleanEmail ||
+      !password
+    ) {
       setError(
         "Enter your email and password."
       );
@@ -64,10 +93,7 @@ export default function Login() {
         error: loginError,
       } =
         await supabase.auth.signInWithPassword({
-          email: email
-            .trim()
-            .toLowerCase(),
-
+          email: cleanEmail,
           password,
         });
 
@@ -92,7 +118,9 @@ export default function Login() {
         return;
       }
 
-      await routeUser(data.user);
+      await routeUser(
+        data.user
+      );
     } catch (err) {
       console.error(
         "Login flow error:",
@@ -107,10 +135,27 @@ export default function Login() {
     }
   };
 
+  /* =========================================================
+     GOOGLE LOGIN
+  ========================================================= */
+
   const handleGoogleLogin = async () => {
     try {
       setGoogleLoading(true);
       setError("");
+
+      /*
+        Tell AuthCallback that Google
+        authentication started from LOGIN.
+
+        AuthCallback will check whether
+        an existing SkillSwap+ account exists.
+      */
+
+      localStorage.setItem(
+        "googleAuthIntent",
+        "login"
+      );
 
       const {
         error: googleError,
@@ -130,6 +175,10 @@ export default function Login() {
           googleError
         );
 
+        localStorage.removeItem(
+          "googleAuthIntent"
+        );
+
         setError(
           "Google sign-in could not be started."
         );
@@ -142,6 +191,10 @@ export default function Login() {
         err
       );
 
+      localStorage.removeItem(
+        "googleAuthIntent"
+      );
+
       setError(
         "Google sign-in could not be started."
       );
@@ -150,9 +203,17 @@ export default function Login() {
     }
   };
 
+  /* =========================================================
+     PAGE
+  ========================================================= */
+
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#060807] text-[#f2f4ef]">
+      {/* Background noise */}
+
       <div className="noise pointer-events-none fixed inset-0" />
+
+      {/* Background glow */}
 
       <div
         className="pointer-events-none fixed inset-0"
@@ -163,9 +224,13 @@ export default function Login() {
       />
 
       <div className="relative z-10 grid min-h-screen lg:grid-cols-2">
-        {/* LEFT */}
+        {/* ===================================================
+            LEFT SIDE
+        =================================================== */}
 
         <section className="hidden border-r border-white/10 px-10 py-10 lg:flex lg:flex-col lg:justify-between">
+          {/* Logo */}
+
           <Link
             to="/"
             className="w-fit text-lg font-semibold tracking-[-0.03em] text-[#f2f4ef]"
@@ -175,6 +240,8 @@ export default function Login() {
               +
             </span>
           </Link>
+
+          {/* Hero */}
 
           <div className="max-w-xl">
             <p className="text-xs uppercase tracking-[0.18em] text-[#c7ff39]">
@@ -188,22 +255,28 @@ export default function Login() {
             </h1>
 
             <p className="mt-6 max-w-lg text-base leading-7 text-[#a1a1aa]">
-              Sign in to continue your
-              SkillSwap+ journey, connect
-              with members, learn new skills
-              and earn SS Credits by teaching.
+              Sign in to continue your SkillSwap+
+              journey, connect with members,
+              learn new skills and earn SS Credits
+              by teaching.
             </p>
           </div>
+
+          {/* Footer */}
 
           <p className="text-xs text-white/30">
             © 2026 SkillSwap+
           </p>
         </section>
 
-        {/* RIGHT */}
+        {/* ===================================================
+            RIGHT SIDE
+        =================================================== */}
 
         <section className="flex min-h-screen items-center justify-center px-5 py-24 sm:px-8 lg:px-12">
           <div className="w-full max-w-md">
+            {/* Mobile logo */}
+
             <Link
               to="/"
               className="mb-12 inline-block text-lg font-semibold tracking-[-0.03em] lg:hidden"
@@ -213,6 +286,8 @@ export default function Login() {
                 +
               </span>
             </Link>
+
+            {/* Heading */}
 
             <p className="text-xs uppercase tracking-[0.18em] text-[#c7ff39]">
               Sign in
@@ -227,7 +302,9 @@ export default function Login() {
               continue with Google.
             </p>
 
-            {/* ERROR */}
+            {/* =================================================
+                ERROR
+            ================================================= */}
 
             {error && (
               <div
@@ -238,11 +315,15 @@ export default function Login() {
               </div>
             )}
 
-            {/* GOOGLE */}
+            {/* =================================================
+                GOOGLE
+            ================================================= */}
 
             <button
               type="button"
-              onClick={handleGoogleLogin}
+              onClick={
+                handleGoogleLogin
+              }
               disabled={
                 googleLoading ||
                 loading
@@ -258,7 +339,9 @@ export default function Login() {
                 : "Continue with Google"}
             </button>
 
-            {/* DIVIDER */}
+            {/* =================================================
+                DIVIDER
+            ================================================= */}
 
             <div className="my-7 flex items-center gap-4">
               <div className="h-px flex-1 bg-white/10" />
@@ -270,18 +353,28 @@ export default function Login() {
               <div className="h-px flex-1 bg-white/10" />
             </div>
 
-            {/* LOGIN FORM */}
+            {/* =================================================
+                LOGIN FORM
+            ================================================= */}
 
             <form
-              onSubmit={handleLogin}
+              onSubmit={
+                handleLogin
+              }
               className="space-y-5"
             >
               {/* EMAIL */}
 
-              <label className="block text-sm font-medium">
-                Email
+              <div>
+                <label
+                  htmlFor="login-email"
+                  className="block text-sm font-medium text-[#f2f4ef]"
+                >
+                  Email
+                </label>
 
                 <input
+                  id="login-email"
                   type="email"
                   value={email}
                   onChange={(event) => {
@@ -297,9 +390,11 @@ export default function Login() {
                   autoComplete="email"
                   className="mt-2 min-h-[52px] w-full rounded-md border border-white/15 bg-[#060807] px-4 text-[#f2f4ef] placeholder:text-white/25 transition hover:border-white/25 focus:border-[#c7ff39]/70 focus:outline-none focus:ring-1 focus:ring-[#c7ff39]/30"
                 />
-              </label>
+              </div>
 
-              {/* PASSWORD */}
+              {/* =================================================
+                  PASSWORD
+              ================================================= */}
 
               <div>
                 <label
@@ -317,7 +412,9 @@ export default function Login() {
                         ? "text"
                         : "password"
                     }
-                    value={password}
+                    value={
+                      password
+                    }
                     onChange={(event) => {
                       setPassword(
                         event.target.value
@@ -332,6 +429,8 @@ export default function Login() {
                     className="min-h-[52px] w-full rounded-md border border-white/15 bg-[#060807] px-4 pr-12 text-[#f2f4ef] placeholder:text-white/25 transition hover:border-white/25 focus:border-[#c7ff39]/70 focus:outline-none focus:ring-1 focus:ring-[#c7ff39]/30"
                   />
 
+                  {/* Show / hide password */}
+
                   <button
                     type="button"
                     onClick={() =>
@@ -345,23 +444,29 @@ export default function Login() {
                         ? "Hide password"
                         : "Show password"
                     }
-                    className="absolute right-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center text-[#a1a1aa] transition hover:text-white"
+                    className="absolute right-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center text-[#a1a1aa] transition hover:text-white focus:outline-none"
                   >
                     {showPassword ? (
                       <EyeOff
                         size={17}
-                        strokeWidth={1.5}
+                        strokeWidth={
+                          1.5
+                        }
                       />
                     ) : (
                       <Eye
                         size={17}
-                        strokeWidth={1.5}
+                        strokeWidth={
+                          1.5
+                        }
                       />
                     )}
                   </button>
                 </div>
 
-                {/* FORGOT PASSWORD */}
+                {/* =================================================
+                    FORGOT PASSWORD
+                ================================================= */}
 
                 <div className="mt-2 flex justify-end">
                   <Link
@@ -373,7 +478,9 @@ export default function Login() {
                 </div>
               </div>
 
-              {/* SIGN IN */}
+              {/* =================================================
+                  SIGN IN BUTTON
+              ================================================= */}
 
               <button
                 type="submit"
@@ -389,14 +496,16 @@ export default function Login() {
               </button>
             </form>
 
-            {/* SIGN UP */}
+            {/* =================================================
+                CREATE ACCOUNT
+            ================================================= */}
 
             <p className="mt-7 text-center text-sm text-[#a1a1aa]">
               New to SkillSwap+?{" "}
 
               <Link
                 to="/signup"
-                className="font-medium text-[#c7ff39] hover:underline"
+                className="font-medium text-[#c7ff39] transition hover:underline"
               >
                 Create an account
               </Link>
