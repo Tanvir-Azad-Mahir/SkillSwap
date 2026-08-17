@@ -1,178 +1,466 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Eye, EyeOff } from "lucide-react";
+import {
+  Link,
+  useNavigate,
+} from "react-router-dom";
+import {
+  Eye,
+  EyeOff,
+} from "lucide-react";
+
 import { supabase } from "../lib/supabase";
 
 export default function Login() {
-  const navigate = useNavigate();
+  const navigate =
+    useNavigate();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] =
+    useState("");
 
-  const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [
+    password,
+    setPassword,
+  ] = useState("");
+
+  const [
+    showPassword,
+    setShowPassword,
+  ] = useState(false);
+
+  const [
+    loading,
+    setLoading,
+  ] = useState(false);
+
+  const [
+    googleLoading,
+    setGoogleLoading,
+  ] = useState(false);
+
+  const [
+    error,
+    setError,
+  ] = useState("");
 
   /* =========================================================
-     ROUTE EMAIL/PASSWORD USER
+     ROUTE USER AFTER LOGIN
   ========================================================= */
 
-  const routeUser = async (user) => {
-    const {
-      data: profile,
-      error: profileError,
-    } = await supabase
-      .from("profiles")
-      .select("profile_completed")
-      .eq("id", user.id)
-      .maybeSingle();
+  const routeUser =
+    async (user) => {
+      if (!user?.id) {
+        throw new Error(
+          "AUTH_USER_MISSING"
+        );
+      }
 
-    if (profileError) {
-      console.error(
-        "Profile check error:",
-        profileError
+      console.log(
+        "LOGIN USER:",
+        user.id
       );
 
-      throw new Error(
-        "PROFILE_CHECK_FAILED"
+      /* =====================================================
+         GET PROFILE
+      ===================================================== */
+
+      const {
+        data: profile,
+        error:
+          profileError,
+      } =
+        await supabase
+          .from(
+            "profiles"
+          )
+          .select(
+            `
+              id,
+              username,
+              full_name,
+              is_active,
+              profile_completed
+            `
+          )
+          .eq(
+            "id",
+            user.id
+          )
+          .maybeSingle();
+
+      console.log(
+        "LOGIN PROFILE:",
+        profile
       );
-    }
 
-    /* Profile not completed */
+      if (profileError) {
+        console.error(
+          "PROFILE CHECK ERROR:",
+          profileError
+        );
 
-    if (!profile?.profile_completed) {
+        throw profileError;
+      }
+
+      /* =====================================================
+         PROFILE ROW DOES NOT EXIST
+      ===================================================== */
+
+      if (!profile) {
+        console.error(
+          "No profile row found for auth user:",
+          user.id
+        );
+
+        await supabase.auth.signOut({
+          scope: "local",
+        });
+
+        throw new Error(
+          "PROFILE_NOT_FOUND"
+        );
+      }
+
+      /* =====================================================
+         DISABLED ACCOUNT
+      ===================================================== */
+
+      if (
+        profile.is_active ===
+        false
+      ) {
+        await supabase.auth.signOut({
+          scope: "local",
+        });
+
+        throw new Error(
+          "ACCOUNT_INACTIVE"
+        );
+      }
+
+      /* =====================================================
+         PROFILE NOT FINISHED
+      ===================================================== */
+
+      if (
+        profile.profile_completed !==
+        true
+      ) {
+        console.log(
+          "Profile incomplete -> Profile Setup"
+        );
+
+        navigate(
+          "/profile-setup",
+          {
+            replace: true,
+          }
+        );
+
+        return;
+      }
+
+      /* =====================================================
+         COMPLETED PROFILE
+      ===================================================== */
+
+      console.log(
+        "Profile completed -> Dashboard"
+      );
+
       navigate(
-        "/profile-setup",
+        "/dashboard",
         {
           replace: true,
         }
       );
-
-      return;
-    }
-
-    /* Completed account */
-
-    navigate(
-      "/dashboard",
-      {
-        replace: true,
-      }
-    );
-  };
+    };
 
   /* =========================================================
      EMAIL + PASSWORD LOGIN
   ========================================================= */
 
-  const handleLogin = async (event) => {
-    event.preventDefault();
+  const handleLogin =
+    async (event) => {
+      event.preventDefault();
 
-    const cleanEmail = email
-      .trim()
-      .toLowerCase();
+      if (loading) {
+        return;
+      }
 
-    if (
-      !cleanEmail ||
-      !password
-    ) {
-      setError(
-        "Enter your email and password."
-      );
+      const cleanEmail =
+        email
+          .trim()
+          .toLowerCase();
 
-      return;
-    }
+      /* =====================================================
+         FRONTEND VALIDATION
+      ===================================================== */
 
-    try {
-      setLoading(true);
-      setError("");
+      if (
+        !cleanEmail ||
+        !password
+      ) {
+        setError(
+          "Enter your email and password."
+        );
 
-      const {
-        data,
-        error: loginError,
-      } =
-        await supabase.auth.signInWithPassword({
-          email: cleanEmail,
-          password,
-        });
+        return;
+      }
 
-      if (loginError) {
+      try {
+        setLoading(true);
+
+        setError("");
+
+        console.log(
+          "Starting login for:",
+          cleanEmail
+        );
+
+        /* ===================================================
+           SUPABASE LOGIN
+        =================================================== */
+
+        const {
+          data,
+          error:
+            loginError,
+        } =
+          await supabase.auth
+            .signInWithPassword(
+              {
+                email:
+                  cleanEmail,
+
+                password,
+              }
+            );
+
+        console.log(
+          "LOGIN DATA:",
+          data
+        );
+
+        if (loginError) {
+          console.error(
+            "SUPABASE LOGIN ERROR:",
+            loginError
+          );
+
+          const message =
+            String(
+              loginError.message ||
+                ""
+            ).toLowerCase();
+
+          /* Invalid credentials */
+
+          if (
+            message.includes(
+              "invalid login credentials"
+            ) ||
+            message.includes(
+              "invalid credentials"
+            )
+          ) {
+            setError(
+              "Invalid email or password."
+            );
+
+            return;
+          }
+
+          /* Email not confirmed */
+
+          if (
+            message.includes(
+              "email not confirmed"
+            )
+          ) {
+            setError(
+              "Confirm your email address before signing in."
+            );
+
+            return;
+          }
+
+          /* Rate limit */
+
+          if (
+            loginError.status ===
+              429 ||
+            message.includes(
+              "rate limit"
+            )
+          ) {
+            setError(
+              "Too many sign-in attempts. Please wait a few minutes and try again."
+            );
+
+            return;
+          }
+
+          /* Development: show actual Auth error */
+
+          setError(
+            loginError.message ||
+              "We couldn't sign you in."
+          );
+
+          return;
+        }
+
+        /* ===================================================
+           VERIFY AUTH RESPONSE
+        =================================================== */
+
+        if (
+          !data?.user ||
+          !data?.session
+        ) {
+          console.error(
+            "Login returned no user/session:",
+            data
+          );
+
+          setError(
+            "We couldn't create a login session. Please try again."
+          );
+
+          return;
+        }
+
+        /* ===================================================
+           ROUTE USER
+        =================================================== */
+
+        await routeUser(
+          data.user
+        );
+      } catch (err) {
         console.error(
-          "Login error:",
-          loginError
+          "LOGIN FLOW ERROR:",
+          err
         );
+
+        if (
+          err?.message ===
+          "PROFILE_NOT_FOUND"
+        ) {
+          setError(
+            "Your account exists, but your SkillSwap+ profile could not be found."
+          );
+
+          return;
+        }
+
+        if (
+          err?.message ===
+          "ACCOUNT_INACTIVE"
+        ) {
+          setError(
+            "This SkillSwap+ account is currently inactive."
+          );
+
+          return;
+        }
+
+        if (
+          err?.message ===
+          "AUTH_USER_MISSING"
+        ) {
+          setError(
+            "We couldn't verify your account. Please sign in again."
+          );
+
+          return;
+        }
+
+        /*
+          Show actual database error during development.
+        */
 
         setError(
-          "Invalid email or password."
+          err?.message ||
+            "We couldn't sign you in right now. Please try again."
         );
-
-        return;
+      } finally {
+        setLoading(false);
       }
-
-      if (!data?.user) {
-        setError(
-          "We couldn't sign you in. Please try again."
-        );
-
-        return;
-      }
-
-      await routeUser(
-        data.user
-      );
-    } catch (err) {
-      console.error(
-        "Login flow error:",
-        err
-      );
-
-      setError(
-        "We couldn't sign you in right now. Please try again."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
   /* =========================================================
      GOOGLE LOGIN
+
+     GOOGLE IS LOGIN ONLY.
+     Registration with Google is not allowed.
   ========================================================= */
 
-  const handleGoogleLogin = async () => {
-    try {
-      setGoogleLoading(true);
-      setError("");
+  const handleGoogleLogin =
+    async () => {
+      if (
+        googleLoading ||
+        loading
+      ) {
+        return;
+      }
 
-      /*
-        Tell AuthCallback that Google
-        authentication started from LOGIN.
+      try {
+        setGoogleLoading(
+          true
+        );
 
-        AuthCallback will check whether
-        an existing SkillSwap+ account exists.
-      */
+        setError("");
 
-      localStorage.setItem(
-        "googleAuthIntent",
-        "login"
-      );
+        /*
+          AuthCallback uses this to know
+          that Google authentication was
+          started from Login.
+        */
 
-      const {
-        error: googleError,
-      } =
-        await supabase.auth.signInWithOAuth({
-          provider: "google",
+        localStorage.setItem(
+          "googleAuthIntent",
+          "login"
+        );
 
-          options: {
-            redirectTo:
-              `${window.location.origin}/auth/callback`,
-          },
-        });
+        const {
+          error:
+            googleError,
+        } =
+          await supabase.auth
+            .signInWithOAuth({
+              provider:
+                "google",
 
-      if (googleError) {
+              options: {
+                redirectTo:
+                  `${window.location.origin}/auth/callback`,
+              },
+            });
+
+        if (googleError) {
+          console.error(
+            "GOOGLE LOGIN ERROR:",
+            googleError
+          );
+
+          localStorage.removeItem(
+            "googleAuthIntent"
+          );
+
+          setError(
+            googleError.message ||
+              "Google sign-in could not be started."
+          );
+
+          setGoogleLoading(
+            false
+          );
+        }
+      } catch (err) {
         console.error(
-          "Google login error:",
-          googleError
+          "GOOGLE LOGIN ERROR:",
+          err
         );
 
         localStorage.removeItem(
@@ -180,28 +468,15 @@ export default function Login() {
         );
 
         setError(
-          "Google sign-in could not be started."
+          err?.message ||
+            "Google sign-in could not be started."
         );
 
-        setGoogleLoading(false);
+        setGoogleLoading(
+          false
+        );
       }
-    } catch (err) {
-      console.error(
-        "Google login error:",
-        err
-      );
-
-      localStorage.removeItem(
-        "googleAuthIntent"
-      );
-
-      setError(
-        "Google sign-in could not be started."
-      );
-
-      setGoogleLoading(false);
-    }
-  };
+    };
 
   /* =========================================================
      PAGE
@@ -209,11 +484,11 @@ export default function Login() {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#060807] text-[#f2f4ef]">
-      {/* Background noise */}
+      {/* =====================================================
+          BACKGROUND
+      ===================================================== */}
 
       <div className="noise pointer-events-none fixed inset-0" />
-
-      {/* Background glow */}
 
       <div
         className="pointer-events-none fixed inset-0"
@@ -225,11 +500,11 @@ export default function Login() {
 
       <div className="relative z-10 grid min-h-screen lg:grid-cols-2">
         {/* ===================================================
-            LEFT SIDE
+            LEFT
         =================================================== */}
 
         <section className="hidden border-r border-white/10 px-10 py-10 lg:flex lg:flex-col lg:justify-between">
-          {/* Logo */}
+          {/* LOGO */}
 
           <Link
             to="/"
@@ -241,7 +516,7 @@ export default function Login() {
             </span>
           </Link>
 
-          {/* Hero */}
+          {/* HERO */}
 
           <div className="max-w-xl">
             <p className="text-xs uppercase tracking-[0.18em] text-[#c7ff39]">
@@ -249,33 +524,39 @@ export default function Login() {
             </p>
 
             <h1 className="mt-5 text-5xl font-medium leading-[1.02] tracking-[-0.055em] xl:text-7xl">
-              Learn what you need.
+              Learn what you
+              need.
               <br />
-              Share what you know.
+              Share what you
+              know.
             </h1>
 
             <p className="mt-6 max-w-lg text-base leading-7 text-[#a1a1aa]">
-              Sign in to continue your SkillSwap+
-              journey, connect with members,
-              learn new skills and earn SS Credits
+              Sign in to
+              continue your
+              SkillSwap+
+              journey,
+              connect with
+              members, learn
+              new skills and
+              earn SS Credits
               by teaching.
             </p>
           </div>
 
-          {/* Footer */}
-
           <p className="text-xs text-white/30">
-            © 2026 SkillSwap+
+            © 2026
+            SkillSwap+
           </p>
         </section>
 
         {/* ===================================================
-            RIGHT SIDE
+            RIGHT
         =================================================== */}
 
         <section className="flex min-h-screen items-center justify-center px-5 py-24 sm:px-8 lg:px-12">
           <div className="w-full max-w-md">
-            {/* Mobile logo */}
+            {/* MOBILE LOGO */}
 
             <Link
               to="/"
@@ -287,19 +568,22 @@ export default function Login() {
               </span>
             </Link>
 
-            {/* Heading */}
+            {/* HEADING */}
 
             <p className="text-xs uppercase tracking-[0.18em] text-[#c7ff39]">
               Sign in
             </p>
 
             <h2 className="mt-3 text-4xl font-medium tracking-[-0.045em]">
-              Continue to SkillSwap+.
+              Continue to
+              SkillSwap+.
             </h2>
 
             <p className="mt-3 text-sm leading-6 text-[#a1a1aa]">
-              Enter your account details or
-              continue with Google.
+              Enter your
+              account details
+              or continue with
+              Google.
             </p>
 
             {/* =================================================
@@ -354,7 +638,7 @@ export default function Login() {
             </div>
 
             {/* =================================================
-                LOGIN FORM
+                FORM
             ================================================= */}
 
             <form
@@ -377,13 +661,19 @@ export default function Login() {
                   id="login-email"
                   type="email"
                   value={email}
-                  onChange={(event) => {
+                  onChange={(
+                    event
+                  ) => {
                     setEmail(
-                      event.target.value
+                      event
+                        .target
+                        .value
                     );
 
                     if (error) {
-                      setError("");
+                      setError(
+                        ""
+                      );
                     }
                   }}
                   placeholder="you@example.com"
@@ -392,9 +682,7 @@ export default function Login() {
                 />
               </div>
 
-              {/* =================================================
-                  PASSWORD
-              ================================================= */}
+              {/* PASSWORD */}
 
               <div>
                 <label
@@ -415,13 +703,21 @@ export default function Login() {
                     value={
                       password
                     }
-                    onChange={(event) => {
+                    onChange={(
+                      event
+                    ) => {
                       setPassword(
-                        event.target.value
+                        event
+                          .target
+                          .value
                       );
 
-                      if (error) {
-                        setError("");
+                      if (
+                        error
+                      ) {
+                        setError(
+                          ""
+                        );
                       }
                     }}
                     placeholder="Enter your password"
@@ -429,13 +725,13 @@ export default function Login() {
                     className="min-h-[52px] w-full rounded-md border border-white/15 bg-[#060807] px-4 pr-12 text-[#f2f4ef] placeholder:text-white/25 transition hover:border-white/25 focus:border-[#c7ff39]/70 focus:outline-none focus:ring-1 focus:ring-[#c7ff39]/30"
                   />
 
-                  {/* Show / hide password */}
-
                   <button
                     type="button"
                     onClick={() =>
                       setShowPassword(
-                        (current) =>
+                        (
+                          current
+                        ) =>
                           !current
                       )
                     }
@@ -448,14 +744,18 @@ export default function Login() {
                   >
                     {showPassword ? (
                       <EyeOff
-                        size={17}
+                        size={
+                          17
+                        }
                         strokeWidth={
                           1.5
                         }
                       />
                     ) : (
                       <Eye
-                        size={17}
+                        size={
+                          17
+                        }
                         strokeWidth={
                           1.5
                         }
@@ -464,23 +764,20 @@ export default function Login() {
                   </button>
                 </div>
 
-                {/* =================================================
-                    FORGOT PASSWORD
-                ================================================= */}
+                {/* FORGOT PASSWORD */}
 
                 <div className="mt-2 flex justify-end">
                   <Link
                     to="/forgot-password"
                     className="text-xs font-medium text-[#c7ff39] transition hover:underline focus:outline-none focus:ring-2 focus:ring-[#c7ff39] focus:ring-offset-4 focus:ring-offset-[#060807]"
                   >
-                    Forgot password?
+                    Forgot
+                    password?
                   </Link>
                 </div>
               </div>
 
-              {/* =================================================
-                  SIGN IN BUTTON
-              ================================================= */}
+              {/* SIGN IN */}
 
               <button
                 type="submit"
@@ -496,18 +793,18 @@ export default function Login() {
               </button>
             </form>
 
-            {/* =================================================
-                CREATE ACCOUNT
-            ================================================= */}
+            {/* CREATE ACCOUNT */}
 
             <p className="mt-7 text-center text-sm text-[#a1a1aa]">
-              New to SkillSwap+?{" "}
+              New to
+              SkillSwap+?{" "}
 
               <Link
                 to="/signup"
                 className="font-medium text-[#c7ff39] transition hover:underline"
               >
-                Create an account
+                Create an
+                account
               </Link>
             </p>
           </div>

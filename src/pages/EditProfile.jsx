@@ -1,6 +1,22 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+
+import {
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
+
+import {
+  supabase,
+} from "../lib/supabase";
+
+import {
+  logActivity,
+} from "../lib/activityLog";
 
 import EditProfileHeader from "../components/EditProfileHeader";
 import ProfileEditTab from "../components/ProfileEditTab";
@@ -8,8 +24,12 @@ import TeachingEditTab from "../components/TeachingEditTab";
 import LearningEditTab from "../components/LearningEditTab";
 import PreferencesEditTab from "../components/PreferencesEditTab";
 
-const AVATAR_BUCKET = "avatars";
-const TEACH_TYPE = "offering";
+/* =========================================================
+   CONFIG
+========================================================= */
+
+const AVATAR_BUCKET =
+  "avatars";
 
 const TABS = [
   "profile",
@@ -17,6 +37,15 @@ const TABS = [
   "learning",
   "preferences",
 ];
+
+const ROLE_LEARNER =
+  "learner";
+
+const ROLE_MENTOR =
+  "mentor";
+
+const ROLE_SWAP_MASTER =
+  "swap_master";
 
 const initialProfile = {
   username: "",
@@ -34,887 +63,1742 @@ const initialPreferences = {
   theme: "dark",
 };
 
-function getTabFromSearch(search) {
-  const params = new URLSearchParams(search);
-  const tab = params.get("tab");
+/* =========================================================
+   HELPERS
+========================================================= */
 
-  return TABS.includes(tab) ? tab : "profile";
+function getTabFromSearch(
+  search
+) {
+  const params =
+    new URLSearchParams(
+      search
+    );
+
+  const tab =
+    params.get("tab");
+
+  return TABS.includes(
+    tab
+  )
+    ? tab
+    : "profile";
 }
 
-export default function EditProfile() {
-  const navigate = useNavigate();
-  const location = useLocation();
+/* =========================================================
+   ROLE NORMALIZER
+========================================================= */
 
-  const [activeTab, setActiveTab] = useState(() =>
-    getTabFromSearch(location.search)
+function normalizeRoleForFrontend(
+  value
+) {
+  const role =
+    String(value || "")
+      .trim()
+      .toLowerCase()
+      .replace(
+        /[\s-]+/g,
+        "_"
+      );
+
+  if (
+    role === "learner"
+  ) {
+    return ROLE_LEARNER;
+  }
+
+  if (
+    role === "mentor"
+  ) {
+    return ROLE_MENTOR;
+  }
+
+  if (
+    role ===
+      "swap_master" ||
+    role ===
+      "swapmaster"
+  ) {
+    return ROLE_SWAP_MASTER;
+  }
+
+  return "";
+}
+
+function getDatabaseRoleCandidates(
+  role
+) {
+  if (
+    role ===
+    ROLE_LEARNER
+  ) {
+    return [
+      "Learner",
+      "learner",
+    ];
+  }
+
+  if (
+    role ===
+    ROLE_MENTOR
+  ) {
+    return [
+      "Mentor",
+      "mentor",
+    ];
+  }
+
+  if (
+    role ===
+    ROLE_SWAP_MASTER
+  ) {
+    return [
+      "Swap Master",
+      "Swap_Master",
+      "swap_master",
+      "Swap master",
+    ];
+  }
+
+  return [];
+}
+
+function isRoleEnumError(
+  error
+) {
+  const message =
+    String(
+      error?.message ||
+        ""
+    ).toLowerCase();
+
+  return (
+    message.includes(
+      "invalid input value for enum"
+    ) ||
+    message.includes(
+      "user_role"
+    )
+  );
+}
+
+/* =========================================================
+   VALUE HELPERS
+========================================================= */
+
+function normalizeText(
+  value
+) {
+  return String(
+    value || ""
+  ).trim();
+}
+
+function normalizeUsername(
+  value
+) {
+  return String(
+    value || ""
+  )
+    .trim()
+    .toLowerCase();
+}
+
+function setsEqual(
+  setA,
+  setB
+) {
+  if (
+    setA.size !==
+    setB.size
+  ) {
+    return false;
+  }
+
+  for (
+    const value of setA
+  ) {
+    if (
+      !setB.has(value)
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/* =========================================================
+   EDIT PROFILE
+========================================================= */
+
+export default function EditProfile() {
+  const navigate =
+    useNavigate();
+
+  const location =
+    useLocation();
+
+  /* =========================================================
+     STATE
+  ========================================================= */
+
+  const [
+    activeTab,
+    setActiveTab,
+  ] = useState(() =>
+    getTabFromSearch(
+      location.search
+    )
   );
 
-  const [user, setUser] = useState(null);
+  const [
+    user,
+    setUser,
+  ] = useState(null);
 
-  const [profile, setProfile] = useState(initialProfile);
+  const [
+    profile,
+    setProfile,
+  ] = useState(
+    initialProfile
+  );
 
-  const [preferences, setPreferences] =
-    useState(initialPreferences);
+  const [
+    preferences,
+    setPreferences,
+  ] = useState(
+    initialPreferences
+  );
 
-  const [skills, setSkills] = useState([]);
+  const [
+    skills,
+    setSkills,
+  ] = useState([]);
 
-  const [teachingSkills, setTeachingSkills] =
-    useState([]);
+  const [
+    teachingSkills,
+    setTeachingSkills,
+  ] = useState([]);
 
-  const [learningSkills, setLearningSkills] =
-    useState([]);
+  const [
+    learningSkills,
+    setLearningSkills,
+  ] = useState([]);
 
-  const [avatarFile, setAvatarFile] = useState(null);
+  const [
+    avatarFile,
+    setAvatarFile,
+  ] = useState(null);
 
-  const [settingsExists, setSettingsExists] =
-    useState(false);
+  const [
+    settingsExists,
+    setSettingsExists,
+  ] = useState(false);
 
-  const [previousAvatars, setPreviousAvatars] =
-    useState([]);
+  const [
+    previousAvatars,
+    setPreviousAvatars,
+  ] = useState([]);
 
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
 
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [
+    saving,
+    setSaving,
+  ] = useState(false);
 
-  const successRef = useRef(null);
+  const [
+    error,
+    setError,
+  ] = useState("");
 
-  /* -------------------------------------------------------
+  const [
+    success,
+    setSuccess,
+  ] = useState("");
+
+  const successRef =
+    useRef(null);
+
+  /* =========================================================
+     ORIGINAL DATA FOR ACTIVITY COMPARISON
+  ========================================================= */
+
+  const originalProfileRef =
+    useRef(null);
+
+  const originalPreferencesRef =
+    useRef(null);
+
+  const originalTeachingIdsRef =
+    useRef(
+      new Set()
+    );
+
+  const originalLearningIdsRef =
+    useRef(
+      new Set()
+    );
+
+  /* =========================================================
      TAB FROM URL
-  ------------------------------------------------------- */
+  ========================================================= */
 
   useEffect(() => {
-    const nextTab = getTabFromSearch(location.search);
+    const nextTab =
+      getTabFromSearch(
+        location.search
+      );
 
-    setActiveTab(nextTab);
-  }, [location.search]);
+    setActiveTab(
+      nextTab
+    );
+  }, [
+    location.search,
+  ]);
 
-  /* -------------------------------------------------------
+  /* =========================================================
      SUCCESS MESSAGE SCROLL
-  ------------------------------------------------------- */
+  ========================================================= */
 
   useEffect(() => {
-    if (!success) return;
+    if (!success) {
+      return;
+    }
 
-    successRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
+    successRef.current
+      ?.scrollIntoView({
+        behavior:
+          "smooth",
+
+        block:
+          "start",
+      });
   }, [success]);
 
-  /* -------------------------------------------------------
+  /* =========================================================
      AUTO HIDE SUCCESS
-  ------------------------------------------------------- */
+  ========================================================= */
 
   useEffect(() => {
-    if (!success) return;
+    if (!success) {
+      return;
+    }
 
-    const timer = window.setTimeout(() => {
-      setSuccess("");
-    }, 5000);
+    const timer =
+      window.setTimeout(
+        () => {
+          setSuccess("");
+        },
+        5000
+      );
 
     return () => {
-      window.clearTimeout(timer);
+      window.clearTimeout(
+        timer
+      );
     };
   }, [success]);
 
-  /* -------------------------------------------------------
+  /* =========================================================
      LOAD PREVIOUS AVATARS
-  ------------------------------------------------------- */
 
-  const loadPreviousAvatars = async (userId) => {
-    try {
-      const { data, error: mediaError } =
-        await supabase
-          .from("media")
-          .select(
-            "id, url, public_id, media_type, created_at"
-          )
-          .eq("owner_id", userId)
-          .eq("media_type", "avatar")
-          .order("created_at", {
-            ascending: false,
-          });
+     CURRENT MEDIA SCHEMA:
+     id
+     file_name
+     file_type
+     size_bytes
+     uploaded_by
+     url
+     created_at
+  ========================================================= */
 
-      if (mediaError) {
-        console.error(
-          "Previous avatar load error:",
-          mediaError
-        );
-
-        // Media history is optional.
-        // Do not break Edit Profile.
-        setPreviousAvatars([]);
-
-        return;
-      }
-
-      setPreviousAvatars(data || []);
-    } catch (err) {
-      console.error(
-        "Previous avatar load exception:",
-        err
-      );
-
-      setPreviousAvatars([]);
-    }
-  };
-
-  /* -------------------------------------------------------
-     LOAD PROFILE
-  ------------------------------------------------------- */
-
-  useEffect(() => {
-    let active = true;
-
-    const load = async () => {
+  const loadPreviousAvatars =
+    async (
+      userId
+    ) => {
       try {
-        setLoading(true);
-        setError("");
-
         const {
-          data: { user: authUser },
-          error: authError,
-        } = await supabase.auth.getUser();
+          data,
+          error:
+            mediaError,
+        } =
+          await supabase
+            .from(
+              "media"
+            )
+            .select(
+              `
+                id,
+                file_name,
+                file_type,
+                size_bytes,
+                uploaded_by,
+                url,
+                created_at
+              `
+            )
+            .eq(
+              "uploaded_by",
+              userId
+            )
+            .like(
+              "file_name",
+              "avatar-%"
+            )
+            .order(
+              "created_at",
+              {
+                ascending:
+                  false,
+              }
+            );
 
-        if (authError) {
-          throw authError;
-        }
+        if (
+          mediaError
+        ) {
+          console.warn(
+            "Previous avatar load error:",
+            mediaError
+          );
 
-        if (!authUser) {
-          navigate("/login", {
-            replace: true,
-          });
+          setPreviousAvatars(
+            []
+          );
 
           return;
         }
 
-        if (!active) return;
-
-        setUser(authUser);
-
-        // Previous avatar history is optional.
-        await loadPreviousAvatars(authUser.id);
-
-        const [
-          profileResult,
-          skillsResult,
-          teachingResult,
-          learningResult,
-          settingsResult,
-        ] = await Promise.all([
-          /* PROFILE */
-
-          supabase
-            .from("profiles")
-            .select(
-              `
-                id,
-                username,
-                full_name,
-                avatar_url,
-                bio,
-                role,
-                career_goal,
-                location,
-                profile_completed
-              `
-            )
-            .eq("id", authUser.id)
-            .maybeSingle(),
-
-          /* ACTIVE SKILLS */
-
-          supabase
-            .from("skills")
-            .select(
-              `
-                id,
-                name,
-                description,
-                difficulty_level
-              `
-            )
-            .eq("is_active", true)
-            .order("name"),
-
-          /* TEACHING SKILLS */
-
-          supabase
-            .from("user_skills")
-            .select(
-              `
-                id,
-                skill_id,
-                proficiency_level,
-                years_experience,
-                is_verified
-              `
-            )
-            .eq("user_id", authUser.id)
-            .eq("type", TEACH_TYPE),
-
-          /* LEARNING INTERESTS */
-
-          supabase
-            .from("user_interests")
-            .select(
-              `
-                id,
-                skill_id,
-                interest_text,
-                weight
-              `
-            )
-            .eq("user_id", authUser.id),
-
-          /* SETTINGS */
-
-          supabase
-            .from("user_settings")
-            .select(
-              `
-                id,
-                language,
-                timezone,
-                theme
-              `
-            )
-            .eq("user_id", authUser.id)
-            .maybeSingle(),
-        ]);
-
-        /* PROFILE IS REQUIRED */
-
-        if (profileResult.error) {
-          throw profileResult.error;
-        }
-
-        if (!profileResult.data) {
-          navigate("/profile-setup", {
-            replace: true,
-          });
-
-          return;
-        }
-
-        if (!profileResult.data.profile_completed) {
-          navigate("/profile-setup", {
-            replace: true,
-          });
-
-          return;
-        }
-
-        if (!active) return;
-
-        setProfile({
-          username:
-            profileResult.data.username || "",
-
-          full_name:
-            profileResult.data.full_name || "",
-
-          avatar_url:
-            profileResult.data.avatar_url || "",
-
-          bio:
-            profileResult.data.bio || "",
-
-          role:
-            profileResult.data.role || "",
-
-          career_goal:
-            profileResult.data.career_goal || "",
-
-          location:
-            profileResult.data.location || "",
-        });
-
-        /* SKILLS */
-
-        if (skillsResult.error) {
-          console.error(
-            "Edit profile skills error:",
-            skillsResult.error
-          );
-
-          setSkills([]);
-        } else {
-          setSkills(skillsResult.data || []);
-        }
-
-        /* TEACHING */
-
-        if (teachingResult.error) {
-          console.error(
-            "Edit profile teaching error:",
-            teachingResult.error
-          );
-
-          setTeachingSkills([]);
-        } else {
-          setTeachingSkills(
-            teachingResult.data || []
-          );
-        }
-
-        /* LEARNING */
-
-        if (learningResult.error) {
-          console.error(
-            "Edit profile learning error:",
-            learningResult.error
-          );
-
-          setLearningSkills([]);
-        } else {
-          setLearningSkills(
-            learningResult.data || []
-          );
-        }
-
-        /* SETTINGS */
-
-        if (settingsResult.error) {
-          console.error(
-            "Edit profile settings error:",
-            settingsResult.error
-          );
-        } else if (settingsResult.data) {
-          setSettingsExists(true);
-
-          setPreferences({
-            language:
-              settingsResult.data.language ||
-              "English",
-
-            timezone:
-              settingsResult.data.timezone ||
-              "Asia/Dhaka",
-
-            theme:
-              settingsResult.data.theme ||
-              "dark",
-          });
-        }
-      } catch (err) {
-        console.error(
-          "Edit profile load error:",
+        setPreviousAvatars(
+          data || []
+        );
+      } catch (
+        err
+      ) {
+        console.warn(
+          "Previous avatar load exception:",
           err
         );
 
-        if (active) {
-          setError(
-            "We couldn't load your profile right now. Please refresh and try again."
-          );
-        }
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
+        setPreviousAvatars(
+          []
+        );
       }
     };
+
+  /* =========================================================
+     LOAD PROFILE
+  ========================================================= */
+
+  useEffect(() => {
+    let active =
+      true;
+
+    const load =
+      async () => {
+        try {
+          setLoading(
+            true
+          );
+
+          setError("");
+
+          /* ===================================================
+             AUTH
+          =================================================== */
+
+          const {
+            data: {
+              user:
+                authUser,
+            },
+
+            error:
+              authError,
+          } =
+            await supabase.auth
+              .getUser();
+
+          if (
+            authError
+          ) {
+            throw authError;
+          }
+
+          if (
+            !authUser
+          ) {
+            navigate(
+              "/login",
+              {
+                replace:
+                  true,
+              }
+            );
+
+            return;
+          }
+
+          if (
+            !active
+          ) {
+            return;
+          }
+
+          setUser(
+            authUser
+          );
+
+          await loadPreviousAvatars(
+            authUser.id
+          );
+
+          /* ===================================================
+             LOAD DATABASE DATA
+          =================================================== */
+
+          const [
+            profileResult,
+            skillsResult,
+            userSkillsResult,
+            learningResult,
+            settingsResult,
+          ] =
+            await Promise.all(
+              [
+                /* PROFILE */
+
+                supabase
+                  .from(
+                    "profiles"
+                  )
+                  .select(
+                    `
+                      id,
+                      username,
+                      full_name,
+                      avatar_url,
+                      bio,
+                      role,
+                      career_goal,
+                      location,
+                      profile_completed,
+                      is_active
+                    `
+                  )
+                  .eq(
+                    "id",
+                    authUser.id
+                  )
+                  .maybeSingle(),
+
+                /* SKILLS */
+
+                supabase
+                  .from(
+                    "skills"
+                  )
+                  .select(
+                    `
+                      id,
+                      name,
+                      category_id
+                    `
+                  )
+                  .eq(
+                    "is_active",
+                    true
+                  )
+                  .order(
+                    "name",
+                    {
+                      ascending:
+                        true,
+                    }
+                  ),
+
+                /* USER SKILLS */
+
+                supabase
+                  .from(
+                    "user_skills"
+                  )
+                  .select(
+                    `
+                      user_id,
+                      skill_id,
+                      is_learning,
+                      is_teaching
+                    `
+                  )
+                  .eq(
+                    "user_id",
+                    authUser.id
+                  ),
+
+                /* LEARNING INTERESTS */
+
+                supabase
+                  .from(
+                    "user_interests"
+                  )
+                  .select(
+                    `
+                      id,
+                      skill_id,
+                      interest_text,
+                      weight
+                    `
+                  )
+                  .eq(
+                    "user_id",
+                    authUser.id
+                  ),
+
+                /* SETTINGS */
+
+                supabase
+                  .from(
+                    "user_settings"
+                  )
+                  .select(
+                    `
+                      id,
+                      language,
+                      timezone,
+                      theme
+                    `
+                  )
+                  .eq(
+                    "user_id",
+                    authUser.id
+                  )
+                  .maybeSingle(),
+              ]
+            );
+
+          if (
+            !active
+          ) {
+            return;
+          }
+
+          /* ===================================================
+             PROFILE
+          =================================================== */
+
+          if (
+            profileResult.error
+          ) {
+            throw (
+              profileResult.error
+            );
+          }
+
+          if (
+            !profileResult.data
+          ) {
+            navigate(
+              "/profile-setup",
+              {
+                replace:
+                  true,
+              }
+            );
+
+            return;
+          }
+
+          if (
+            profileResult.data
+              .profile_completed !==
+            true
+          ) {
+            navigate(
+              "/profile-setup",
+              {
+                replace:
+                  true,
+              }
+            );
+
+            return;
+          }
+
+          const loadedProfile =
+            {
+              username:
+                profileResult.data
+                  .username ||
+                "",
+
+              full_name:
+                profileResult.data
+                  .full_name ||
+                "",
+
+              avatar_url:
+                profileResult.data
+                  .avatar_url ||
+                "",
+
+              bio:
+                profileResult.data
+                  .bio ||
+                "",
+
+              role:
+                normalizeRoleForFrontend(
+                  profileResult.data
+                    .role
+                ),
+
+              career_goal:
+                profileResult.data
+                  .career_goal ||
+                "",
+
+              location:
+                profileResult.data
+                  .location ||
+                "",
+            };
+
+          setProfile(
+            loadedProfile
+          );
+
+          originalProfileRef.current =
+            {
+              ...loadedProfile,
+            };
+
+          /* ===================================================
+             SKILLS
+          =================================================== */
+
+          if (
+            skillsResult.error
+          ) {
+            console.error(
+              "EDIT PROFILE SKILLS ERROR:",
+              skillsResult.error
+            );
+
+            setSkills(
+              []
+            );
+          } else {
+            const loadedSkills =
+              (
+                skillsResult.data ||
+                []
+              )
+                .filter(
+                  (
+                    skill
+                  ) =>
+                    skill?.id &&
+                    skill?.name
+                )
+                .map(
+                  (
+                    skill
+                  ) => ({
+                    ...skill,
+
+                    name:
+                      String(
+                        skill.name
+                      ).trim(),
+                  })
+                );
+
+            setSkills(
+              loadedSkills
+            );
+          }
+
+          /* ===================================================
+             USER SKILLS
+          =================================================== */
+
+          if (
+            userSkillsResult.error
+          ) {
+            console.error(
+              "EDIT PROFILE USER SKILLS ERROR:",
+              userSkillsResult.error
+            );
+          }
+
+          const userSkillRows =
+            userSkillsResult.error
+              ? []
+              : userSkillsResult.data ||
+                [];
+
+          /* ===================================================
+             TEACHING
+          =================================================== */
+
+          const teaching =
+            userSkillRows
+              .filter(
+                (
+                  row
+                ) =>
+                  row.is_teaching ===
+                  true
+              )
+              .map(
+                (
+                  row
+                ) => ({
+                  skill_id:
+                    row.skill_id,
+
+                  proficiency_level:
+                    "intermediate",
+
+                  years_experience:
+                    0,
+
+                  is_verified:
+                    false,
+                })
+              );
+
+          setTeachingSkills(
+            teaching
+          );
+
+          originalTeachingIdsRef.current =
+            new Set(
+              teaching.map(
+                (
+                  item
+                ) =>
+                  item.skill_id
+              )
+            );
+
+          /* ===================================================
+             LEARNING
+          =================================================== */
+
+          if (
+            learningResult.error
+          ) {
+            console.error(
+              "EDIT PROFILE LEARNING ERROR:",
+              learningResult.error
+            );
+          }
+
+          const interestRows =
+            learningResult.error
+              ? []
+              : learningResult.data ||
+                [];
+
+          const interestMap =
+            new Map(
+              interestRows.map(
+                (
+                  item
+                ) => [
+                  item.skill_id,
+                  item,
+                ]
+              )
+            );
+
+          const learningIds =
+            new Set();
+
+          userSkillRows
+            .filter(
+              (
+                row
+              ) =>
+                row.is_learning ===
+                true
+            )
+            .forEach(
+              (
+                row
+              ) => {
+                learningIds.add(
+                  row.skill_id
+                );
+              }
+            );
+
+          interestRows.forEach(
+            (
+              row
+            ) => {
+              if (
+                row.skill_id
+              ) {
+                learningIds.add(
+                  row.skill_id
+                );
+              }
+            }
+          );
+
+          const loadedLearning =
+            Array.from(
+              learningIds
+            ).map(
+              (
+                skillId
+              ) => {
+                const interest =
+                  interestMap.get(
+                    skillId
+                  );
+
+                return {
+                  skill_id:
+                    skillId,
+
+                  interest_text:
+                    interest
+                      ?.interest_text ||
+                    "",
+
+                  weight:
+                    interest
+                      ?.weight ??
+                    3,
+                };
+              }
+            );
+
+          setLearningSkills(
+            loadedLearning
+          );
+
+          originalLearningIdsRef.current =
+            new Set(
+              loadedLearning.map(
+                (
+                  item
+                ) =>
+                  item.skill_id
+              )
+            );
+
+          /* ===================================================
+             SETTINGS
+          =================================================== */
+
+          if (
+            settingsResult.error
+          ) {
+            console.error(
+              "EDIT PROFILE SETTINGS ERROR:",
+              settingsResult.error
+            );
+
+            originalPreferencesRef.current =
+              {
+                ...initialPreferences,
+              };
+          } else if (
+            settingsResult.data
+          ) {
+            setSettingsExists(
+              true
+            );
+
+            const loadedPreferences =
+              {
+                language:
+                  settingsResult.data
+                    .language ||
+                  "English",
+
+                timezone:
+                  settingsResult.data
+                    .timezone ||
+                  "Asia/Dhaka",
+
+                theme:
+                  settingsResult.data
+                    .theme ||
+                  "dark",
+              };
+
+            setPreferences(
+              loadedPreferences
+            );
+
+            originalPreferencesRef.current =
+              {
+                ...loadedPreferences,
+              };
+          } else {
+            originalPreferencesRef.current =
+              {
+                ...initialPreferences,
+              };
+          }
+        } catch (
+          err
+        ) {
+          console.error(
+            "EDIT PROFILE LOAD ERROR:",
+            err
+          );
+
+          if (
+            active
+          ) {
+            setError(
+              err?.message ||
+                "We couldn't load your profile right now."
+            );
+          }
+        } finally {
+          if (
+            active
+          ) {
+            setLoading(
+              false
+            );
+          }
+        }
+      };
 
     load();
 
     return () => {
-      active = false;
+      active =
+        false;
     };
   }, [navigate]);
 
-  /* -------------------------------------------------------
+  /* =========================================================
      SKILL MAP
-  ------------------------------------------------------- */
+  ========================================================= */
 
-  const skillMap = useMemo(() => {
-    return new Map(
-      skills.map((skill) => [
-        skill.id,
-        skill,
-      ])
-    );
-  }, [skills]);
-
-  /* -------------------------------------------------------
-     CHANGE TAB
-  ------------------------------------------------------- */
-
-  const setTab = (tab) => {
-    if (!TABS.includes(tab)) {
-      return;
-    }
-
-    setActiveTab(tab);
-
-    navigate(
-      `/profile/edit?tab=${tab}`,
-      {
-        replace: true,
-      }
-    );
-
-    setError("");
-    setSuccess("");
-  };
-
-  /* -------------------------------------------------------
-     VALIDATION
-  ------------------------------------------------------- */
-
-  const validate = () => {
-    const cleanUsername =
-      profile.username.trim();
-
-    if (
-      !/^[a-zA-Z0-9._]{3,20}$/.test(
-        cleanUsername
-      )
-    ) {
-      setTab("profile");
-
-      return "Username must be 3–20 characters and use only letters, numbers, dots or underscores.";
-    }
-
-    if (!profile.full_name.trim()) {
-      setTab("profile");
-
-      return "Full name is required.";
-    }
-
-    if (!profile.role) {
-      setTab("profile");
-
-      return "Please select your role.";
-    }
-
-    const needsTeaching =
-      profile.role === "mentor" ||
-      profile.role === "swap_master";
-
-    const needsLearning =
-      profile.role === "learner" ||
-      profile.role === "swap_master";
-
-    if (
-      needsTeaching &&
-      teachingSkills.length === 0
-    ) {
-      setTab("teaching");
-
-      return "Your current role requires at least one teaching skill.";
-    }
-
-    if (
-      needsLearning &&
-      learningSkills.length === 0
-    ) {
-      setTab("learning");
-
-      return "Your current role requires at least one learning skill.";
-    }
-
-    return "";
-  };
-
-  /* -------------------------------------------------------
-     AVATAR VALIDATION
-  ------------------------------------------------------- */
-
-  const validateAvatar = (file) => {
-    if (!file) return;
-
-    const allowedTypes = [
-      "image/jpeg",
-      "image/png",
-      "image/webp",
-    ];
-
-    if (!allowedTypes.includes(file.type)) {
-      throw new Error(
-        "Please upload a JPG, PNG or WebP image."
-      );
-    }
-
-    const maxSize = 5 * 1024 * 1024;
-
-    if (file.size > maxSize) {
-      throw new Error(
-        "Profile image must be smaller than 5 MB."
-      );
-    }
-  };
-
-  /* -------------------------------------------------------
-     UPLOAD AVATAR
-  ------------------------------------------------------- */
-
-  const uploadAvatar = async () => {
-    if (!avatarFile || !user) {
-      return profile.avatar_url || null;
-    }
-
-    validateAvatar(avatarFile);
-
-    const extension =
-      avatarFile.name
-        .split(".")
-        .pop()
-        ?.toLowerCase() || "jpg";
-
-    const filePath =
-      `${user.id}/profile-${Date.now()}.${extension}`;
-
-    console.log(
-      "Uploading avatar to:",
-      AVATAR_BUCKET,
-      filePath
-    );
-
-    /*
-      IMPORTANT:
-
-      Bucket name must be exactly:
-
-      avatars
-
-      Storage path:
-
-      avatars/
-        USER_ID/
-          profile-xxxxx.jpg
-    */
-
-    const {
-      data: uploadData,
-      error: uploadError,
-    } = await supabase.storage
-      .from(AVATAR_BUCKET)
-      .upload(
-        filePath,
-        avatarFile,
-        {
-          upsert: false,
-          contentType:
-            avatarFile.type || undefined,
-          cacheControl: "3600",
-        }
-      );
-
-    if (uploadError) {
-      console.error(
-        "Avatar upload error:",
-        uploadError
-      );
-
-      throw uploadError;
-    }
-
-    console.log(
-      "Avatar uploaded:",
-      uploadData
-    );
-
-    /* GET PUBLIC URL */
-
-    const { data: publicData } =
-      supabase.storage
-        .from(AVATAR_BUCKET)
-        .getPublicUrl(filePath);
-
-    const publicUrl =
-      publicData?.publicUrl;
-
-    if (!publicUrl) {
-      throw new Error(
-        "Avatar uploaded, but the public URL could not be generated."
-      );
-    }
-
-    /*
-      MEDIA HISTORY
-
-      This is optional.
-
-      If media table permissions are not configured,
-      we log the error but DO NOT fail profile saving.
-    */
-
-    try {
-      const { error: mediaError } =
-        await supabase
-          .from("media")
-          .insert({
-            owner_id: user.id,
-            url: publicUrl,
-            public_id: filePath,
-            media_type: "avatar",
-            created_at:
-              new Date().toISOString(),
-          });
-
-      if (mediaError) {
-        console.error(
-          "Avatar media history error:",
-          mediaError
-        );
-      }
-    } catch (mediaException) {
-      console.error(
-        "Avatar media history exception:",
-        mediaException
-      );
-    }
-
-    return publicUrl;
-  };
-
-  /* -------------------------------------------------------
-     SAVE
-  ------------------------------------------------------- */
-
-  const saveProfile = async () => {
-    if (!user || saving) return;
-
-    const validationError =
-      validate();
-
-    if (validationError) {
-      setError(validationError);
-      setSuccess("");
-
-      return;
-    }
-
-    try {
-      setSaving(true);
-      setError("");
-      setSuccess("");
-
-      const cleanUsername =
-        profile.username
-          .trim()
-          .toLowerCase();
-
-      /* ---------------------------------------------------
-         CHECK USERNAME
-      --------------------------------------------------- */
-
-      const {
-        data: existingUsername,
-        error: usernameCheckError,
-      } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq(
-          "username",
-          cleanUsername
+  const skillMap =
+    useMemo(() => {
+      return new Map(
+        skills.map(
+          (
+            skill
+          ) => [
+            skill.id,
+            skill,
+          ]
         )
-        .neq("id", user.id)
-        .maybeSingle();
+      );
+    }, [skills]);
 
-      if (usernameCheckError) {
-        throw usernameCheckError;
-      }
+  /* =========================================================
+     CHANGE TAB
+  ========================================================= */
 
-      if (existingUsername) {
-        setTab("profile");
-
-        setError(
-          "That username is already in use. Choose another one."
-        );
-
+  const setTab =
+    (tab) => {
+      if (
+        !TABS.includes(
+          tab
+        )
+      ) {
         return;
       }
 
-      /* ---------------------------------------------------
-         AVATAR
-      --------------------------------------------------- */
+      setActiveTab(
+        tab
+      );
 
-      const avatarUrl =
-        await uploadAvatar();
-
-      /* ---------------------------------------------------
-         UPDATE PROFILE
-      --------------------------------------------------- */
-
-      const {
-        error: profileError,
-      } = await supabase
-        .from("profiles")
-        .update({
-          username: cleanUsername,
-
-          full_name:
-            profile.full_name.trim(),
-
-          avatar_url:
-            avatarUrl || null,
-
-          bio:
-            profile.bio.trim() ||
-            null,
-
-          role:
-            profile.role,
-
-          career_goal:
-            profile.career_goal.trim() ||
-            null,
-
-          location:
-            profile.location.trim() ||
-            null,
-
-          updated_at:
-            new Date().toISOString(),
-
-          /*
-            DO NOT ADD:
-
-            profile_completed
-
-            Edit Profile must never restart
-            onboarding.
-          */
-        })
-        .eq("id", user.id);
-
-      if (profileError) {
-        throw profileError;
-      }
-
-      /* ---------------------------------------------------
-         TEACHING SKILLS
-      --------------------------------------------------- */
-
-      const {
-        error: deleteTeachingError,
-      } = await supabase
-        .from("user_skills")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("type", TEACH_TYPE);
-
-      if (deleteTeachingError) {
-        throw deleteTeachingError;
-      }
-
-      if (teachingSkills.length > 0) {
-        const teachingRows =
-          teachingSkills.map((item) => ({
-            user_id: user.id,
-
-            skill_id:
-              item.skill_id,
-
-            type:
-              TEACH_TYPE,
-
-            proficiency_level:
-              item.proficiency_level ||
-              "intermediate",
-
-            years_experience:
-              Number(
-                item.years_experience || 0
-              ),
-
-            is_verified:
-              Boolean(
-                item.is_verified
-              ),
-          }));
-
-        const {
-          error: insertTeachingError,
-        } = await supabase
-          .from("user_skills")
-          .insert(teachingRows);
-
-        if (insertTeachingError) {
-          throw insertTeachingError;
+      navigate(
+        `/profile/edit?tab=${tab}`,
+        {
+          replace:
+            true,
         }
+      );
+
+      setError("");
+
+      setSuccess("");
+    };
+
+  /* =========================================================
+     VALIDATE
+  ========================================================= */
+
+  const validate =
+    () => {
+      const cleanUsername =
+        normalizeUsername(
+          profile.username
+        );
+
+      if (
+        !/^[a-z0-9._]{3,20}$/.test(
+          cleanUsername
+        )
+      ) {
+        setTab(
+          "profile"
+        );
+
+        return "Username must be 3–20 characters and use lowercase letters, numbers, dots or underscores.";
       }
 
-      /* ---------------------------------------------------
-         LEARNING INTERESTS
-      --------------------------------------------------- */
+      if (
+        !normalizeText(
+          profile.full_name
+        )
+      ) {
+        setTab(
+          "profile"
+        );
+
+        return "Full name is required.";
+      }
+
+      if (
+        ![
+          ROLE_LEARNER,
+          ROLE_MENTOR,
+          ROLE_SWAP_MASTER,
+        ].includes(
+          profile.role
+        )
+      ) {
+        setTab(
+          "profile"
+        );
+
+        return "Please select your role.";
+      }
+
+      const needsTeaching =
+        profile.role ===
+          ROLE_MENTOR ||
+        profile.role ===
+          ROLE_SWAP_MASTER;
+
+      const needsLearning =
+        profile.role ===
+          ROLE_LEARNER ||
+        profile.role ===
+          ROLE_SWAP_MASTER;
+
+      if (
+        needsTeaching &&
+        teachingSkills.length ===
+          0
+      ) {
+        setTab(
+          "teaching"
+        );
+
+        return "Your current role requires at least one teaching skill.";
+      }
+
+      if (
+        needsLearning &&
+        learningSkills.length ===
+          0
+      ) {
+        setTab(
+          "learning"
+        );
+
+        return "Your current role requires at least one learning skill.";
+      }
+
+      return "";
+    };
+
+  /* =========================================================
+     AVATAR VALIDATION
+  ========================================================= */
+
+  const validateAvatar =
+    (file) => {
+      if (
+        !file
+      ) {
+        return;
+      }
+
+      const allowedTypes =
+        [
+          "image/jpeg",
+          "image/png",
+          "image/webp",
+        ];
+
+      if (
+        !allowedTypes.includes(
+          file.type
+        )
+      ) {
+        throw new Error(
+          "Please upload a JPG, PNG or WebP image."
+        );
+      }
+
+      const maxSize =
+        5 *
+        1024 *
+        1024;
+
+      if (
+        file.size >
+        maxSize
+      ) {
+        throw new Error(
+          "Profile image must be smaller than 5 MB."
+        );
+      }
+    };
+
+  /* =========================================================
+     UPLOAD AVATAR
+  ========================================================= */
+
+  const uploadAvatar =
+    async () => {
+      if (
+        !avatarFile ||
+        !user
+      ) {
+        return (
+          profile.avatar_url ||
+          null
+        );
+      }
+
+      validateAvatar(
+        avatarFile
+      );
+
+      const extension =
+        avatarFile.name
+          .split(".")
+          .pop()
+          ?.toLowerCase() ||
+        "jpg";
+
+      const timestamp =
+        Date.now();
+
+      const storageFileName =
+        `profile-${timestamp}.${extension}`;
+
+      const filePath =
+        `${user.id}/${storageFileName}`;
 
       const {
-        error: deleteLearningError,
-      } = await supabase
-        .from("user_interests")
-        .delete()
-        .eq("user_id", user.id);
+        error:
+          uploadError,
+      } =
+        await supabase.storage
+          .from(
+            AVATAR_BUCKET
+          )
+          .upload(
+            filePath,
+            avatarFile,
+            {
+              upsert:
+                false,
 
-      if (deleteLearningError) {
-        throw deleteLearningError;
+              contentType:
+                avatarFile.type ||
+                undefined,
+
+              cacheControl:
+                "3600",
+            }
+          );
+
+      if (
+        uploadError
+      ) {
+        console.error(
+          "AVATAR UPLOAD ERROR:",
+          uploadError
+        );
+
+        throw uploadError;
       }
 
-      if (learningSkills.length > 0) {
-        const learningRows =
-          learningSkills.map((item) => ({
-            user_id:
-              user.id,
+      const {
+        data:
+          publicData,
+      } =
+        supabase.storage
+          .from(
+            AVATAR_BUCKET
+          )
+          .getPublicUrl(
+            filePath
+          );
 
-            skill_id:
-              item.skill_id,
+      const publicUrl =
+        publicData
+          ?.publicUrl;
 
-            interest_text:
-              item.interest_text?.trim() ||
-              null,
+      if (
+        !publicUrl
+      ) {
+        throw new Error(
+          "Avatar uploaded, but the public URL could not be generated."
+        );
+      }
 
-            weight:
-              Number(
-                item.weight || 3
-              ),
-          }));
+      /* =====================================================
+         MEDIA HISTORY
 
+         CURRENT SCHEMA:
+         file_name
+         size_bytes
+         uploaded_by
+         url
+
+         file_type is omitted so the DB default is used.
+      ===================================================== */
+
+      try {
         const {
-          error: insertLearningError,
-        } = await supabase
-          .from("user_interests")
-          .insert(learningRows);
+          error:
+            mediaError,
+        } =
+          await supabase
+            .from(
+              "media"
+            )
+            .insert({
+              file_name:
+                `avatar-${storageFileName}`,
 
-        if (insertLearningError) {
-          throw insertLearningError;
+              size_bytes:
+                avatarFile.size ||
+                0,
+
+              uploaded_by:
+                user.id,
+
+              url:
+                publicUrl,
+
+              created_at:
+                new Date()
+                  .toISOString(),
+            });
+
+        if (
+          mediaError
+        ) {
+          console.warn(
+            "AVATAR MEDIA HISTORY ERROR:",
+            mediaError
+          );
         }
+      } catch (
+        mediaException
+      ) {
+        console.warn(
+          "AVATAR MEDIA HISTORY EXCEPTION:",
+          mediaException
+        );
       }
 
-      /* ---------------------------------------------------
-         SETTINGS
-      --------------------------------------------------- */
+      return publicUrl;
+    };
 
-      if (settingsExists) {
+  /* =========================================================
+     UPDATE PROFILE
+  ========================================================= */
+
+  const updateProfile =
+    async (
+      avatarUrl
+    ) => {
+      const cleanUsername =
+        normalizeUsername(
+          profile.username
+        );
+
+      const cleanFullName =
+        normalizeText(
+          profile.full_name
+        );
+
+      const roleCandidates =
+        getDatabaseRoleCandidates(
+          profile.role
+        );
+
+      if (
+        roleCandidates.length ===
+        0
+      ) {
+        throw new Error(
+          "INVALID_PROFILE_ROLE"
+        );
+      }
+
+      let lastRoleError =
+        null;
+
+      for (
+        const databaseRole of
+        roleCandidates
+      ) {
         const {
-          error: settingsError,
-        } = await supabase
-          .from("user_settings")
-          .update({
-            language:
-              preferences.language,
+          data,
+          error:
+            profileError,
+        } =
+          await supabase
+            .from(
+              "profiles"
+            )
+            .update({
+              username:
+                cleanUsername,
 
-            timezone:
-              preferences.timezone,
+              full_name:
+                cleanFullName,
 
-            theme:
-              preferences.theme,
-          })
+              avatar_url:
+                avatarUrl ||
+                null,
+
+              bio:
+                normalizeText(
+                  profile.bio
+                ) ||
+                null,
+
+              role:
+                databaseRole,
+
+              career_goal:
+                normalizeText(
+                  profile.career_goal
+                ) ||
+                null,
+
+              location:
+                normalizeText(
+                  profile.location
+                ) ||
+                null,
+
+              updated_at:
+                new Date()
+                  .toISOString(),
+
+              last_active:
+                new Date()
+                  .toISOString(),
+            })
+            .eq(
+              "id",
+              user.id
+            )
+            .select(
+              "id"
+            )
+            .maybeSingle();
+
+        if (
+          !profileError
+        ) {
+          if (
+            !data?.id
+          ) {
+            throw new Error(
+              "PROFILE_UPDATE_NOT_ALLOWED"
+            );
+          }
+
+          return;
+        }
+
+        if (
+          !isRoleEnumError(
+            profileError
+          )
+        ) {
+          throw profileError;
+        }
+
+        lastRoleError =
+          profileError;
+      }
+
+      throw (
+        lastRoleError ||
+        new Error(
+          "ROLE_SAVE_FAILED"
+        )
+      );
+    };
+
+  /* =========================================================
+     SAVE USER SKILLS
+  ========================================================= */
+
+  const saveUserSkills =
+    async () => {
+      const teachingIds =
+        new Set(
+          teachingSkills
+            .map(
+              (
+                item
+              ) =>
+                item.skill_id
+            )
+            .filter(
+              Boolean
+            )
+        );
+
+      const learningIds =
+        new Set(
+          learningSkills
+            .map(
+              (
+                item
+              ) =>
+                item.skill_id
+            )
+            .filter(
+              Boolean
+            )
+        );
+
+      const allIds =
+        new Set([
+          ...teachingIds,
+          ...learningIds,
+        ]);
+
+      const {
+        error:
+          deleteError,
+      } =
+        await supabase
+          .from(
+            "user_skills"
+          )
+          .delete()
           .eq(
             "user_id",
             user.id
           );
 
-        if (settingsError) {
+      if (
+        deleteError
+      ) {
+        throw deleteError;
+      }
+
+      if (
+        allIds.size ===
+        0
+      ) {
+        return;
+      }
+
+      const rows =
+        Array.from(
+          allIds
+        ).map(
+          (
+            skillId
+          ) => ({
+            user_id:
+              user.id,
+
+            skill_id:
+              skillId,
+
+            is_teaching:
+              teachingIds.has(
+                skillId
+              ),
+
+            is_learning:
+              learningIds.has(
+                skillId
+              ),
+          })
+        );
+
+      const {
+        error:
+          insertError,
+      } =
+        await supabase
+          .from(
+            "user_skills"
+          )
+          .insert(
+            rows
+          );
+
+      if (
+        insertError
+      ) {
+        throw insertError;
+      }
+    };
+
+  /* =========================================================
+     SAVE LEARNING INTERESTS
+  ========================================================= */
+
+  const saveLearningInterests =
+    async () => {
+      const {
+        error:
+          deleteError,
+      } =
+        await supabase
+          .from(
+            "user_interests"
+          )
+          .delete()
+          .eq(
+            "user_id",
+            user.id
+          );
+
+      if (
+        deleteError
+      ) {
+        throw deleteError;
+      }
+
+      if (
+        learningSkills.length ===
+        0
+      ) {
+        return;
+      }
+
+      const rows =
+        learningSkills
+          .filter(
+            (
+              item
+            ) =>
+              item.skill_id
+          )
+          .map(
+            (
+              item
+            ) => ({
+              user_id:
+                user.id,
+
+              skill_id:
+                item.skill_id,
+
+              interest_text:
+                normalizeText(
+                  item.interest_text
+                ) ||
+                null,
+
+              weight:
+                Number(
+                  item.weight
+                ) ||
+                3,
+            })
+          );
+
+      const {
+        error:
+          insertError,
+      } =
+        await supabase
+          .from(
+            "user_interests"
+          )
+          .insert(
+            rows
+          );
+
+      if (
+        insertError
+      ) {
+        throw insertError;
+      }
+    };
+
+  /* =========================================================
+     SAVE SETTINGS
+  ========================================================= */
+
+  const saveSettings =
+    async () => {
+      if (
+        settingsExists
+      ) {
+        const {
+          error:
+            settingsError,
+        } =
+          await supabase
+            .from(
+              "user_settings"
+            )
+            .update({
+              language:
+                preferences.language,
+
+              timezone:
+                preferences.timezone,
+
+              theme:
+                preferences.theme,
+            })
+            .eq(
+              "user_id",
+              user.id
+            );
+
+        if (
+          settingsError
+        ) {
           throw settingsError;
         }
-      } else {
-        const {
-          error: settingsError,
-        } = await supabase
-          .from("user_settings")
+
+        return;
+      }
+
+      const {
+        error:
+          settingsError,
+      } =
+        await supabase
+          .from(
+            "user_settings"
+          )
           .insert({
             user_id:
               user.id,
@@ -929,111 +1813,822 @@ export default function EditProfile() {
               preferences.theme,
           });
 
-        if (settingsError) {
-          throw settingsError;
+      if (
+        settingsError
+      ) {
+        throw settingsError;
+      }
+
+      setSettingsExists(
+        true
+      );
+    };
+
+  /* =========================================================
+     ACTIVITY LOGGING
+
+     Runs only AFTER all important save operations succeed.
+  ========================================================= */
+
+  const logProfileActivities =
+    async (
+      avatarUrl
+    ) => {
+      const logs =
+        [];
+
+      const originalProfile =
+        originalProfileRef.current ||
+        initialProfile;
+
+      const originalPreferences =
+        originalPreferencesRef.current ||
+        initialPreferences;
+
+      /* =====================================================
+         CURRENT VALUES
+      ===================================================== */
+
+      const currentProfile =
+        {
+          username:
+            normalizeUsername(
+              profile.username
+            ),
+
+          full_name:
+            normalizeText(
+              profile.full_name
+            ),
+
+          avatar_url:
+            avatarUrl ||
+            "",
+
+          bio:
+            normalizeText(
+              profile.bio
+            ),
+
+          role:
+            profile.role,
+
+          career_goal:
+            normalizeText(
+              profile.career_goal
+            ),
+
+          location:
+            normalizeText(
+              profile.location
+            ),
+        };
+
+      /* =====================================================
+         PROFILE FIELD CHANGES
+
+         Avatar is logged separately.
+      ===================================================== */
+
+      const profileFields = [
+        "username",
+        "full_name",
+        "bio",
+        "role",
+        "career_goal",
+        "location",
+      ];
+
+      const changedProfileFields =
+        profileFields.filter(
+          (
+            field
+          ) => {
+            const oldValue =
+              normalizeText(
+                originalProfile[
+                  field
+                ]
+              );
+
+            const newValue =
+              normalizeText(
+                currentProfile[
+                  field
+                ]
+              );
+
+            return (
+              oldValue !==
+              newValue
+            );
+          }
+        );
+
+      if (
+        changedProfileFields.length >
+        0
+      ) {
+        logs.push(
+          logActivity(
+            "profile_updated",
+            {
+              entityType:
+                "profile",
+
+              entityId:
+                user.id,
+
+              metadata: {
+                changed_fields:
+                  changedProfileFields,
+              },
+            }
+          )
+        );
+      }
+
+      /* =====================================================
+         AVATAR CHANGE
+      ===================================================== */
+
+      const oldAvatar =
+        originalProfile.avatar_url ||
+        "";
+
+      const newAvatar =
+        avatarUrl ||
+        "";
+
+      if (
+        oldAvatar !==
+        newAvatar
+      ) {
+        logs.push(
+          logActivity(
+            "avatar_updated",
+            {
+              entityType:
+                "profile",
+
+              entityId:
+                user.id,
+            }
+          )
+        );
+      }
+
+      /* =====================================================
+         TEACHING SKILL CHANGES
+      ===================================================== */
+
+      const oldTeachingIds =
+        originalTeachingIdsRef.current ||
+        new Set();
+
+      const newTeachingIds =
+        new Set(
+          teachingSkills
+            .map(
+              (
+                item
+              ) =>
+                item.skill_id
+            )
+            .filter(
+              Boolean
+            )
+        );
+
+      const teachingAdded =
+        [
+          ...newTeachingIds,
+        ].filter(
+          (
+            id
+          ) =>
+            !oldTeachingIds.has(
+              id
+            )
+        );
+
+      const teachingRemoved =
+        [
+          ...oldTeachingIds,
+        ].filter(
+          (
+            id
+          ) =>
+            !newTeachingIds.has(
+              id
+            )
+        );
+
+      for (
+        const skillId of
+        teachingAdded
+      ) {
+        const skill =
+          skillMap.get(
+            skillId
+          );
+
+        logs.push(
+          logActivity(
+            "teaching_skill_added",
+            {
+              entityType:
+                "skill",
+
+              entityId:
+                skillId,
+
+              metadata: {
+                skill_name:
+                  skill?.name ||
+                  "Skill",
+              },
+            }
+          )
+        );
+      }
+
+      for (
+        const skillId of
+        teachingRemoved
+      ) {
+        const skill =
+          skillMap.get(
+            skillId
+          );
+
+        logs.push(
+          logActivity(
+            "teaching_skill_removed",
+            {
+              entityType:
+                "skill",
+
+              entityId:
+                skillId,
+
+              metadata: {
+                skill_name:
+                  skill?.name ||
+                  "Skill",
+              },
+            }
+          )
+        );
+      }
+
+      /* =====================================================
+         LEARNING SKILL CHANGES
+      ===================================================== */
+
+      const oldLearningIds =
+        originalLearningIdsRef.current ||
+        new Set();
+
+      const newLearningIds =
+        new Set(
+          learningSkills
+            .map(
+              (
+                item
+              ) =>
+                item.skill_id
+            )
+            .filter(
+              Boolean
+            )
+        );
+
+      const learningAdded =
+        [
+          ...newLearningIds,
+        ].filter(
+          (
+            id
+          ) =>
+            !oldLearningIds.has(
+              id
+            )
+        );
+
+      const learningRemoved =
+        [
+          ...oldLearningIds,
+        ].filter(
+          (
+            id
+          ) =>
+            !newLearningIds.has(
+              id
+            )
+        );
+
+      for (
+        const skillId of
+        learningAdded
+      ) {
+        const skill =
+          skillMap.get(
+            skillId
+          );
+
+        logs.push(
+          logActivity(
+            "learning_skill_added",
+            {
+              entityType:
+                "skill",
+
+              entityId:
+                skillId,
+
+              metadata: {
+                skill_name:
+                  skill?.name ||
+                  "Skill",
+              },
+            }
+          )
+        );
+      }
+
+      for (
+        const skillId of
+        learningRemoved
+      ) {
+        const skill =
+          skillMap.get(
+            skillId
+          );
+
+        logs.push(
+          logActivity(
+            "learning_skill_removed",
+            {
+              entityType:
+                "skill",
+
+              entityId:
+                skillId,
+
+              metadata: {
+                skill_name:
+                  skill?.name ||
+                  "Skill",
+              },
+            }
+          )
+        );
+      }
+
+      /* =====================================================
+         PREFERENCE CHANGES
+      ===================================================== */
+
+      const preferenceFields =
+        [
+          "language",
+          "timezone",
+          "theme",
+        ];
+
+      const changedPreferenceFields =
+        preferenceFields.filter(
+          (
+            field
+          ) =>
+            String(
+              originalPreferences[
+                field
+              ] ||
+                ""
+            ) !==
+            String(
+              preferences[
+                field
+              ] ||
+                ""
+            )
+        );
+
+      if (
+        changedPreferenceFields.length >
+        0
+      ) {
+        logs.push(
+          logActivity(
+            "preferences_updated",
+            {
+              entityType:
+                "user_settings",
+
+              metadata: {
+                changed_fields:
+                  changedPreferenceFields,
+              },
+            }
+          )
+        );
+      }
+
+      /* =====================================================
+         ACTIVITY LOGGING IS NON-CRITICAL
+
+         logActivity already handles its own failures.
+      ===================================================== */
+
+      if (
+        logs.length >
+        0
+      ) {
+        await Promise.all(
+          logs
+        );
+      }
+
+      /* =====================================================
+         UPDATE ORIGINAL SNAPSHOTS
+
+         Prevent duplicate history when Save is clicked again.
+      ===================================================== */
+
+      originalProfileRef.current =
+        {
+          ...currentProfile,
+        };
+
+      originalPreferencesRef.current =
+        {
+          ...preferences,
+        };
+
+      originalTeachingIdsRef.current =
+        new Set(
+          newTeachingIds
+        );
+
+      originalLearningIdsRef.current =
+        new Set(
+          newLearningIds
+        );
+    };
+
+  /* =========================================================
+     SAVE EVERYTHING
+  ========================================================= */
+
+  const saveProfile =
+    async () => {
+      if (
+        !user ||
+        saving
+      ) {
+        return;
+      }
+
+      const validationError =
+        validate();
+
+      if (
+        validationError
+      ) {
+        setError(
+          validationError
+        );
+
+        setSuccess("");
+
+        return;
+      }
+
+      try {
+        setSaving(
+          true
+        );
+
+        setError("");
+
+        setSuccess("");
+
+        const cleanUsername =
+          normalizeUsername(
+            profile.username
+          );
+
+        /* =====================================================
+           USERNAME CHECK
+        ===================================================== */
+
+        const {
+          data:
+            existingUsername,
+
+          error:
+            usernameCheckError,
+        } =
+          await supabase
+            .from(
+              "profiles"
+            )
+            .select(
+              "id"
+            )
+            .eq(
+              "username",
+              cleanUsername
+            )
+            .neq(
+              "id",
+              user.id
+            )
+            .maybeSingle();
+
+        if (
+          usernameCheckError
+        ) {
+          throw usernameCheckError;
         }
 
-        setSettingsExists(true);
-      }
+        if (
+          existingUsername
+        ) {
+          setTab(
+            "profile"
+          );
 
-      /* ---------------------------------------------------
-         UPDATE LOCAL PROFILE
-      --------------------------------------------------- */
+          setError(
+            "That username is already in use. Choose another one."
+          );
 
-      setProfile((current) => ({
-        ...current,
+          return;
+        }
 
-        avatar_url:
-          avatarUrl || "",
+        /* =====================================================
+           1. AVATAR
+        ===================================================== */
 
-        username:
-          cleanUsername,
+        const avatarUrl =
+          await uploadAvatar();
 
-        full_name:
-          current.full_name.trim(),
-      }));
+        console.log(
+          "1. Avatar ready"
+        );
 
-      setAvatarFile(null);
+        /* =====================================================
+           2. PROFILE
+        ===================================================== */
 
-      setSuccess(
-        "Your profile changes have been saved."
-      );
+        await updateProfile(
+          avatarUrl
+        );
 
-      /*
-        Refresh previous avatars.
+        console.log(
+          "2. Profile saved"
+        );
 
-        Failure here does not affect save.
-      */
+        /* =====================================================
+           3. USER SKILLS
+        ===================================================== */
 
-      await loadPreviousAvatars(
-        user.id
-      );
-    } catch (err) {
-      console.error(
-        "Edit profile save error:",
+        await saveUserSkills();
+
+        console.log(
+          "3. User skills saved"
+        );
+
+        /* =====================================================
+           4. LEARNING INTERESTS
+        ===================================================== */
+
+        await saveLearningInterests();
+
+        console.log(
+          "4. Learning interests saved"
+        );
+
+        /* =====================================================
+           5. SETTINGS
+        ===================================================== */
+
+        await saveSettings();
+
+        console.log(
+          "5. Settings saved"
+        );
+
+        /* =====================================================
+           6. ACTIVITY HISTORY
+
+           Runs AFTER actual data has saved successfully.
+        ===================================================== */
+
+        await logProfileActivities(
+          avatarUrl
+        );
+
+        console.log(
+          "6. Activity history recorded"
+        );
+
+        /* =====================================================
+           LOCAL STATE
+        ===================================================== */
+
+        setProfile(
+          (
+            current
+          ) => ({
+            ...current,
+
+            avatar_url:
+              avatarUrl ||
+              "",
+
+            username:
+              cleanUsername,
+
+            full_name:
+              normalizeText(
+                current.full_name
+              ),
+          })
+        );
+
+        setAvatarFile(
+          null
+        );
+
+        setSuccess(
+          "Your profile changes have been saved."
+        );
+
+        /* =====================================================
+           REFRESH AVATAR HISTORY
+        ===================================================== */
+
+        await loadPreviousAvatars(
+          user.id
+        );
+      } catch (
         err
-      );
-
-      if (err?.code === "23505") {
-        setError(
-          "That username is already in use. Choose another one."
-        );
-
-        return;
-      }
-
-      if (
-        err?.message
-          ?.toLowerCase()
-          .includes("bucket")
       ) {
-        setError(
-          "Avatar storage is not configured correctly. Make sure the Supabase bucket is named avatars."
+        console.error(
+          "EDIT PROFILE SAVE ERROR:",
+          err
         );
 
-        return;
-      }
+        console.error(
+          "EDIT PROFILE SAVE DETAILS:",
+          {
+            message:
+              err?.message,
 
-      if (
-        err?.message
-          ?.toLowerCase()
-          .includes(
+            details:
+              err?.details,
+
+            hint:
+              err?.hint,
+
+            code:
+              err?.code,
+          }
+        );
+
+        /* DUPLICATE USERNAME */
+
+        if (
+          err?.code ===
+          "23505"
+        ) {
+          setError(
+            "That username is already in use. Choose another one."
+          );
+
+          return;
+        }
+
+        /* INVALID ROLE */
+
+        if (
+          err?.message ===
+          "INVALID_PROFILE_ROLE"
+        ) {
+          setError(
+            "Please select a valid role."
+          );
+
+          return;
+        }
+
+        /* ROLE ENUM */
+
+        if (
+          isRoleEnumError(
+            err
+          )
+        ) {
+          setError(
+            err?.message ||
+              "Your selected role could not be saved."
+          );
+
+          return;
+        }
+
+        /* PROFILE UPDATE */
+
+        if (
+          err?.message ===
+          "PROFILE_UPDATE_NOT_ALLOWED"
+        ) {
+          setError(
+            "Your profile could not be updated. Check your profile permissions."
+          );
+
+          return;
+        }
+
+        /* STORAGE */
+
+        const message =
+          String(
+            err?.message ||
+              ""
+          ).toLowerCase();
+
+        if (
+          message.includes(
+            "bucket"
+          )
+        ) {
+          setError(
+            "Avatar storage is not configured correctly. Make sure the Supabase bucket is named avatars."
+          );
+
+          return;
+        }
+
+        /* PERMISSION / RLS */
+
+        if (
+          message.includes(
+            "permission denied"
+          ) ||
+          message.includes(
             "row-level security"
           )
-      ) {
+        ) {
+          setError(
+            err?.message ||
+              "Your account does not currently have permission to perform that update."
+          );
+
+          return;
+        }
+
+        /* AVATAR VALIDATION */
+
+        if (
+          err?.message
+            ?.includes(
+              "5 MB"
+            ) ||
+          err?.message
+            ?.includes(
+              "JPG"
+            )
+        ) {
+          setError(
+            err.message
+          );
+
+          return;
+        }
+
         setError(
-          "Your account does not currently have permission to perform that update."
+          err?.message ||
+            err?.details ||
+            "We couldn't save your changes right now."
         );
-
-        return;
+      } finally {
+        setSaving(
+          false
+        );
       }
+    };
 
-      if (
-        err?.message?.includes(
-          "5 MB"
-        ) ||
-        err?.message?.includes(
-          "JPG"
-        )
-      ) {
-        setError(err.message);
-
-        return;
-      }
-
-      setError(
-        "We couldn't save your changes right now. Please try again."
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  /* -------------------------------------------------------
+  /* =========================================================
      LOADING
-  ------------------------------------------------------- */
+  ========================================================= */
 
-  if (loading) {
+  if (
+    loading
+  ) {
     return (
       <main className="relative grid min-h-screen place-items-center overflow-hidden bg-[#060807] text-[#f2f4ef]">
         <div className="noise pointer-events-none fixed inset-0" />
@@ -1049,12 +2644,14 @@ export default function EditProfile() {
     );
   }
 
-  /* -------------------------------------------------------
+  /* =========================================================
      PAGE
-  ------------------------------------------------------- */
+  ========================================================= */
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#060807] text-[#f2f4ef]">
+      {/* BACKGROUND */}
+
       <div className="noise pointer-events-none fixed inset-0 z-0" />
 
       <div
@@ -1066,15 +2663,29 @@ export default function EditProfile() {
       />
 
       <div className="relative z-10">
+        {/* HEADER */}
+
         <EditProfileHeader
-          profile={profile}
-          activeTab={activeTab}
-          setTab={setTab}
-          onBack={() =>
-            navigate("/dashboard")
+          profile={
+            profile
           }
-          onSave={saveProfile}
-          saving={saving}
+          activeTab={
+            activeTab
+          }
+          setTab={
+            setTab
+          }
+          onBack={() =>
+            navigate(
+              "/dashboard"
+            )
+          }
+          onSave={
+            saveProfile
+          }
+          saving={
+            saving
+          }
         />
 
         <div className="mx-auto max-w-[1180px] px-5 pb-16 pt-28 md:px-8 lg:px-10 lg:pt-32">
@@ -1112,7 +2723,9 @@ export default function EditProfile() {
 
           {success && (
             <div
-              ref={successRef}
+              ref={
+                successRef
+              }
               role="status"
               className="mb-5 border border-[#c7ff39]/25 bg-[#c7ff39]/[0.04] px-4 py-3 text-sm text-[#c7ff39]"
             >
@@ -1128,9 +2741,15 @@ export default function EditProfile() {
             {activeTab ===
               "profile" && (
               <ProfileEditTab
-                profile={profile}
-                setProfile={setProfile}
-                avatarFile={avatarFile}
+                profile={
+                  profile
+                }
+                setProfile={
+                  setProfile
+                }
+                avatarFile={
+                  avatarFile
+                }
                 setAvatarFile={
                   setAvatarFile
                 }
@@ -1141,9 +2760,13 @@ export default function EditProfile() {
                   url
                 ) =>
                   setProfile(
-                    (current) => ({
+                    (
+                      current
+                    ) => ({
                       ...current,
-                      avatar_url: url,
+
+                      avatar_url:
+                        url,
                     })
                   )
                 }
@@ -1155,19 +2778,23 @@ export default function EditProfile() {
             {activeTab ===
               "teaching" && (
               <TeachingEditTab
-                skills={skills}
+                skills={
+                  skills
+                }
                 selected={
                   teachingSkills
                 }
                 setSelected={
                   setTeachingSkills
                 }
-                skillMap={skillMap}
+                skillMap={
+                  skillMap
+                }
                 required={
                   profile.role ===
-                    "mentor" ||
+                    ROLE_MENTOR ||
                   profile.role ===
-                    "swap_master"
+                    ROLE_SWAP_MASTER
                 }
               />
             )}
@@ -1177,19 +2804,23 @@ export default function EditProfile() {
             {activeTab ===
               "learning" && (
               <LearningEditTab
-                skills={skills}
+                skills={
+                  skills
+                }
                 selected={
                   learningSkills
                 }
                 setSelected={
                   setLearningSkills
                 }
-                skillMap={skillMap}
+                skillMap={
+                  skillMap
+                }
                 required={
                   profile.role ===
-                    "learner" ||
+                    ROLE_LEARNER ||
                   profile.role ===
-                    "swap_master"
+                    ROLE_SWAP_MASTER
                 }
               />
             )}
@@ -1215,9 +2846,13 @@ export default function EditProfile() {
             <button
               type="button"
               onClick={() =>
-                navigate("/dashboard")
+                navigate(
+                  "/dashboard"
+                )
               }
-              disabled={saving}
+              disabled={
+                saving
+              }
               className="min-h-11 border border-white/10 px-5 text-sm text-[#a1a1aa] transition hover:border-white/25 hover:text-white disabled:opacity-50"
             >
               Cancel
@@ -1225,8 +2860,12 @@ export default function EditProfile() {
 
             <button
               type="button"
-              onClick={saveProfile}
-              disabled={saving}
+              onClick={
+                saveProfile
+              }
+              disabled={
+                saving
+              }
               className="min-h-11 bg-[#c7ff39] px-6 text-sm font-semibold text-[#071008] transition hover:bg-[#d4ff66] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saving

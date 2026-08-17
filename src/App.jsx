@@ -9,8 +9,11 @@ import AuthCallback from "./pages/AuthCallback";
 import ChooseUsername from "./pages/ChooseUsername";
 import ProfileSetup from "./pages/ProfileSetup";
 import EditProfile from "./pages/EditProfile";
-import Dashboard from "./pages/Dashboard";
 import PublicProfile from "./pages/PublicProfile";
+import Dashboard from "./pages/Dashboard";
+import CourseCreation from "./pages/CourseCreation";
+import History from "./pages/History";
+import Courses from "./pages/Courses";
 
 export default function App() {
   return (
@@ -51,7 +54,7 @@ export default function App() {
           element={<AuthCallback />}
         />
 
-        {/* Google first-time username */}
+        {/* Username setup */}
         <Route
           path="/choose-username"
           element={<ChooseUsername />}
@@ -69,16 +72,28 @@ export default function App() {
           element={<EditProfile />}
         />
 
+        {/* Public user profile */}
+        <Route
+          path="/profile/:username"
+          element={<PublicProfile />}
+        />
+
         {/* Dashboard */}
         <Route
           path="/dashboard"
           element={<Dashboard />}
         />
-
-        {/* Public profile */}
         <Route
-          path="/profile/:username"
-          element={<PublicProfile />}
+          path="/courses/create"
+          element={<CourseCreation />}
+        />
+        <Route
+          path="/history"
+          element={<History />}
+        />
+        <Route
+        path="/courses"
+        element={<Courses />}
         />
       </Routes>
     </BrowserRouter>

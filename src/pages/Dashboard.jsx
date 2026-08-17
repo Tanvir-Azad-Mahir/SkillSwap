@@ -1,7 +1,32 @@
-import { useEffect, useMemo, useState } from "react";
-import { ArrowRight } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  ArrowRight,
+  Plus,
+  BookOpen,
+  GraduationCap,
+  Repeat2,
+  Sparkles,
+  WalletCards,
+  Layers3,
+  ChevronRight,
+  Search,
+  CircleDot,
+  Zap,
+  History as HistoryIcon,
+} from "lucide-react";
+
+import {
+  useNavigate,
+} from "react-router-dom";
+
+import {
+  supabase,
+} from "../lib/supabase";
 
 import DashboardHeader from "../components/DashboardHeader";
 import WelcomePanel from "../components/WelcomePanel";
@@ -13,66 +38,178 @@ import DashboardStats from "../components/DashboardStats";
 import DashboardCourses from "../components/DashboardCourses";
 import RecommendedMentors from "../components/RecommendedMentors";
 
-const TEACH_TYPE = "offering";
+/* =========================================================
+   ROLE NORMALIZER
+========================================================= */
+
+function normalizeRole(value) {
+  const role = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+
+  if (role === "learner") {
+    return "learner";
+  }
+
+  if (role === "mentor") {
+    return "mentor";
+  }
+
+  if (
+    role === "swap_master" ||
+    role === "swapmaster"
+  ) {
+    return "swap_master";
+  }
+
+  return role;
+}
+
+/* =========================================================
+   ROLE LABEL
+========================================================= */
+
+function getRoleLabel(role) {
+  if (role === "learner") {
+    return "Learner";
+  }
+
+  if (role === "mentor") {
+    return "Mentor";
+  }
+
+  if (role === "swap_master") {
+    return "Swap Master";
+  }
+
+  return "Member";
+}
+
+/* =========================================================
+   COURSE STATUS
+========================================================= */
+
+function getCourseStatusClasses(status) {
+  const clean =
+    String(status || "")
+      .trim()
+      .toLowerCase();
+
+  if (
+    clean === "approved" ||
+    clean === "active" ||
+    clean === "published"
+  ) {
+    return "border-[#c7ff39]/30 bg-[#c7ff39]/[0.06] text-[#c7ff39]";
+  }
+
+  if (clean === "pending") {
+    return "border-[#ffbf69]/30 bg-[#ffbf69]/[0.06] text-[#ffca80]";
+  }
+
+  if (
+    clean === "rejected" ||
+    clean === "inactive"
+  ) {
+    return "border-[#ff6b6b]/30 bg-[#ff6b6b]/[0.06] text-[#ff8b8b]";
+  }
+
+  return "border-white/10 bg-white/[0.03] text-[#a1a1aa]";
+}
+
+/* =========================================================
+   DASHBOARD
+========================================================= */
 
 export default function Dashboard() {
-  const navigate = useNavigate();
+  const navigate =
+    useNavigate();
 
   /* =========================================================
      STATE
   ========================================================= */
 
-  const [user, setUser] = useState(null);
+  const [
+    user,
+    setUser,
+  ] = useState(null);
 
-  const [profile, setProfile] = useState(null);
+  const [
+    profile,
+    setProfile,
+  ] = useState(null);
 
-  const [skills, setSkills] = useState([]);
+  const [
+    skills,
+    setSkills,
+  ] = useState([]);
 
-  const [teaching, setTeaching] = useState([]);
+  const [
+    teaching,
+    setTeaching,
+  ] = useState([]);
 
-  const [learning, setLearning] = useState([]);
+  const [
+    learning,
+    setLearning,
+  ] = useState([]);
+
+  const [
+    searchProfiles,
+    setSearchProfiles,
+  ] = useState([]);
+
+  const [
+    mentorOfferings,
+    setMentorOfferings,
+  ] = useState([]);
+
+  const [
+    sessions,
+    setSessions,
+  ] = useState([]);
+
+  const [
+    wallet,
+    setWallet,
+  ] = useState(null);
+
+  const [
+    transactions,
+    setTransactions,
+  ] = useState([]);
+
+  /* =========================================================
+     CURRENT USER COURSES
+  ========================================================= */
+
+  const [
+    myCourses,
+    setMyCourses,
+  ] = useState([]);
 
   /*
-    Search profiles:
-
-    ALL active SkillSwap+ users are loaded here.
-
-    Learner
-    Mentor
-    Swap Master
+    Enrollment system will connect later.
   */
 
-  const [searchProfiles, setSearchProfiles] = useState([]);
+  const [
+    takenCourses,
+  ] = useState([]);
 
-  /*
-    Mentor profiles:
+  const [
+    finishedCourses,
+  ] = useState([]);
 
-    Only mentor + swap_master.
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
 
-    Used by RecommendedMentors.
-  */
-
-  const [mentorProfiles, setMentorProfiles] = useState([]);
-
-  const [mentorOfferings, setMentorOfferings] = useState([]);
-
-  const [sessions, setSessions] = useState([]);
-
-  const [wallet, setWallet] = useState(null);
-
-  const [transactions, setTransactions] = useState([]);
-
-  /*
-    Course system is not connected yet.
-  */
-
-  const [takenCourses] = useState([]);
-
-  const [finishedCourses] = useState([]);
-
-  const [loading, setLoading] = useState(true);
-
-  const [error, setError] = useState("");
+  const [
+    error,
+    setError,
+  ] = useState("");
 
   /* =========================================================
      LOAD DASHBOARD
@@ -81,505 +218,721 @@ export default function Dashboard() {
   useEffect(() => {
     let active = true;
 
-    const load = async () => {
-      try {
-        setLoading(true);
-        setError("");
+    const load =
+      async () => {
+        try {
+          setLoading(true);
+          setError("");
 
-        /* =====================================================
-           AUTH USER
-        ===================================================== */
+          /* ===================================================
+             AUTH USER
+          =================================================== */
 
-        const {
-          data: { user: authUser },
-          error: authError,
-        } = await supabase.auth.getUser();
+          const {
+            data: {
+              user: authUser,
+            },
+            error: authError,
+          } =
+            await supabase.auth
+              .getUser();
 
-        if (authError) {
-          throw authError;
-        }
+          if (authError) {
+            throw authError;
+          }
 
-        if (!authUser) {
-          navigate("/login", {
-            replace: true,
-          });
-
-          return;
-        }
-
-        if (!active) {
-          return;
-        }
-
-        setUser(authUser);
-
-        /* =====================================================
-           CURRENT PROFILE
-        ===================================================== */
-
-        const {
-          data: profileData,
-          error: profileError,
-        } = await supabase
-          .from("profiles")
-          .select(
-            `
-              id,
-              username,
-              full_name,
-              avatar_url,
-              role,
-              career_goal,
-              location,
-              profile_completed
-            `
-          )
-          .eq("id", authUser.id)
-          .maybeSingle();
-
-        if (profileError) {
-          throw profileError;
-        }
-
-        /*
-          User must complete onboarding
-          before opening dashboard.
-        */
-
-        if (!profileData?.profile_completed) {
-          navigate("/profile-setup", {
-            replace: true,
-          });
-
-          return;
-        }
-
-        if (!active) {
-          return;
-        }
-
-        setProfile(profileData);
-
-        /* =====================================================
-           LOAD DASHBOARD DATA
-        ===================================================== */
-
-        const results = await Promise.all([
-          /* ---------------------------------------------------
-             1. ACTIVE SKILLS
-          --------------------------------------------------- */
-
-          supabase
-            .from("skills")
-            .select(
-              `
-                id,
-                name,
-                description,
-                difficulty_level
-              `
-            )
-            .eq("is_active", true)
-            .order("name"),
-
-          /* ---------------------------------------------------
-             2. CURRENT USER TEACHING SKILLS
-          --------------------------------------------------- */
-
-          supabase
-            .from("user_skills")
-            .select(
-              `
-                id,
-                skill_id,
-                proficiency_level,
-                years_experience,
-                is_verified
-              `
-            )
-            .eq("user_id", authUser.id)
-            .eq("type", TEACH_TYPE),
-
-          /* ---------------------------------------------------
-             3. CURRENT USER LEARNING SKILLS
-          --------------------------------------------------- */
-
-          supabase
-            .from("user_interests")
-            .select(
-              `
-                id,
-                skill_id,
-                interest_text,
-                weight
-              `
-            )
-            .eq("user_id", authUser.id),
-
-          /* ---------------------------------------------------
-             4. UPCOMING SESSIONS
-          --------------------------------------------------- */
-
-          supabase
-            .from("sessions")
-            .select(
-              `
-                id,
-                learner_id,
-                mentor_id,
-                skill_id,
-                scheduled_at,
-                duration_minutes,
-                meeting_url,
-                status
-              `
-            )
-            .or(
-              `learner_id.eq.${authUser.id},mentor_id.eq.${authUser.id}`
-            )
-            .order("scheduled_at", {
-              ascending: true,
-            })
-            .limit(10),
-
-          /* ---------------------------------------------------
-             5. CREDIT WALLET
-          --------------------------------------------------- */
-
-          supabase
-            .from("credit_wallets")
-            .select(
-              `
-                id,
-                balance,
-                total_earned,
-                total_spent
-              `
-            )
-            .eq("user_id", authUser.id)
-            .maybeSingle(),
-
-          /* ---------------------------------------------------
-             6. CREDIT TRANSACTIONS
-          --------------------------------------------------- */
-
-          supabase
-            .from("credit_transactions")
-            .select(
-              `
-                id,
-                amount,
-                transaction_type,
-                description,
-                created_at
-              `
-            )
-            .eq("user_id", authUser.id)
-            .order("created_at", {
-              ascending: false,
-            })
-            .limit(8),
-
-          /* ---------------------------------------------------
-             7. GLOBAL DASHBOARD SEARCH
-
-             IMPORTANT:
-
-             This now loads ALL active users:
-
-             - learner
-             - mentor
-             - swap_master
-
-             The current logged-in account is ALSO included.
-          --------------------------------------------------- */
-
-          supabase
-            .from("profiles")
-            .select(
-              `
-                id,
-                username,
-                full_name,
-                avatar_url,
-                role,
-                bio,
-                location
-              `
-            )
-            .eq("is_active", true)
-            .not("username", "is", null)
-            .order("full_name")
-            .limit(200),
-
-          /* ---------------------------------------------------
-             8. RECOMMENDED MENTORS ONLY
-
-             Keep this separate from global search.
-          --------------------------------------------------- */
-
-          supabase
-            .from("profiles")
-            .select(
-              `
-                id,
-                username,
-                full_name,
-                avatar_url,
-                role,
-                bio,
-                location
-              `
-            )
-            .eq("is_active", true)
-            .in("role", [
-              "mentor",
-              "swap_master",
-            ])
-            .neq("id", authUser.id)
-            .order("full_name")
-            .limit(100),
-
-          /* ---------------------------------------------------
-             9. ALL TEACHING SKILLS
-
-             Used for skill-based searching and mentor matching.
-          --------------------------------------------------- */
-
-          supabase
-            .from("user_skills")
-            .select(
-              `
-                id,
-                user_id,
-                skill_id,
-                proficiency_level,
-                years_experience,
-                is_verified
-              `
-            )
-            .eq("type", TEACH_TYPE),
-        ]);
-
-        if (!active) {
-          return;
-        }
-
-        /* =====================================================
-           RESULT VARIABLES
-        ===================================================== */
-
-        const [
-          skillsResult,
-          teachingResult,
-          learningResult,
-          sessionsResult,
-          walletResult,
-          transactionsResult,
-          searchProfilesResult,
-          mentorsResult,
-          mentorOfferingsResult,
-        ] = results;
-
-        /* =====================================================
-           SKILLS
-        ===================================================== */
-
-        if (skillsResult.error) {
-          console.error(
-            "Skills:",
-            skillsResult.error
-          );
-        } else {
-          setSkills(
-            skillsResult.data || []
-          );
-        }
-
-        /* =====================================================
-           TEACHING
-        ===================================================== */
-
-        if (teachingResult.error) {
-          console.error(
-            "Teaching:",
-            teachingResult.error
-          );
-        } else {
-          setTeaching(
-            teachingResult.data || []
-          );
-        }
-
-        /* =====================================================
-           LEARNING
-        ===================================================== */
-
-        if (learningResult.error) {
-          console.error(
-            "Learning:",
-            learningResult.error
-          );
-        } else {
-          setLearning(
-            learningResult.data || []
-          );
-        }
-
-        /* =====================================================
-           SESSIONS
-        ===================================================== */
-
-        if (sessionsResult.error) {
-          console.error(
-            "Sessions:",
-            sessionsResult.error
-          );
-        } else {
-          const now =
-            Date.now();
-
-          const upcoming =
-            (
-              sessionsResult.data ||
-              []
-            ).filter((item) => {
-              if (
-                !item.scheduled_at
-              ) {
-                return false;
+          if (!authUser) {
+            navigate(
+              "/login",
+              {
+                replace: true,
               }
+            );
 
-              const status =
-                String(
-                  item.status || ""
-                ).toLowerCase();
+            return;
+          }
 
-              const sessionTime =
-                new Date(
-                  item.scheduled_at
-                ).getTime();
+          if (!active) {
+            return;
+          }
 
-              return (
-                sessionTime >= now &&
-                ![
-                  "completed",
-                  "cancelled",
-                  "canceled",
-                ].includes(status)
+          setUser(
+            authUser
+          );
+
+          /* ===================================================
+             CURRENT PROFILE
+          =================================================== */
+
+          const {
+            data:
+              profileData,
+
+            error:
+              profileError,
+          } =
+            await supabase
+              .from("profiles")
+              .select(
+                `
+                  id,
+                  username,
+                  full_name,
+                  email,
+                  avatar_url,
+                  bio,
+                  role,
+                  career_goal,
+                  location,
+                  is_active,
+                  credits,
+                  profile_completed
+                `
+              )
+              .eq(
+                "id",
+                authUser.id
+              )
+              .maybeSingle();
+
+          if (
+            profileError
+          ) {
+            console.error(
+              "CURRENT PROFILE ERROR:",
+              profileError
+            );
+
+            throw profileError;
+          }
+
+          if (
+            !profileData
+          ) {
+            throw new Error(
+              "PROFILE_NOT_FOUND"
+            );
+          }
+
+          /* ===================================================
+             ACTIVE ACCOUNT
+          =================================================== */
+
+          if (
+            profileData.is_active ===
+            false
+          ) {
+            await supabase.auth
+              .signOut({
+                scope: "local",
+              });
+
+            navigate(
+              "/login",
+              {
+                replace: true,
+              }
+            );
+
+            return;
+          }
+
+          /* ===================================================
+             PROFILE SETUP
+          =================================================== */
+
+          if (
+            profileData.profile_completed !==
+            true
+          ) {
+            navigate(
+              "/profile-setup",
+              {
+                replace: true,
+              }
+            );
+
+            return;
+          }
+
+          if (!active) {
+            return;
+          }
+
+          /* ===================================================
+             NORMALIZE ROLE
+          =================================================== */
+
+          const normalizedProfile =
+            {
+              ...profileData,
+
+              role:
+                normalizeRole(
+                  profileData.role
+                ),
+            };
+
+          setProfile(
+            normalizedProfile
+          );
+
+          /* ===================================================
+             WALLET
+
+             profiles.credits remains source
+             of truth for current balance.
+          =================================================== */
+
+          setWallet({
+            balance:
+              Number(
+                profileData.credits
+              ) || 0,
+
+            total_earned: 0,
+
+            total_spent: 0,
+          });
+
+          /* ===================================================
+             LOAD DASHBOARD DATA
+          =================================================== */
+
+          const results =
+            await Promise.all([
+              /* =============================================
+                 1. ACTIVE SKILLS
+              ============================================= */
+
+              supabase
+                .from("skills")
+                .select(
+                  `
+                    id,
+                    name,
+                    category_id
+                  `
+                )
+                .eq(
+                  "is_active",
+                  true
+                )
+                .order(
+                  "name",
+                  {
+                    ascending: true,
+                  }
+                ),
+
+              /* =============================================
+                 2. CURRENT USER SKILLS
+              ============================================= */
+
+              supabase
+                .from(
+                  "user_skills"
+                )
+                .select(
+                  `
+                    user_id,
+                    skill_id,
+                    is_learning,
+                    is_teaching
+                  `
+                )
+                .eq(
+                  "user_id",
+                  authUser.id
+                ),
+
+              /* =============================================
+                 3. LEARNING INTERESTS
+              ============================================= */
+
+              supabase
+                .from(
+                  "user_interests"
+                )
+                .select(
+                  `
+                    id,
+                    user_id,
+                    skill_id,
+                    interest_text,
+                    weight
+                  `
+                )
+                .eq(
+                  "user_id",
+                  authUser.id
+                ),
+
+              /* =============================================
+                 4. SESSIONS
+
+                 meeting_url removed because it is not
+                 present in the current live schema.
+              ============================================= */
+
+              supabase
+                .from(
+                  "sessions"
+                )
+                .select(
+                  `
+                    id,
+                    learner_id,
+                    mentor_id,
+                    skill_id,
+                    scheduled_at,
+                    duration_minutes,
+                    status
+                  `
+                )
+                .or(
+                  `learner_id.eq.${authUser.id},mentor_id.eq.${authUser.id}`
+                )
+                .order(
+                  "scheduled_at",
+                  {
+                    ascending:
+                      true,
+                  }
+                )
+                .limit(10),
+
+              /* =============================================
+                 5. CREDIT TRANSACTIONS
+              ============================================= */
+
+              supabase
+                .from(
+                  "credit_transactions"
+                )
+                .select(
+                  `
+                    id,
+                    amount,
+                    transaction_type,
+                    description,
+                    created_at
+                  `
+                )
+                .eq(
+                  "user_id",
+                  authUser.id
+                )
+                .order(
+                  "created_at",
+                  {
+                    ascending:
+                      false,
+                  }
+                )
+                .limit(8),
+
+              /* =============================================
+                 6. ACTIVE MEMBERS
+              ============================================= */
+
+              supabase
+                .from(
+                  "profiles"
+                )
+                .select(
+                  `
+                    id,
+                    username,
+                    full_name,
+                    avatar_url,
+                    role,
+                    bio,
+                    location,
+                    is_active
+                  `
+                )
+                .eq(
+                  "is_active",
+                  true
+                )
+                .not(
+                  "username",
+                  "is",
+                  null
+                )
+                .order(
+                  "full_name",
+                  {
+                    ascending:
+                      true,
+                  }
+                )
+                .limit(300),
+
+              /* =============================================
+                 7. ALL TEACHING SKILLS
+              ============================================= */
+
+              supabase
+                .from(
+                  "user_skills"
+                )
+                .select(
+                  `
+                    user_id,
+                    skill_id,
+                    is_learning,
+                    is_teaching
+                  `
+                )
+                .eq(
+                  "is_teaching",
+                  true
+                ),
+
+              /* =============================================
+                 8. CURRENT USER COURSES
+              ============================================= */
+
+              supabase
+                .from(
+                  "courses"
+                )
+                .select(
+                  `
+                    id,
+                    title,
+                    instructor_id,
+                    skill_id,
+                    price_credits,
+                    course_level,
+                    status,
+                    created_at
+                  `
+                )
+                .eq(
+                  "instructor_id",
+                  authUser.id
+                )
+                .order(
+                  "created_at",
+                  {
+                    ascending:
+                      false,
+                  }
+                )
+                .limit(8),
+            ]);
+
+          if (!active) {
+            return;
+          }
+
+          const [
+            skillsResult,
+            userSkillsResult,
+            learningResult,
+            sessionsResult,
+            transactionsResult,
+            profilesResult,
+            mentorOfferingsResult,
+            coursesResult,
+          ] = results;
+
+          /* ===================================================
+             SKILLS
+          =================================================== */
+
+          if (
+            skillsResult.error
+          ) {
+            console.error(
+              "DASHBOARD SKILLS ERROR:",
+              skillsResult.error
+            );
+
+            setSkills([]);
+
+            setError(
+              `Skill catalog error: ${skillsResult.error.message}`
+            );
+          } else {
+            const loadedSkills =
+              (
+                skillsResult.data ||
+                []
+              )
+                .filter(
+                  (skill) =>
+                    skill?.id &&
+                    skill?.name
+                )
+                .map(
+                  (skill) => ({
+                    ...skill,
+
+                    name:
+                      String(
+                        skill.name
+                      ).trim(),
+                  })
+                );
+
+            setSkills(
+              loadedSkills
+            );
+          }
+
+          /* ===================================================
+             CURRENT USER SKILLS
+          =================================================== */
+
+          if (
+            userSkillsResult.error
+          ) {
+            console.error(
+              "USER SKILLS ERROR:",
+              userSkillsResult.error
+            );
+
+            setTeaching(
+              []
+            );
+          } else {
+            const rows =
+              userSkillsResult.data ||
+              [];
+
+            const teachingRows =
+              rows.filter(
+                (row) =>
+                  row.is_teaching ===
+                  true
               );
-            });
 
-          setSessions(upcoming);
-        }
+            setTeaching(
+              teachingRows
+            );
+          }
 
-        /* =====================================================
-           WALLET
-        ===================================================== */
+          /* ===================================================
+             LEARNING
+          =================================================== */
 
-        if (walletResult.error) {
-          console.error(
-            "Wallet:",
-            walletResult.error
-          );
-        } else {
-          setWallet(
-            walletResult.data ||
-              null
-          );
-        }
+          if (
+            learningResult.error
+          ) {
+            console.error(
+              "LEARNING ERROR:",
+              learningResult.error
+            );
 
-        /* =====================================================
-           TRANSACTIONS
-        ===================================================== */
+            setLearning(
+              []
+            );
+          } else {
+            setLearning(
+              learningResult.data ||
+                []
+            );
+          }
 
-        if (
-          transactionsResult.error
-        ) {
-          console.error(
-            "Transactions:",
+          /* ===================================================
+             SESSIONS
+          =================================================== */
+
+          if (
+            sessionsResult.error
+          ) {
+            console.warn(
+              "SESSIONS ERROR:",
+              sessionsResult.error
+            );
+
+            setSessions(
+              []
+            );
+          } else {
+            const now =
+              Date.now();
+
+            const upcoming =
+              (
+                sessionsResult.data ||
+                []
+              ).filter(
+                (item) => {
+                  if (
+                    !item.scheduled_at
+                  ) {
+                    return false;
+                  }
+
+                  const status =
+                    String(
+                      item.status ||
+                        ""
+                    ).toLowerCase();
+
+                  const time =
+                    new Date(
+                      item.scheduled_at
+                    ).getTime();
+
+                  return (
+                    time >=
+                      now &&
+                    ![
+                      "completed",
+                      "cancelled",
+                      "canceled",
+                    ].includes(
+                      status
+                    )
+                  );
+                }
+              );
+
+            setSessions(
+              upcoming
+            );
+          }
+
+          /* ===================================================
+             TRANSACTIONS
+          =================================================== */
+
+          if (
             transactionsResult.error
-          );
-        } else {
-          setTransactions(
-            transactionsResult.data ||
+          ) {
+            console.warn(
+              "CREDIT TRANSACTIONS:",
+              transactionsResult.error
+            );
+
+            setTransactions(
               []
-          );
-        }
+            );
+          } else {
+            setTransactions(
+              transactionsResult.data ||
+                []
+            );
+          }
 
-        /* =====================================================
-           GLOBAL SEARCH PROFILES
-        ===================================================== */
+          /* ===================================================
+             MEMBERS
+          =================================================== */
 
-        if (
-          searchProfilesResult.error
-        ) {
-          console.error(
-            "Search profiles:",
-            searchProfilesResult.error
-          );
-        } else {
-          console.log(
-            "DASHBOARD SEARCH PROFILES:",
-            searchProfilesResult.data
-          );
+          if (
+            profilesResult.error
+          ) {
+            console.error(
+              "SEARCH PROFILES ERROR:",
+              profilesResult.error
+            );
 
-          setSearchProfiles(
-            searchProfilesResult.data ||
+            setSearchProfiles(
               []
-          );
-        }
+            );
+          } else {
+            const members =
+              (
+                profilesResult.data ||
+                []
+              ).map(
+                (member) => ({
+                  ...member,
 
-        /* =====================================================
-           MENTOR PROFILES
-        ===================================================== */
+                  role:
+                    normalizeRole(
+                      member.role
+                    ),
+                })
+              );
 
-        if (mentorsResult.error) {
-          console.error(
-            "Mentors:",
-            mentorsResult.error
-          );
-        } else {
-          setMentorProfiles(
-            mentorsResult.data ||
-              []
-          );
-        }
+            setSearchProfiles(
+              members
+            );
+          }
 
-        /* =====================================================
-           MENTOR OFFERINGS
-        ===================================================== */
+          /* ===================================================
+             TEACHER OFFERINGS
+          =================================================== */
 
-        if (
-          mentorOfferingsResult.error
-        ) {
-          console.error(
-            "Mentor offerings:",
+          if (
             mentorOfferingsResult.error
-          );
-        } else {
-          setMentorOfferings(
-            mentorOfferingsResult.data ||
-              []
-          );
-        }
-      } catch (err) {
-        console.error(
-          "Dashboard load error:",
-          err
-        );
+          ) {
+            console.warn(
+              "MENTOR OFFERINGS ERROR:",
+              mentorOfferingsResult.error
+            );
 
-        if (active) {
-          setError(
-            "We couldn't load your dashboard right now. Please refresh and try again."
+            setMentorOfferings(
+              []
+            );
+          } else {
+            setMentorOfferings(
+              mentorOfferingsResult.data ||
+                []
+            );
+          }
+
+          /* ===================================================
+             MY COURSES
+          =================================================== */
+
+          if (
+            coursesResult.error
+          ) {
+            console.warn(
+              "MY COURSES ERROR:",
+              coursesResult.error
+            );
+
+            setMyCourses(
+              []
+            );
+          } else {
+            setMyCourses(
+              coursesResult.data ||
+                []
+            );
+          }
+        } catch (err) {
+          console.error(
+            "DASHBOARD LOAD ERROR:",
+            err
           );
+
+          if (!active) {
+            return;
+          }
+
+          if (
+            err?.message ===
+            "PROFILE_NOT_FOUND"
+          ) {
+            setError(
+              "Your SkillSwap+ profile could not be found."
+            );
+
+            return;
+          }
+
+          setError(
+            err?.message ||
+              "We couldn't load your dashboard right now."
+          );
+        } finally {
+          if (active) {
+            setLoading(
+              false
+            );
+          }
         }
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
-    };
+      };
 
     load();
 
@@ -589,59 +942,89 @@ export default function Dashboard() {
   }, [navigate]);
 
   /* =========================================================
+     ROLE FLAGS
+  ========================================================= */
+
+  const isLearner =
+    profile?.role ===
+    "learner";
+
+  const isMentor =
+    profile?.role ===
+    "mentor";
+
+  const isSwapMaster =
+    profile?.role ===
+    "swap_master";
+
+  const canCreateCourse =
+    isMentor ||
+    isSwapMaster;
+
+  const roleLabel =
+    getRoleLabel(
+      profile?.role
+    );
+
+  /* =========================================================
      SKILL MAP
   ========================================================= */
 
-  const skillMap = useMemo(
-    () =>
-      new Map(
-        skills.map((skill) => [
-          skill.id,
-          skill,
-        ])
-      ),
-    [skills]
-  );
+  const skillMap =
+    useMemo(() => {
+      return new Map(
+        skills.map(
+          (skill) => [
+            skill.id,
+            skill,
+          ]
+        )
+      );
+    }, [skills]);
 
   /* =========================================================
      LEARNING ITEMS
   ========================================================= */
 
   const learningItems =
-    useMemo(
-      () =>
-        learning
-          .map((item) => ({
+    useMemo(() => {
+      return learning
+        .map(
+          (item) => ({
             ...item,
 
             skill:
               skillMap.get(
                 item.skill_id
               ),
-          }))
-          .sort(
-            (a, b) =>
-              Number(
-                b.weight || 0
-              ) -
-              Number(
-                a.weight || 0
-              )
-          ),
-      [
-        learning,
-        skillMap,
-      ]
-    );
+          })
+        )
+        .filter(
+          (item) =>
+            item.skill
+        )
+        .sort(
+          (a, b) =>
+            Number(
+              b.weight || 0
+            ) -
+            Number(
+              a.weight || 0
+            )
+        );
+    }, [
+      learning,
+      skillMap,
+    ]);
 
   /* =========================================================
      TEACHING ITEMS
   ========================================================= */
 
   const teachingItems =
-    useMemo(
-      () =>
-        teaching.map(
+    useMemo(() => {
+      return teaching
+        .map(
           (item) => ({
             ...item,
 
@@ -650,45 +1033,47 @@ export default function Dashboard() {
                 item.skill_id
               ),
           })
-        ),
-      [
-        teaching,
-        skillMap,
-      ]
-    );
+        )
+        .filter(
+          (item) =>
+            item.skill
+        );
+    }, [
+      teaching,
+      skillMap,
+    ]);
 
   /* =========================================================
      SESSION ITEMS
   ========================================================= */
+  
 
   const sessionItems =
-    useMemo(
-      () =>
-        sessions.map(
-          (item) => ({
-            ...item,
+    useMemo(() => {
+      return sessions.map(
+        (item) => ({
+          ...item,
 
-            skill:
-              skillMap.get(
-                item.skill_id
-              ),
+          skill:
+            skillMap.get(
+              item.skill_id
+            ),
 
-            viewerRole:
-              item.mentor_id ===
-              user?.id
-                ? "Mentor"
-                : "Learner",
-          })
-        ),
-      [
-        sessions,
-        skillMap,
-        user,
-      ]
-    );
+          viewerRole:
+            item.mentor_id ===
+            user?.id
+              ? "Mentor"
+              : "Learner",
+        })
+      );
+    }, [
+      sessions,
+      skillMap,
+      user,
+    ]);
 
   /* =========================================================
-     OFFERINGS GROUPED BY USER
+     OFFERINGS BY USER
   ========================================================= */
 
   const offeringsByUser =
@@ -703,14 +1088,17 @@ export default function Dashboard() {
               offering.user_id
             ) || [];
 
-          list.push({
-            ...offering,
+          const skill =
+            skillMap.get(
+              offering.skill_id
+            );
 
-            skill:
-              skillMap.get(
-                offering.skill_id
-              ),
-          });
+          if (skill) {
+            list.push({
+              ...offering,
+              skill,
+            });
+          }
 
           map.set(
             offering.user_id,
@@ -727,54 +1115,86 @@ export default function Dashboard() {
 
   /* =========================================================
      GLOBAL SEARCH MEMBERS
-
-     Used by DashboardHeader.
-
-     Includes learners, mentors and swap masters.
   ========================================================= */
 
   const searchMembers =
-    useMemo(
-      () =>
-        searchProfiles.map(
-          (member) => ({
-            ...member,
+    useMemo(() => {
+      return searchProfiles.map(
+        (member) => ({
+          ...member,
 
-            teachingSkills:
-              offeringsByUser.get(
-                member.id
-              ) || [],
-          })
-        ),
-      [
-        searchProfiles,
-        offeringsByUser,
-      ]
-    );
+          teachingSkills:
+            offeringsByUser.get(
+              member.id
+            ) || [],
+        })
+      );
+    }, [
+      searchProfiles,
+      offeringsByUser,
+    ]);
 
   /* =========================================================
      RECOMMENDED MENTORS
-
-     Mentor/swap_master only.
   ========================================================= */
 
   const mentors =
-    useMemo(
-      () =>
-        mentorProfiles.map(
-          (mentor) => ({
-            ...mentor,
+    useMemo(() => {
+      return searchMembers.filter(
+        (member) =>
+          member.id !==
+            user?.id &&
+          (
+            member.role ===
+              "mentor" ||
+            member.role ===
+              "swap_master"
+          )
+      );
+    }, [
+      searchMembers,
+      user,
+    ]);
 
-            teachingSkills:
-              offeringsByUser.get(
-                mentor.id
-              ) || [],
-          })
-        ),
-      [
-        mentorProfiles,
-        offeringsByUser,
-      ]
+  /* =========================================================
+     COURSE ITEMS
+  ========================================================= */
+
+  const courseItems =
+    useMemo(() => {
+      return myCourses.map(
+        (course) => ({
+          ...course,
+
+          skill:
+            skillMap.get(
+              course.skill_id
+            ),
+        })
+      );
+    }, [
+      myCourses,
+      skillMap,
+    ]);
+
+  const approvedCourses =
+    courseItems.filter(
+      (course) =>
+        String(
+          course.status || ""
+        )
+          .toLowerCase() ===
+        "approved"
+    );
+
+  const pendingCourses =
+    courseItems.filter(
+      (course) =>
+        String(
+          course.status || ""
+        )
+          .toLowerCase() ===
+        "pending"
     );
 
   /* =========================================================
@@ -784,22 +1204,29 @@ export default function Dashboard() {
   const handleLogout =
     async () => {
       const {
-        error: logoutError,
+        error:
+          logoutError,
       } =
-        await supabase.auth.signOut();
+        await supabase.auth
+          .signOut();
 
-      if (logoutError) {
+      if (
+        logoutError
+      ) {
         console.error(
-          "Logout error:",
+          "LOGOUT ERROR:",
           logoutError
         );
 
         return;
       }
 
-      navigate("/login", {
-        replace: true,
-      });
+      navigate(
+        "/login",
+        {
+          replace: true,
+        }
+      );
     };
 
   /* =========================================================
@@ -828,7 +1255,7 @@ export default function Dashboard() {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#060807] text-[#f2f4ef]">
-      {/* Background */}
+      {/* BACKGROUND */}
 
       <div className="noise pointer-events-none fixed inset-0 z-0" />
 
@@ -843,16 +1270,18 @@ export default function Dashboard() {
       <div className="relative z-10">
         {/* ===================================================
             HEADER
-
-            IMPORTANT:
-            searchMembers is passed here,
-            NOT mentor-only profiles.
         =================================================== */}
 
         <DashboardHeader
-          profile={profile}
-          skills={skills}
-          mentors={searchMembers}
+          profile={
+            profile
+          }
+          skills={
+            skills
+          }
+          mentors={
+            searchMembers
+          }
           learningSkills={
             learning
           }
@@ -865,11 +1294,11 @@ export default function Dashboard() {
         />
 
         {/* ===================================================
-            DASHBOARD CONTENT
+            CONTENT
         =================================================== */}
 
         <div className="mx-auto max-w-[1500px] px-5 pb-20 pt-24 md:px-8 lg:px-10 lg:pt-28">
-          {/* Error */}
+          {/* ERROR */}
 
           {error && (
             <div className="mb-6 border border-[#ff6b6b]/30 bg-[#ff6b6b]/[0.04] px-4 py-3 text-sm text-[#ff8b8b]">
@@ -877,23 +1306,259 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Welcome */}
+          {/* =================================================
+              WELCOME
+          ================================================= */}
 
-          <div className="relative">
-            <WelcomePanel
-              profile={profile}
-              wallet={wallet}
-            />
-          </div>
-
-          {/* Quick actions */}
-
-          <QuickActions
-            role={profile?.role}
-            navigate={navigate}
+          <WelcomePanel
+            profile={
+              profile
+            }
+            wallet={
+              wallet
+            }
           />
 
-          {/* Stats */}
+          {/* =================================================
+              ROLE COMMAND CENTER
+          ================================================= */}
+
+          <section className="mt-6 overflow-hidden border border-white/10 bg-[#0a0d0b]/80">
+            <div className="grid lg:grid-cols-[1.15fr_.85fr]">
+              {/* LEFT */}
+
+              <div className="relative p-6 md:p-8">
+                <div
+                  className="pointer-events-none absolute inset-0"
+                  style={{
+                    background:
+                      "radial-gradient(circle at 10% 0%, rgba(199,255,57,.07), transparent 38%)",
+                  }}
+                />
+
+                <div className="relative">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="inline-flex items-center gap-2 border border-[#c7ff39]/25 bg-[#c7ff39]/[0.04] px-3 py-1.5 text-[10px] uppercase tracking-[0.16em] text-[#c7ff39]">
+                      <CircleDot
+                        size={10}
+                        className="fill-[#c7ff39]"
+                      />
+
+                      {roleLabel} mode
+                    </span>
+
+                    <span className="text-[10px] uppercase tracking-[0.16em] text-white/30">
+                      SkillSwap+ command center
+                    </span>
+                  </div>
+
+                  <h2 className="mt-5 max-w-2xl text-2xl font-medium tracking-[-0.04em] md:text-3xl">
+                    {isLearner &&
+                      "Build your next skill."}
+
+                    {isMentor &&
+                      "Turn your expertise into impact."}
+
+                    {isSwapMaster &&
+                      "Teach. Learn. Swap. Earn."}
+                  </h2>
+
+                  <p className="mt-3 max-w-2xl text-sm leading-7 text-[#a1a1aa]">
+                    {isLearner &&
+                      "Search the SkillSwap+ network, discover mentors and use your SS credits to request courses."}
+
+                    {isMentor &&
+                      "Keep your teaching skills updated, publish courses and earn SS credits when learners enroll."}
+
+                    {isSwapMaster &&
+                      "Create courses from your teaching skills, learn from mentors and build reciprocal skill swaps with other Swap Masters."}
+                  </p>
+
+                  {/* ACTIONS */}
+
+                  <div className="mt-6 flex flex-wrap gap-3">
+                    {canCreateCourse && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          navigate(
+                            "/courses/create"
+                          )
+                        }
+                        className="inline-flex min-h-11 items-center justify-center gap-2 bg-[#c7ff39] px-5 text-sm font-semibold text-[#071008] transition hover:bg-[#d4ff66]"
+                      >
+                        <Plus
+                          size={16}
+                        />
+
+                        Create new course
+                      </button>
+                    )}
+
+                    {isLearner && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          navigate(
+                            "/profile/edit?tab=learning"
+                          )
+                        }
+                        className="inline-flex min-h-11 items-center justify-center gap-2 bg-[#c7ff39] px-5 text-sm font-semibold text-[#071008] transition hover:bg-[#d4ff66]"
+                      >
+                        <BookOpen
+                          size={16}
+                        />
+
+                        Update learning skills
+                      </button>
+                    )}
+
+                    {canCreateCourse && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          navigate(
+                            "/profile/edit?tab=teaching"
+                          )
+                        }
+                        className="inline-flex min-h-11 items-center justify-center gap-2 border border-white/15 px-5 text-sm font-medium text-[#f2f4ef] transition hover:border-white/30 hover:bg-white/[0.03]"
+                      >
+                        <GraduationCap
+                          size={16}
+                        />
+
+                        Teaching skills
+                      </button>
+                    )}
+
+                    {isSwapMaster && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          navigate(
+                            "/profile/edit?tab=learning"
+                          )
+                        }
+                        className="inline-flex min-h-11 items-center justify-center gap-2 border border-white/15 px-5 text-sm font-medium text-[#f2f4ef] transition hover:border-[#c7ff39]/30 hover:bg-[#c7ff39]/[0.03]"
+                      >
+                        <Repeat2
+                          size={16}
+                        />
+
+                        Swap preferences
+                      </button>
+                    )}
+
+                    {/* HISTORY - AVAILABLE TO EVERY USER */}
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate(
+                          "/history"
+                        )
+                      }
+                      className="inline-flex min-h-11 items-center justify-center gap-2 border border-white/15 px-5 text-sm font-medium text-[#f2f4ef] transition hover:border-[#c7ff39]/30 hover:bg-[#c7ff39]/[0.03] hover:text-[#c7ff39]"
+                    >
+                      <HistoryIcon
+                        size={16}
+                      />
+
+                      History
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* RIGHT */}
+
+              <div className="grid grid-cols-2 border-t border-white/10 lg:border-l lg:border-t-0">
+                <div className="border-b border-r border-white/10 p-5">
+                  <BookOpen
+                    size={18}
+                    className="text-[#c7ff39]"
+                  />
+
+                  <p className="mt-5 text-3xl font-medium tracking-[-0.05em]">
+                    {
+                      learningItems.length
+                    }
+                  </p>
+
+                  <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-[#a1a1aa]">
+                    Learning skills
+                  </p>
+                </div>
+
+                <div className="border-b border-white/10 p-5">
+                  <GraduationCap
+                    size={18}
+                    className="text-[#c7ff39]"
+                  />
+
+                  <p className="mt-5 text-3xl font-medium tracking-[-0.05em]">
+                    {
+                      teachingItems.length
+                    }
+                  </p>
+
+                  <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-[#a1a1aa]">
+                    Teaching skills
+                  </p>
+                </div>
+
+                <div className="border-r border-white/10 p-5">
+                  <WalletCards
+                    size={18}
+                    className="text-[#c7ff39]"
+                  />
+
+                  <p className="mt-5 text-3xl font-medium tracking-[-0.05em]">
+                    {wallet?.balance ??
+                      0}
+                  </p>
+
+                  <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-[#a1a1aa]">
+                    SS Credits
+                  </p>
+                </div>
+
+                <div className="p-5">
+                  <Layers3
+                    size={18}
+                    className="text-[#c7ff39]"
+                  />
+
+                  <p className="mt-5 text-3xl font-medium tracking-[-0.05em]">
+                    {
+                      myCourses.length
+                    }
+                  </p>
+
+                  <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-[#a1a1aa]">
+                    Courses created
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* =================================================
+              QUICK ACTIONS
+          ================================================= */}
+
+          <QuickActions
+            role={
+              profile?.role
+            }
+            navigate={
+              navigate
+            }
+          />
+
+          {/* =================================================
+              STATS
+          ================================================= */}
 
           <DashboardStats
             takenCourses={
@@ -906,18 +1571,350 @@ export default function Dashboard() {
               sessionItems.length
             }
             credits={
-              wallet?.balance ?? 0
+              wallet?.balance ??
+              0
             }
           />
 
           {/* =================================================
-              LEARNING / TEACHING / SESSIONS / CREDITS
+              COURSE STUDIO
+          ================================================= */}
+
+          {canCreateCourse && (
+            <section className="mt-8 border border-white/10 bg-[#0a0d0b]/70">
+              <div className="flex flex-col justify-between gap-5 border-b border-white/10 p-6 md:flex-row md:items-center md:px-7">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Zap
+                      size={14}
+                      className="text-[#c7ff39]"
+                    />
+
+                    <p className="text-[10px] uppercase tracking-[0.17em] text-[#c7ff39]">
+                      Course Studio
+                    </p>
+                  </div>
+
+                  <h2 className="mt-2 text-2xl font-medium tracking-[-0.04em]">
+                    Your teaching offers
+                  </h2>
+
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-[#a1a1aa]">
+                    Courses can only be created from skills you have marked as teaching skills.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate(
+                      "/courses/create"
+                    )
+                  }
+                  className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 bg-[#c7ff39] px-5 text-sm font-semibold text-[#071008] transition hover:bg-[#d4ff66]"
+                >
+                  <Plus
+                    size={16}
+                  />
+
+                  Create course
+                </button>
+              </div>
+
+              {/* COURSE SUMMARY */}
+
+              <div className="grid border-b border-white/10 sm:grid-cols-3">
+                <div className="border-b border-white/10 p-5 sm:border-b-0 sm:border-r">
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-[#a1a1aa]">
+                    Total courses
+                  </p>
+
+                  <p className="mt-2 text-2xl font-medium">
+                    {
+                      courseItems.length
+                    }
+                  </p>
+                </div>
+
+                <div className="border-b border-white/10 p-5 sm:border-b-0 sm:border-r">
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-[#a1a1aa]">
+                    Approved
+                  </p>
+
+                  <p className="mt-2 text-2xl font-medium text-[#c7ff39]">
+                    {
+                      approvedCourses.length
+                    }
+                  </p>
+                </div>
+
+                <div className="p-5">
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-[#a1a1aa]">
+                    Pending
+                  </p>
+
+                  <p className="mt-2 text-2xl font-medium">
+                    {
+                      pendingCourses.length
+                    }
+                  </p>
+                </div>
+              </div>
+
+              {/* COURSES */}
+
+              {courseItems.length >
+              0 ? (
+                <div className="grid md:grid-cols-2 xl:grid-cols-3">
+                  {courseItems
+                    .slice(
+                      0,
+                      6
+                    )
+                    .map(
+                      (
+                        course,
+                        index
+                      ) => (
+                        <article
+                          key={
+                            course.id
+                          }
+                          className={`
+                            group
+                            p-6
+                            transition
+                            hover:bg-white/[0.02]
+
+                            ${
+                              index <
+                              courseItems
+                                .slice(
+                                  0,
+                                  6
+                                )
+                                .length -
+                                1
+                                ? "border-b border-white/10"
+                                : ""
+                            }
+
+                            md:border-r
+                            md:border-white/10
+                          `}
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="grid h-10 w-10 place-items-center border border-[#c7ff39]/20 bg-[#c7ff39]/[0.04] text-[#c7ff39]">
+                              <GraduationCap
+                                size={18}
+                              />
+                            </div>
+
+                            <span
+                              className={`border px-2 py-1 text-[9px] uppercase tracking-[0.14em] ${getCourseStatusClasses(
+                                course.status
+                              )}`}
+                            >
+                              {course.status ||
+                                "Unknown"}
+                            </span>
+                          </div>
+
+                          <p className="mt-5 text-[10px] uppercase tracking-[0.16em] text-[#a1a1aa]">
+                            {course
+                              .skill
+                              ?.name ||
+                              "Teaching skill"}
+                          </p>
+
+                          <h3 className="mt-2 line-clamp-2 text-lg font-medium tracking-[-0.025em]">
+                            {
+                              course.title
+                            }
+                          </h3>
+
+                          {course.course_level && (
+                            <p className="mt-2 text-xs text-white/40">
+                              {
+                                course.course_level
+                              }
+                            </p>
+                          )}
+
+                          <div className="mt-5 flex items-center justify-between border-t border-white/10 pt-4">
+                            <div>
+                              <p className="text-lg font-medium text-[#c7ff39]">
+                                {course.price_credits ??
+                                  0}{" "}
+                                SS
+                              </p>
+
+                              <p className="mt-0.5 text-[9px] uppercase tracking-[0.13em] text-white/30">
+                                Enrollment
+                                value
+                              </p>
+                            </div>
+
+                            <ChevronRight
+                              size={17}
+                              className="text-white/30 transition group-hover:translate-x-1 group-hover:text-[#c7ff39]"
+                            />
+                          </div>
+                        </article>
+                      )
+                    )}
+                </div>
+              ) : (
+                <div className="p-7 md:p-9">
+                  <div className="max-w-xl">
+                    <div className="grid h-11 w-11 place-items-center border border-white/10 text-[#a1a1aa]">
+                      <GraduationCap
+                        size={19}
+                      />
+                    </div>
+
+                    <h3 className="mt-5 text-xl font-medium tracking-[-0.03em]">
+                      No courses yet.
+                    </h3>
+
+                    <p className="mt-2 text-sm leading-6 text-[#a1a1aa]">
+                      Turn one of your teaching skills into a 50 SS or 100 SS course.
+                    </p>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate(
+                          "/courses/create"
+                        )
+                      }
+                      className="mt-5 inline-flex min-h-11 items-center gap-2 bg-[#c7ff39] px-5 text-sm font-semibold text-[#071008]"
+                    >
+                      <Plus
+                        size={15}
+                      />
+
+                      Create your first course
+                    </button>
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* =================================================
+              SWAP MASTER LAB
+          ================================================= */}
+
+          {isSwapMaster && (
+            <section className="mt-8 overflow-hidden border border-[#c7ff39]/15 bg-[#0a0d0b]/70">
+              <div className="grid lg:grid-cols-[.8fr_1.2fr]">
+                <div className="border-b border-white/10 p-6 md:p-7 lg:border-b-0 lg:border-r">
+                  <Repeat2
+                    size={22}
+                    className="text-[#c7ff39]"
+                  />
+
+                  <p className="mt-5 text-[10px] uppercase tracking-[0.17em] text-[#c7ff39]">
+                    Swap Master Lab
+                  </p>
+
+                  <h2 className="mt-2 text-2xl font-medium tracking-[-0.04em]">
+                    Reciprocal skill matching
+                  </h2>
+
+                  <p className="mt-3 text-sm leading-7 text-[#a1a1aa]">
+                    Your teaching and learning skills form the basis for finding another Swap Master with the opposite skill combination.
+                  </p>
+                </div>
+
+                <div className="grid sm:grid-cols-2">
+                  <div className="border-b border-white/10 p-6 sm:border-b-0 sm:border-r">
+                    <p className="text-[10px] uppercase tracking-[0.16em] text-[#a1a1aa]">
+                      You can teach
+                    </p>
+
+                    <p className="mt-3 text-3xl font-medium tracking-[-0.05em]">
+                      {
+                        teachingItems.length
+                      }
+                    </p>
+
+                    <p className="mt-2 text-xs leading-5 text-white/35">
+                      skills available for reciprocal swaps
+                    </p>
+                  </div>
+
+                  <div className="p-6">
+                    <p className="text-[10px] uppercase tracking-[0.16em] text-[#a1a1aa]">
+                      You want to learn
+                    </p>
+
+                    <p className="mt-3 text-3xl font-medium tracking-[-0.05em]">
+                      {
+                        learningItems.length
+                      }
+                    </p>
+
+                    <p className="mt-2 text-xs leading-5 text-white/35">
+                      skills that can be matched against another Swap Master
+                    </p>
+                  </div>
+
+                  <div className="border-t border-white/10 p-6 sm:col-span-2">
+                    {teachingItems.length >
+                      0 &&
+                    learningItems.length >
+                      0 ? (
+                      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+                        <div>
+                          <p className="flex items-center gap-2 text-sm font-medium text-[#f2f4ef]">
+                            <Sparkles
+                              size={14}
+                              className="text-[#c7ff39]"
+                            />
+
+                            Your profile is swap-ready
+                          </p>
+
+                          <p className="mt-1 text-xs leading-5 text-[#a1a1aa]">
+                            Reciprocal matching can use your current teaching and learning skills.
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            navigate(
+                              "/profile/edit?tab=learning"
+                            )
+                          }
+                          className="inline-flex min-h-10 items-center justify-center gap-2 border border-white/15 px-4 text-xs font-medium transition hover:border-[#c7ff39]/30"
+                        >
+                          Refine skills
+
+                          <ArrowRight
+                            size={13}
+                          />
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-sm leading-6 text-[#a1a1aa]">
+                        Add at least one teaching skill and one learning skill to become eligible for reciprocal matching.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* =================================================
+              LEARNING / TEACHING / SESSION / CREDIT
           ================================================= */}
 
           <div className="mt-8 grid gap-6 xl:grid-cols-[1.4fr_.75fr]">
             <div className="grid gap-6 lg:grid-cols-2">
-              {/* Learning */}
-
               <SkillSection
                 type="learning"
                 title="Learning"
@@ -931,8 +1928,6 @@ export default function Dashboard() {
                   )
                 }
               />
-
-              {/* Teaching */}
 
               <SkillSection
                 type="teaching"
@@ -950,18 +1945,16 @@ export default function Dashboard() {
             </div>
 
             <div className="space-y-6">
-              {/* Sessions */}
-
               <UpcomingSessions
                 sessions={
                   sessionItems
                 }
               />
 
-              {/* Credits */}
-
               <CreditActivity
-                wallet={wallet}
+                wallet={
+                  wallet
+                }
                 transactions={
                   transactions
                 }
@@ -970,19 +1963,92 @@ export default function Dashboard() {
           </div>
 
           {/* =================================================
+              DISCOVERY STRIP
+          ================================================= */}
+
+          <section className="mt-8 grid border border-white/10 bg-[#0a0d0b]/70 md:grid-cols-3">
+            <div className="group border-b border-white/10 p-6 transition hover:bg-white/[0.02] md:border-b-0 md:border-r">
+              <Search
+                size={18}
+                className="text-[#c7ff39]"
+              />
+
+              <p className="mt-5 text-[10px] uppercase tracking-[0.16em] text-[#a1a1aa]">
+                Discover
+              </p>
+
+              <h3 className="mt-2 text-lg font-medium">
+                {
+                  skills.length
+                }{" "}
+                skills available
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-[#a1a1aa]">
+                Use Dashboard search to explore skills and the people connected to them.
+              </p>
+            </div>
+
+            <div className="group border-b border-white/10 p-6 transition hover:bg-white/[0.02] md:border-b-0 md:border-r">
+              <GraduationCap
+                size={18}
+                className="text-[#c7ff39]"
+              />
+
+              <p className="mt-5 text-[10px] uppercase tracking-[0.16em] text-[#a1a1aa]">
+                Network
+              </p>
+
+              <h3 className="mt-2 text-lg font-medium">
+                {
+                  mentors.length
+                }{" "}
+                teaching members
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-[#a1a1aa]">
+                Mentors and Swap Masters can become course instructors for their teaching skills.
+              </p>
+            </div>
+
+            <div className="group p-6 transition hover:bg-white/[0.02]">
+              <WalletCards
+                size={18}
+                className="text-[#c7ff39]"
+              />
+
+              <p className="mt-5 text-[10px] uppercase tracking-[0.16em] text-[#a1a1aa]">
+                Economy
+              </p>
+
+              <h3 className="mt-2 text-lg font-medium">
+                {wallet?.balance ??
+                  0}{" "}
+                SS available
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-[#a1a1aa]">
+                Spend credits when learning. Earn credits when teaching or completing successful skill swaps.
+              </p>
+            </div>
+          </section>
+
+          {/* =================================================
               TAKEN COURSES
           ================================================= */}
 
-          <DashboardCourses
+       <DashboardCourses
             title="Taken courses"
             eyebrow="Continue learning"
             type="taken"
             courses={takenCourses}
             emptyTitle="You haven't taken a course yet."
-            emptyText="Courses you enroll in will appear here with progress and mentor details."
+            emptyText="Approved course enrollments will appear here with progress and instructor details."
             actionLabel="Explore courses"
-            onAction={() => {}}
-          />
+            onAction={() =>
+            navigate("/courses")
+                }
+            />
 
           {/* =================================================
               FINISHED COURSES
@@ -996,7 +2062,7 @@ export default function Dashboard() {
               finishedCourses
             }
             emptyTitle="No finished courses yet."
-            emptyText="Completed courses will appear here with completion date and certificates."
+            emptyText="Completed courses will appear here with completion information and achievements."
             actionLabel="View learning skills"
             onAction={() =>
               navigate(
@@ -1007,12 +2073,12 @@ export default function Dashboard() {
 
           {/* =================================================
               RECOMMENDED MENTORS
-
-              Uses mentor-only list.
           ================================================= */}
 
           <RecommendedMentors
-            mentors={mentors}
+            mentors={
+              mentors
+            }
             onEditLearning={() =>
               navigate(
                 "/profile/edit?tab=learning"
@@ -1028,8 +2094,7 @@ export default function Dashboard() {
             <div className="flex flex-col justify-between gap-5 md:flex-row md:items-center">
               <div>
                 <p className="text-[10px] uppercase tracking-[0.17em] text-[#a1a1aa]">
-                  Keep your profile
-                  accurate
+                  Keep your profile accurate
                 </p>
 
                 <h2 className="mt-2 text-2xl font-medium tracking-[-0.035em]">
@@ -1038,11 +2103,10 @@ export default function Dashboard() {
                 </h2>
 
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-[#a1a1aa]">
-                  Update your teaching
-                  skills, learning
-                  interests, bio and
-                  preferences whenever
-                  your goals change.
+                  Update your teaching skills,
+                  learning interests, bio and
+                  preferences whenever your goals
+                  change.
                 </p>
               </div>
 
