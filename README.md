@@ -1,252 +1,331 @@
 <div align="center">
 
-# ⚡ SkillSwap+
-
-### Learn. Teach. Swap. Grow.
-
-A modern peer-to-peer skill exchange platform where people can **learn skills, teach what they know, create courses, exchange SS credits, and build a learning network**.
+<img src="./assets/skillswap-hero.svg" alt="SkillSwap+ — Learn. Teach. Swap. Grow." width="100%" />
 
 <br />
 
-![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=white)
-![Vite](https://img.shields.io/badge/Vite-Fast_Dev-646CFF?style=for-the-badge&logo=vite&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-Utility_First-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
-![Supabase](https://img.shields.io/badge/Supabase-Backend-3FCF8E?style=for-the-badge&logo=supabase&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+[![React](https://img.shields.io/badge/React-19-111?style=flat-square&logo=react&logoColor=61DAFB)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-Frontend-111?style=flat-square&logo=vite&logoColor=646CFF)](https://vite.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS-111?style=flat-square&logo=tailwindcss&logoColor=06B6D4)](https://tailwindcss.com/)
+[![Supabase](https://img.shields.io/badge/Supabase-Backend-111?style=flat-square&logo=supabase&logoColor=3FCF8E)](https://supabase.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-111?style=flat-square&logo=postgresql&logoColor=4169E1)](https://www.postgresql.org/)
 
-<br />
-
-> **SkillSwap+ turns knowledge into a two-way economy — users can learn, teach, swap skills, and earn value through participation.**
+**A modern platform for peer-to-peer learning, mentorship, course discovery and reciprocal skill exchange.**
 
 </div>
 
 ---
 
-## ✦ Overview
+## 01 · The idea
 
-**SkillSwap+** is a role-based learning and mentorship platform built for skill exchange.
+Traditional learning platforms usually have one direction:
 
-Instead of relying only on traditional paid courses, users can participate in a community where skills become a form of value. A user may learn from others, teach their own expertise, create structured courses, request skill swaps, and track their activity over time.
+> **Instructor → Student**
 
-The platform currently supports three main roles:
+SkillSwap+ turns that into a network:
 
-| Role | Learn | Teach | Create Courses | Skill Swap |
-|---|:---:|:---:|:---:|:---:|
-| **Learner** | ✅ | ❌ | ❌ | ❌ |
-| **Mentor** | ❌ | ✅ | ✅ | ❌ |
-| **Swap Master** | ✅ | ✅ | ✅ | ✅ |
+> **Learn ↔ Teach ↔ Swap ↔ Earn**
+
+People can discover skills, teach what they know, learn what they need, create courses, exchange SS credits and build a visible learning history.
 
 ---
 
-## 🚀 Core Features
+## 02 · Choose your mode
 
-### 👤 Authentication & Profiles
+<table>
+<tr>
+<td width="33%" valign="top">
 
-- Email/password registration
-- Secure Supabase authentication
-- Google sign-in for **existing registered accounts**
-- Role-based profiles
-- Avatar upload and previous-avatar history
-- Bio, career goal, location, username and profile preferences
-- Profile completion flow
+### 🎓 Learner
 
-### 🧠 Skills
+**Focus:** Learn
 
-Users can maintain two separate skill sets:
+- Explore active courses
+- Build learning interests
+- Request enrollment
+- Spend SS credits
+- Track learning history
 
-- **Teaching skills**
-- **Learning skills**
+</td>
+<td width="33%" valign="top">
 
-A **Swap Master** can maintain both at the same time.
+### 🧑‍🏫 Mentor
 
-### 🎓 Course System
+**Focus:** Teach
 
-Mentors and Swap Masters can create courses based on skills they teach.
+- Maintain teaching skills
+- Create courses
+- Receive enrollments
+- Earn SS credits
+- Build teaching reputation
 
-Courses include:
+</td>
+<td width="33%" valign="top">
 
-- Course title
-- Skill
-- Level: Beginner / Intermediate / Advanced
-- SS credit price: 50 SS / 100 SS
-- Instructor
-- Course status
+### ⚡ Swap Master
 
-Course lifecycle:
+**Focus:** Both
+
+- Learn + teach
+- Create courses
+- Find reciprocal matches
+- Exchange skills directly
+- Earn swap rewards
+
+</td>
+</tr>
+</table>
+
+---
+
+## 03 · Experience
 
 ```text
-Course Created
-      │
-      ▼
-   Pending
-      │
-      ▼
- Admin Review
-   ┌──┴──────────┐
-   ▼             ▼
- Active       Suspended
+SIGN UP
    │
    ▼
-Visible in Course Discovery
+PROFILE SETUP
+   │
+   ├── Learner ─────────► Learning Skills
+   ├── Mentor ──────────► Teaching Skills
+   └── Swap Master ─────► Teaching + Learning
+                            │
+                            ▼
+                        DASHBOARD
+                            │
+          ┌─────────────────┼─────────────────┐
+          ▼                 ▼                 ▼
+      COURSES           SKILL SWAPS        HISTORY
+          │                 │                 │
+          ▼                 ▼                 ▼
+      ENROLLMENT        MATCH / SWAP      ACTIVITY LOG
+          │
+          ▼
+      SS TRANSFER
 ```
-
-### 🔎 Course Discovery
-
-Users can browse active courses and filter by:
-
-- Course title
-- Skill
-- Instructor
-- Price
-- Course level
-
-Course Discovery only displays courses with:
-
-```text
-status = Active
-```
-
-### 💳 SS Credit Economy
-
-SkillSwap+ uses an internal credit system called **SS**.
-
-```text
-Learner ────── SS ──────► Mentor
-Learner ────── SS ──────► Swap Master
-Swap Master ── SS ──────► Mentor
-Swap Master ── SS ──────► Swap Master
-```
-
-Course payments are designed to happen only after a valid enrollment request is approved.
-
-### 🔄 Skill Swaps
-
-Swap Masters can exchange skills directly.
-
-```text
-User A
-Teaches: Front-End Development
-Wants: Product Design
-
-          ⇅  SKILL SWAP  ⇅
-
-User B
-Teaches: Product Design
-Wants: Front-End Development
-```
-
-A successful reciprocal swap can reward both users with SS credits after both sides confirm completion.
-
-### 🕘 Activity History
-
-SkillSwap+ records meaningful user actions in a private activity history.
-
-Examples:
-
-```text
-Profile updated
-Avatar updated
-Teaching skill added
-Teaching skill removed
-Learning skill added
-Learning skill removed
-Course created
-Enrollment requested
-Swap completed
-Session completed
-Review submitted
-```
-
-Each user only sees their own history.
 
 ---
 
-## 🧩 System Architecture
+## 04 · What is already built
+
+| Feature | Status |
+|---|:---:|
+| Authentication | ✅ |
+| Profile setup | ✅ |
+| Edit profile | ✅ |
+| Avatar uploads | ✅ |
+| Teaching / learning skills | ✅ |
+| Role-based dashboard | ✅ |
+| Course creation | ✅ |
+| Course discovery | ✅ |
+| Activity history | ✅ |
+| Course details | 🚧 |
+| Enrollment request | 🚧 |
+| Instructor approval | 🚧 |
+| Secure SS transfer | 🚧 |
+| Notifications | 🚧 |
+| Swap matching | 🚧 |
+| Sessions & reviews | 🚧 |
+
+---
+
+## 05 · Course ecosystem
+
+### Create
+
+Only **Mentors** and **Swap Masters** can create courses, and only for skills they teach.
+
+### Publish
+
+```text
+Pending
+   │
+   ▼
+Admin Review
+   │
+   ├──► Active ───────► Visible in Course Discovery
+   │
+   └──► Suspended ────► Hidden from Discovery
+```
+
+### Discover
+
+Users can search and filter courses by:
+
+`Title` · `Skill` · `Instructor` · `Price` · `Level`
+
+Levels:
+
+`Beginner` · `Intermediate` · `Advanced`
+
+Prices:
+
+`50 SS` · `100 SS`
+
+---
+
+## 06 · SS economy
+
+**SS** is the platform's internal value unit.
+
+```text
+Learner       ── SS ──► Mentor
+Learner       ── SS ──► Swap Master
+Swap Master   ── SS ──► Mentor
+Swap Master   ── SS ──► Swap Master
+```
+
+Credits are designed to move through secure server-side operations, not direct client-side balance edits.
+
+> Course payment happens after a valid enrollment is approved.
+
+---
+
+## 07 · Reciprocal skill swap
+
+A perfect Swap Master match looks like this:
+
+```text
+┌────────────────────────┐       ┌────────────────────────┐
+│ USER A                 │       │ USER B                 │
+│                        │       │                        │
+│ Teaches: React         │◄─────►│ Teaches: UI/UX        │
+│ Wants:   UI/UX         │       │ Wants:   React        │
+└────────────────────────┘       └────────────────────────┘
+
+                BOTH CONFIRM COMPLETION
+                         │
+                         ▼
+                    SWAP REWARD
+```
+
+---
+
+## 08 · Architecture
 
 ```mermaid
-flowchart TD
-    A[React + Vite Frontend] --> B[Supabase Client]
-    B --> C[Supabase Auth]
-    B --> D[PostgreSQL Database]
-    B --> E[Supabase Storage]
+flowchart LR
+    UI["React + Vite UI"] --> SB["Supabase Client"]
 
-    C --> F[profiles]
+    SB --> AUTH["Auth"]
+    SB --> DB["PostgreSQL"]
+    SB --> STORAGE["Storage"]
 
-    D --> F
-    D --> G[skills]
-    D --> H[user_skills]
-    D --> I[courses]
-    D --> J[course_enrollments]
-    D --> K[skill_swaps]
-    D --> L[sessions]
-    D --> M[activity_logs]
-    D --> N[notifications]
+    AUTH --> P["profiles"]
 
-    E --> O[avatars / media]
+    DB --> SK["skills"]
+    DB --> US["user_skills"]
+    DB --> C["courses"]
+    DB --> CE["course_enrollments"]
+    DB --> SW["skill_swaps"]
+    DB --> SE["sessions"]
+    DB --> AL["activity_logs"]
+    DB --> N["notifications"]
 
-    F --> H
-    G --> H
-    F --> I
-    G --> I
-    I --> J
-    F --> J
-    F --> K
-    G --> K
+    STORAGE --> M["media / avatars"]
+
+    P --> US
+    SK --> US
+    P --> C
+    SK --> C
+    C --> CE
 ```
 
 ---
 
-## 🛠 Tech Stack
+## 09 · Stack
 
-### Frontend
+<div align="center">
 
-- **React**
-- **Vite**
-- **Tailwind CSS**
-- **React Router**
-- **Lucide React**
+<img src="https://skillicons.dev/icons?i=react,vite,tailwind,supabase,postgres,js,git,github" alt="SkillSwap+ technology stack" />
 
-### Backend
+</div>
 
-- **Supabase**
-- **PostgreSQL**
-- **Row Level Security**
-- **PostgreSQL RPC functions**
-- **Supabase Auth**
-- **Supabase Storage**
+<br />
 
-### Deployment
+**Frontend**  
+React · Vite · Tailwind CSS · React Router · Lucide React
 
-The frontend is compatible with platforms such as:
+**Backend**  
+Supabase Auth · PostgreSQL · Row Level Security · PostgreSQL RPC · Supabase Storage
 
-- **Netlify**
-- **Vercel**
+**Deployment**  
+Netlify / Vercel compatible
 
 ---
 
-## 🗃 Main Database Areas
+## 10 · Database map
 
-| Area | Main Tables |
+<details>
+<summary><b>Open database areas</b></summary>
+
+<br />
+
+| Domain | Tables |
 |---|---|
-| Users | `profiles` |
+| Identity | `profiles` |
 | Skills | `skills`, `skill_categories`, `user_skills`, `user_interests` |
 | Courses | `courses`, `course_enrollments` |
-| Credits | `credit_transactions`, credit-related account data |
-| Skill Swap | `skill_swaps` |
+| Credits | `credit_transactions` |
+| Swaps | `skill_swaps` |
 | Sessions | `sessions`, `session_participants` |
 | Messaging | `conversations`, `conversation_members`, `messages`, `message_attachments` |
 | Reviews | `reviews`, `review_reports` |
-| Activity | `activity_logs` |
+| History | `activity_logs` |
 | Notifications | `notifications`, `notification_preferences` |
 | Media | `media` |
 
+</details>
+
 ---
 
-## 📁 Core Frontend Structure
+## 11 · Security first
+
+SkillSwap+ uses Supabase **Row Level Security** and PostgreSQL functions for sensitive flows.
+
+```text
+✓ Users update their own profiles
+✓ Users manage their own skill selections
+✓ Activity history is private per user
+✓ Only valid instructors create courses
+✓ Discovery exposes Active courses only
+✓ Credit transfers should be atomic server-side operations
+```
+
+Google authentication is designed as **login-only for existing SkillSwap+ accounts**. Registration remains email/password based.
+
+---
+
+## 12 · Run locally
+
+```bash
+git clone <your-repository-url>
+cd <your-project-folder>
+
+npm install
+```
+
+Create `.env`:
+
+```env
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
+```
+
+Start:
+
+```bash
+npm run dev
+```
+
+> Never commit service-role keys, private credentials or production secrets.
+
+---
+
+## 13 · Project structure
 
 ```text
 src/
-│
 ├── components/
 │   ├── DashboardCourses.jsx
 │   ├── EditProfileHeader.jsx
@@ -262,219 +341,62 @@ src/
 │   ├── Courses.jsx
 │   └── CourseCreation.jsx
 │
-├── lib/
-│   ├── supabase.js
-│   └── activityLog.js
-│
-└── ...
+└── lib/
+    ├── supabase.js
+    └── activityLog.js
 ```
 
 ---
 
-## ⚙️ Local Setup
+## 14 · Design language
 
-### 1. Clone the repository
+| Token | Value |
+|---|---|
+| Background | `#060807` |
+| Surface | `#0A0D0B` |
+| Text | `#F2F4EF` |
+| Secondary | `#A1A1AA` |
+| Accent | `#C7FF39` |
 
-```bash
-git clone <your-repository-url>
-cd <your-project-folder>
-```
+**Direction:** dark · minimal · sharp typography · subtle glow · thin borders · high contrast · low visual noise
 
-### 2. Install dependencies
+---
 
-```bash
-npm install
-```
-
-### 3. Create your environment file
-
-Create:
+## 15 · Next
 
 ```text
-.env
+Course Discovery
+      │
+      ▼
+Course Details
+      │
+      ▼
+Enrollment Request
+      │
+      ▼
+Instructor Approval
+      │
+      ▼
+Secure SS Transfer
+      │
+      ▼
+Course Completion
 ```
 
-Add:
+After that:
 
-```env
-VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
-```
-
-> Never commit private or service-role keys to the repository.
-
-### 4. Start development
-
-```bash
-npm run dev
-```
-
-Then open the local URL shown by Vite.
-
----
-
-## 🔐 Security Model
-
-SkillSwap+ uses **Supabase Row Level Security (RLS)** to protect user data.
-
-- Users can update their own profiles
-- Users can manage their own skill selections
-- Users only see their own private activity history
-- Only valid instructors can create courses
-- Course Discovery exposes only active courses
-- Sensitive credit operations should be handled through secure PostgreSQL functions instead of direct client-side balance updates
-
----
-
-## 🧭 Main User Flow
-
-```mermaid
-flowchart LR
-    A[Sign Up / Login] --> B[Profile Setup]
-    B --> C{Choose Role}
-
-    C -->|Learner| D[Choose Learning Skills]
-    C -->|Mentor| E[Choose Teaching Skills]
-    C -->|Swap Master| F[Choose Both]
-
-    D --> G[Dashboard]
-    E --> G
-    F --> G
-
-    G --> H[Course Discovery]
-    G --> I[Course Creation]
-    G --> J[Skill Swap]
-    G --> K[Activity History]
-
-    H --> L[Course Details]
-    L --> M[Enrollment Request]
-    M --> N[Instructor Approval]
-    N --> O[SS Credit Transfer]
-```
-
----
-
-## 🧪 Course Status Rules
-
-**Pending** — course has been created but is waiting for admin review.
-
-**Active** — course is approved/published and visible in Course Discovery.
-
-**Suspended** — course is disabled and hidden from normal discovery.
-
----
-
-## 📚 Enrollment Status Rules
-
-```text
-Pending
-   │
-   ├──► Approved
-   │       │
-   │       └──► Completed
-   │
-   ├──► Rejected
-   │
-   └──► Cancelled
-```
-
-Course status and enrollment status are intentionally separate.
-
----
-
-## 🧱 Design Direction
-
-SkillSwap+ uses a dark, minimal interface with a high-contrast lime accent.
-
-```text
-Background       #060807
-Surface          #0A0D0B
-Secondary        #A1A1AA
-Primary Text     #F2F4EF
-Accent           #C7FF39
-```
-
-The interface focuses on:
-
-- Strong typography
-- Minimal visual noise
-- Clear hierarchy
-- Responsive cards
-- Subtle borders
-- Soft glow effects
-- Fast navigation
-- Consistent interaction states
-
----
-
-## 🗺 Roadmap
-
-- [x] Authentication
-- [x] Profile setup
-- [x] Edit profile
-- [x] Teaching and learning skills
-- [x] Role-based dashboard
-- [x] Course creation
-- [x] Course discovery
-- [x] Activity history
-- [ ] Course details
-- [ ] Enrollment request flow
-- [ ] Instructor enrollment approval
-- [ ] Secure SS credit transfer
-- [ ] Course completion
-- [ ] Notifications
-- [ ] Swap Master matching
-- [ ] Skill swap request flow
-- [ ] Swap completion rewards
-- [ ] Session scheduling
-- [ ] Reviews and reputation
-- [ ] Recommendation system
-
----
-
-## 💡 Product Vision
-
-> **Everyone has something to learn and something valuable to teach.**
-
-The goal is to create an ecosystem where learning is collaborative, skills are discoverable, mentorship is accessible, and knowledge can move directly between people.
-
----
-
-## 🤝 Contributing
-
-```bash
-git checkout -b feature/your-feature
-git add .
-git commit -m "Add your feature"
-git push origin feature/your-feature
-```
-
-Then open a pull request for review.
-
----
-
-## 📌 Development Notes
-
-Before merging a feature:
-
-- Check Supabase RLS policies
-- Verify role restrictions
-- Test authenticated and unauthenticated states
-- Test empty states
-- Test mobile layout
-- Check browser console errors
-- Never expose secret Supabase keys
-- Keep important transactions server-side and atomic
+`Notifications` → `Swap Matching` → `Sessions` → `Reviews` → `Recommendations`
 
 ---
 
 <div align="center">
 
-### Built for people who want to learn by sharing what they know.
+### Built around one simple idea
+
+## **What you know can help someone. What they know can help you.**
 
 **SkillSwap+**
 
-`Learn • Teach • Swap • Grow`
+`LEARN  /  TEACH  /  SWAP  /  GROW`
 
 </div>
-
