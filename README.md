@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="./assets/skillswap-hero.svg" alt="SkillSwap+ — Learn. Teach. Swap. Grow." width="100%" />
+<img src=".src/assets/Logo.png" alt="SkillSwap+ — Learn. Teach. Swap. Grow." width="100%" />
 
 <br />
 
