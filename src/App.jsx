@@ -14,6 +14,7 @@ import Dashboard from "./pages/Dashboard";
 import CourseCreation from "./pages/CourseCreation";
 import History from "./pages/History";
 import Courses from "./pages/Courses";
+import CourseDetails from "./pages/CourseDetails";
 
 export default function App() {
   return (
@@ -94,6 +95,10 @@ export default function App() {
         <Route
         path="/courses"
         element={<Courses />}
+        />
+        <Route
+        path="/courses/:courseId"
+        element={<CourseDetails />}
         />
       </Routes>
     </BrowserRouter>
