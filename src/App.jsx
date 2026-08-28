@@ -15,6 +15,8 @@ import CourseCreation from "./pages/CourseCreation";
 import History from "./pages/History";
 import Courses from "./pages/Courses";
 import CourseDetails from "./pages/CourseDetails";
+import EnrollmentRequests from "./pages/EnrollmentRequests";
+import Messages from "./pages/Messages";
 
 export default function App() {
   return (
@@ -99,6 +101,14 @@ export default function App() {
         <Route
         path="/courses/:courseId"
         element={<CourseDetails />}
+        />
+        <Route
+          path="/enrollment-requests"
+          element={<EnrollmentRequests />}
+        />
+        <Route
+          path="/messages"
+          element={<Messages />}
         />
       </Routes>
     </BrowserRouter>

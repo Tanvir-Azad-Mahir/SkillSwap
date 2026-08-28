@@ -18,6 +18,8 @@ import {
   CircleDot,
   Zap,
   History as HistoryIcon,
+  Inbox,
+  MessageCircle,
 } from "lucide-react";
 
 import {
@@ -96,11 +98,7 @@ function getCourseStatusClasses(status) {
       .trim()
       .toLowerCase();
 
-  if (
-    clean === "approved" ||
-    clean === "active" ||
-    clean === "published"
-  ) {
+  if (clean === "active") {
     return "border-[#c7ff39]/30 bg-[#c7ff39]/[0.06] text-[#c7ff39]";
   }
 
@@ -108,10 +106,7 @@ function getCourseStatusClasses(status) {
     return "border-[#ffbf69]/30 bg-[#ffbf69]/[0.06] text-[#ffca80]";
   }
 
-  if (
-    clean === "rejected" ||
-    clean === "inactive"
-  ) {
+  if (clean === "suspended") {
     return "border-[#ff6b6b]/30 bg-[#ff6b6b]/[0.06] text-[#ff8b8b]";
   }
 
@@ -190,7 +185,8 @@ export default function Dashboard() {
   ] = useState([]);
 
   /*
-    Enrollment system will connect later.
+    Taken / finished course cards will be connected
+    from course_enrollments in the next dashboard step.
   */
 
   const [
@@ -1177,14 +1173,14 @@ export default function Dashboard() {
       skillMap,
     ]);
 
-  const approvedCourses =
+  const activeCourses =
     courseItems.filter(
       (course) =>
         String(
           course.status || ""
         )
           .toLowerCase() ===
-        "approved"
+        "active"
     );
 
   const pendingCourses =
@@ -1449,6 +1445,28 @@ export default function Dashboard() {
                       </button>
                     )}
 
+                    {/* ENROLLMENT REQUESTS - MENTOR / SWAP MASTER */}
+
+                    {canCreateCourse && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          navigate(
+                            "/enrollment-requests"
+                          )
+                        }
+                        className="inline-flex min-h-11 items-center justify-center gap-2 border border-white/15 px-5 text-sm font-medium text-[#f2f4ef] transition hover:border-[#c7ff39]/30 hover:bg-[#c7ff39]/[0.03] hover:text-[#c7ff39]"
+                      >
+                        <Inbox
+                          size={16}
+                        />
+
+                        Enrollment requests
+                      </button>
+                    )}
+
+                    
+
                     {/* HISTORY - AVAILABLE TO EVERY USER */}
 
                     <button
@@ -1638,12 +1656,12 @@ export default function Dashboard() {
 
                 <div className="border-b border-white/10 p-5 sm:border-b-0 sm:border-r">
                   <p className="text-[10px] uppercase tracking-[0.16em] text-[#a1a1aa]">
-                    Approved
+                    Active
                   </p>
 
                   <p className="mt-2 text-2xl font-medium text-[#c7ff39]">
                     {
-                      approvedCourses.length
+                      activeCourses.length
                     }
                   </p>
                 </div>
