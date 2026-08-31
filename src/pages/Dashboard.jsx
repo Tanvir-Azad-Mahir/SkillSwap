@@ -1820,22 +1820,22 @@ export default function Dashboard() {
                     )}
 
                     {isSwapMaster && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          navigate(
-                            "/profile/edit?tab=learning"
-                          )
-                        }
-                        className="inline-flex min-h-11 items-center justify-center gap-2 border border-white/15 px-5 text-sm font-medium text-[#f2f4ef] transition hover:border-[#c7ff39]/30 hover:bg-[#c7ff39]/[0.03]"
-                      >
-                        <Repeat2
-                          size={16}
-                        />
+  <button
+    type="button"
+    onClick={() =>
+      navigate(
+        "/swaps"
+      )
+    }
+    className="inline-flex min-h-11 items-center justify-center gap-2 border border-white/15 px-5 text-sm font-medium text-[#f2f4ef] transition hover:border-[#c7ff39]/30 hover:bg-[#c7ff39]/[0.03] hover:text-[#c7ff39]"
+  >
+    <Repeat2
+      size={16}
+    />
 
-                        Swap preferences
-                      </button>
-                    )}
+    Find skill swaps
+  </button>
+)}
 
                     {/* ENROLLMENT REQUESTS - MENTOR / SWAP MASTER */}
 
