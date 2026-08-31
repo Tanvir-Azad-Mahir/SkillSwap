@@ -11,6 +11,12 @@ import {
 } from "react-router-dom";
 
 import {
+  Clock3,
+  Send,
+  ShieldCheck,
+} from "lucide-react";
+
+import {
   supabase,
 } from "../lib/supabase";
 
@@ -125,61 +131,29 @@ function normalizeRoleForFrontend(
   return "";
 }
 
-function getDatabaseRoleCandidates(
+function getRoleLabel(
   role
 ) {
   if (
-    role ===
-    ROLE_LEARNER
+    role === ROLE_LEARNER
   ) {
-    return [
-      "Learner",
-      "learner",
-    ];
+    return "Learner";
   }
 
   if (
-    role ===
-    ROLE_MENTOR
+    role === ROLE_MENTOR
   ) {
-    return [
-      "Mentor",
-      "mentor",
-    ];
+    return "Mentor";
   }
 
   if (
     role ===
     ROLE_SWAP_MASTER
   ) {
-    return [
-      "Swap Master",
-      "Swap_Master",
-      "swap_master",
-      "Swap master",
-    ];
+    return "Swap Master";
   }
 
-  return [];
-}
-
-function isRoleEnumError(
-  error
-) {
-  const message =
-    String(
-      error?.message ||
-        ""
-    ).toLowerCase();
-
-  return (
-    message.includes(
-      "invalid input value for enum"
-    ) ||
-    message.includes(
-      "user_role"
-    )
-  );
+  return "Member";
 }
 
 /* =========================================================
@@ -320,6 +294,31 @@ export default function EditProfile() {
     success,
     setSuccess,
   ] = useState("");
+
+  const [
+    roleRequest,
+    setRoleRequest,
+  ] = useState(null);
+
+  const [
+    roleRequestOpen,
+    setRoleRequestOpen,
+  ] = useState(false);
+
+  const [
+    requestedRole,
+    setRequestedRole,
+  ] = useState("");
+
+  const [
+    roleReason,
+    setRoleReason,
+  ] = useState("");
+
+  const [
+    roleRequestSubmitting,
+    setRoleRequestSubmitting,
+  ] = useState(false);
 
   const successRef =
     useRef(null);
@@ -567,6 +566,7 @@ export default function EditProfile() {
             userSkillsResult,
             learningResult,
             settingsResult,
+            roleRequestResult,
           ] =
             await Promise.all(
               [
@@ -677,6 +677,39 @@ export default function EditProfile() {
                     "user_id",
                     authUser.id
                   )
+                  .maybeSingle(),
+
+                /* LATEST ROLE CHANGE REQUEST */
+
+                supabase
+                  .from(
+                    "role_change_requests"
+                  )
+                  .select(
+                    `
+                      id,
+                      user_id,
+                      from_role,
+                      requested_role,
+                      reason,
+                      status,
+                      admin_note,
+                      created_at,
+                      reviewed_at
+                    `
+                  )
+                  .eq(
+                    "user_id",
+                    authUser.id
+                  )
+                  .order(
+                    "created_at",
+                    {
+                      ascending:
+                        false,
+                    }
+                  )
+                  .limit(1)
                   .maybeSingle(),
               ]
             );
@@ -1051,6 +1084,28 @@ export default function EditProfile() {
                 ...initialPreferences,
               };
           }
+
+          /* ===================================================
+             ROLE CHANGE REQUEST
+          =================================================== */
+
+          if (
+            roleRequestResult.error
+          ) {
+            console.warn(
+              "ROLE CHANGE REQUEST LOAD ERROR:",
+              roleRequestResult.error
+            );
+
+            setRoleRequest(
+              null
+            );
+          } else {
+            setRoleRequest(
+              roleRequestResult.data ||
+                null
+            );
+          }
         } catch (
           err
         ) {
@@ -1133,6 +1188,250 @@ export default function EditProfile() {
       setError("");
 
       setSuccess("");
+    };
+
+  /* =========================================================
+     LOCK ROLE IN EDIT PROFILE
+
+     ProfileEditTab can still edit normal profile fields, but
+     any attempt to change the role is discarded. Role changes
+     must go through the admin-reviewed request workflow.
+  ========================================================= */
+
+  const setEditableProfile =
+    (
+      updater
+    ) => {
+      setProfile(
+        (
+          current
+        ) => {
+          const next =
+            typeof updater ===
+            "function"
+              ? updater(
+                  current
+                )
+              : updater;
+
+          return {
+            ...current,
+            ...(next || {}),
+            role:
+              current.role,
+          };
+        }
+      );
+    };
+
+  /* =========================================================
+     ROLE CHANGE REQUEST
+  ========================================================= */
+
+  const availableRoleOptions =
+    [
+      ROLE_LEARNER,
+      ROLE_MENTOR,
+      ROLE_SWAP_MASTER,
+    ].filter(
+      (
+        role
+      ) =>
+        role !==
+        profile.role
+    );
+
+  const submitRoleChangeRequest =
+    async () => {
+      if (
+        !user ||
+        roleRequestSubmitting
+      ) {
+        return;
+      }
+
+      if (
+        roleRequest?.status ===
+        "Pending"
+      ) {
+        setError(
+          "You already have a pending role change request."
+        );
+
+        return;
+      }
+
+      if (
+        !availableRoleOptions.includes(
+          requestedRole
+        )
+      ) {
+        setError(
+          "Please choose a different role."
+        );
+
+        return;
+      }
+
+      try {
+        setRoleRequestSubmitting(
+          true
+        );
+
+        setError("");
+        setSuccess("");
+
+        const {
+          data:
+            requestId,
+          error:
+            requestError,
+        } =
+          await supabase.rpc(
+            "request_role_change",
+            {
+              p_requested_role:
+                getRoleLabel(
+                  requestedRole
+                ),
+
+              p_reason:
+                normalizeText(
+                  roleReason
+                ) ||
+                null,
+            }
+          );
+
+        if (
+          requestError
+        ) {
+          throw requestError;
+        }
+
+        setRoleRequest({
+          id:
+            requestId,
+
+          user_id:
+            user.id,
+
+          from_role:
+            getRoleLabel(
+              profile.role
+            ),
+
+          requested_role:
+            getRoleLabel(
+              requestedRole
+            ),
+
+          reason:
+            normalizeText(
+              roleReason
+            ) ||
+            null,
+
+          status:
+            "Pending",
+
+          admin_note:
+            null,
+
+          created_at:
+            new Date()
+              .toISOString(),
+
+          reviewed_at:
+            null,
+        });
+
+        setRequestedRole(
+          ""
+        );
+
+        setRoleReason(
+          ""
+        );
+
+        setRoleRequestOpen(
+          false
+        );
+
+        setSuccess(
+          "Your role change request was submitted for admin review."
+        );
+      } catch (
+        err
+      ) {
+        console.error(
+          "ROLE CHANGE REQUEST ERROR:",
+          err
+        );
+
+        const message =
+          String(
+            err?.message ||
+              ""
+          );
+
+        if (
+          message.includes(
+            "ROLE_REQUEST_ALREADY_PENDING"
+          )
+        ) {
+          setError(
+            "You already have a pending role change request."
+          );
+
+          return;
+        }
+
+        if (
+          message.includes(
+            "ROLE_ALREADY_SELECTED"
+          )
+        ) {
+          setError(
+            "That is already your current role."
+          );
+
+          return;
+        }
+
+        if (
+          message.includes(
+            "PROFILE_NOT_ELIGIBLE"
+          )
+        ) {
+          setError(
+            "Your profile is not eligible to submit a role change request right now."
+          );
+
+          return;
+        }
+
+        if (
+          message.includes(
+            "INVALID_ROLE"
+          )
+        ) {
+          setError(
+            "Please choose a valid role."
+          );
+
+          return;
+        }
+
+        setError(
+          err?.message ||
+            "Your role change request could not be submitted."
+        );
+      } finally {
+        setRoleRequestSubmitting(
+          false
+        );
+      }
     };
 
   /* =========================================================
@@ -1442,117 +1741,74 @@ export default function EditProfile() {
           profile.full_name
         );
 
-      const roleCandidates =
-        getDatabaseRoleCandidates(
-          profile.role
-        );
+      const {
+        data,
+        error:
+          profileError,
+      } =
+        await supabase
+          .from(
+            "profiles"
+          )
+          .update({
+            username:
+              cleanUsername,
+
+            full_name:
+              cleanFullName,
+
+            avatar_url:
+              avatarUrl ||
+              null,
+
+            bio:
+              normalizeText(
+                profile.bio
+              ) ||
+              null,
+
+            career_goal:
+              normalizeText(
+                profile.career_goal
+              ) ||
+              null,
+
+            location:
+              normalizeText(
+                profile.location
+              ) ||
+              null,
+
+            updated_at:
+              new Date()
+                .toISOString(),
+
+            last_active:
+              new Date()
+                .toISOString(),
+          })
+          .eq(
+            "id",
+            user.id
+          )
+          .select(
+            "id"
+          )
+          .maybeSingle();
 
       if (
-        roleCandidates.length ===
-        0
+        profileError
+      ) {
+        throw profileError;
+      }
+
+      if (
+        !data?.id
       ) {
         throw new Error(
-          "INVALID_PROFILE_ROLE"
+          "PROFILE_UPDATE_NOT_ALLOWED"
         );
       }
-
-      let lastRoleError =
-        null;
-
-      for (
-        const databaseRole of
-        roleCandidates
-      ) {
-        const {
-          data,
-          error:
-            profileError,
-        } =
-          await supabase
-            .from(
-              "profiles"
-            )
-            .update({
-              username:
-                cleanUsername,
-
-              full_name:
-                cleanFullName,
-
-              avatar_url:
-                avatarUrl ||
-                null,
-
-              bio:
-                normalizeText(
-                  profile.bio
-                ) ||
-                null,
-
-              role:
-                databaseRole,
-
-              career_goal:
-                normalizeText(
-                  profile.career_goal
-                ) ||
-                null,
-
-              location:
-                normalizeText(
-                  profile.location
-                ) ||
-                null,
-
-              updated_at:
-                new Date()
-                  .toISOString(),
-
-              last_active:
-                new Date()
-                  .toISOString(),
-            })
-            .eq(
-              "id",
-              user.id
-            )
-            .select(
-              "id"
-            )
-            .maybeSingle();
-
-        if (
-          !profileError
-        ) {
-          if (
-            !data?.id
-          ) {
-            throw new Error(
-              "PROFILE_UPDATE_NOT_ALLOWED"
-            );
-          }
-
-          return;
-        }
-
-        if (
-          !isRoleEnumError(
-            profileError
-          )
-        ) {
-          throw profileError;
-        }
-
-        lastRoleError =
-          profileError;
-      }
-
-      throw (
-        lastRoleError ||
-        new Error(
-          "ROLE_SAVE_FAILED"
-        )
-      );
     };
 
   /* =========================================================
@@ -1894,7 +2150,6 @@ export default function EditProfile() {
         "username",
         "full_name",
         "bio",
-        "role",
         "career_goal",
         "location",
       ];
@@ -2512,34 +2767,6 @@ export default function EditProfile() {
           return;
         }
 
-        /* INVALID ROLE */
-
-        if (
-          err?.message ===
-          "INVALID_PROFILE_ROLE"
-        ) {
-          setError(
-            "Please select a valid role."
-          );
-
-          return;
-        }
-
-        /* ROLE ENUM */
-
-        if (
-          isRoleEnumError(
-            err
-          )
-        ) {
-          setError(
-            err?.message ||
-              "Your selected role could not be saved."
-          );
-
-          return;
-        }
-
         /* PROFILE UPDATE */
 
         if (
@@ -2740,37 +2967,311 @@ export default function EditProfile() {
 
             {activeTab ===
               "profile" && (
-              <ProfileEditTab
-                profile={
-                  profile
-                }
-                setProfile={
-                  setProfile
-                }
-                avatarFile={
-                  avatarFile
-                }
-                setAvatarFile={
-                  setAvatarFile
-                }
-                previousAvatars={
-                  previousAvatars
-                }
-                setProfileAvatar={(
-                  url
-                ) =>
-                  setProfile(
-                    (
-                      current
-                    ) => ({
-                      ...current,
+              <>
+                <ProfileEditTab
+                  profile={
+                    profile
+                  }
+                  setProfile={
+                    setEditableProfile
+                  }
+                  avatarFile={
+                    avatarFile
+                  }
+                  setAvatarFile={
+                    setAvatarFile
+                  }
+                  previousAvatars={
+                    previousAvatars
+                  }
+                  setProfileAvatar={(
+                    url
+                  ) =>
+                    setProfile(
+                      (
+                        current
+                      ) => ({
+                        ...current,
 
-                      avatar_url:
-                        url,
-                    })
-                  )
-                }
-              />
+                        avatar_url:
+                          url,
+                      })
+                    )
+                  }
+                  roleLocked={
+                    true
+                  }
+                />
+
+                {/* ===========================================
+                    ACCOUNT ROLE
+                =========================================== */}
+
+                <div className="border-t border-white/10 p-6 md:p-8">
+                  <div className="grid gap-6 lg:grid-cols-[1fr_.9fr]">
+                    <div>
+                      <div className="flex items-center gap-2 text-[#c7ff39]">
+                        <ShieldCheck
+                          size={15}
+                        />
+
+                        <p className="text-[10px] uppercase tracking-[0.17em]">
+                          Account role
+                        </p>
+                      </div>
+
+                      <h2 className="mt-3 text-xl font-medium tracking-[-0.03em]">
+                        Your role is locked after onboarding.
+                      </h2>
+
+                      <p className="mt-2 max-w-2xl text-sm leading-6 text-[#a1a1aa]">
+                        Role changes require admin approval.
+                        You can submit a request and continue
+                        using your current role while it is
+                        reviewed.
+                      </p>
+
+                      <div className="mt-5 inline-flex items-center gap-3 border border-white/10 bg-[#060807] px-4 py-3">
+                        <span className="text-[9px] uppercase tracking-[0.14em] text-white/30">
+                          Current role
+                        </span>
+
+                        <span className="text-sm font-medium text-[#c7ff39]">
+                          {getRoleLabel(
+                            profile.role
+                          )}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="border border-white/10 bg-[#060807]/70 p-5">
+                      {roleRequest?.status ===
+                      "Pending" ? (
+                        <>
+                          <div className="flex items-center gap-2 text-[#ffca80]">
+                            <Clock3
+                              size={14}
+                            />
+
+                            <p className="text-[10px] uppercase tracking-[0.15em]">
+                              Pending admin review
+                            </p>
+                          </div>
+
+                          <p className="mt-4 text-sm text-[#a1a1aa]">
+                            {roleRequest.from_role ||
+                              getRoleLabel(
+                                profile.role
+                              )}
+                            <span className="mx-2 text-white/25">
+                              →
+                            </span>
+                            <span className="font-medium text-[#f2f4ef]">
+                              {
+                                roleRequest.requested_role
+                              }
+                            </span>
+                          </p>
+
+                          {roleRequest.reason && (
+                            <p className="mt-3 border-l border-white/10 pl-3 text-xs leading-5 text-white/45">
+                              {
+                                roleRequest.reason
+                              }
+                            </p>
+                          )}
+
+                          <p className="mt-4 text-xs leading-5 text-white/35">
+                            Your current role will not change
+                            unless an admin approves this
+                            request.
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          {roleRequest && (
+                            <div className="mb-4 border-b border-white/10 pb-4">
+                              <p className="text-[9px] uppercase tracking-[0.14em] text-white/30">
+                                Previous request
+                              </p>
+
+                              <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+                                <p className="text-sm text-[#a1a1aa]">
+                                  {roleRequest.from_role}
+                                  <span className="mx-2 text-white/25">
+                                    →
+                                  </span>
+                                  <span className="text-[#f2f4ef]">
+                                    {
+                                      roleRequest.requested_role
+                                    }
+                                  </span>
+                                </p>
+
+                                <span
+                                  className={`border px-2 py-1 text-[9px] uppercase tracking-[0.13em] ${
+                                    roleRequest.status ===
+                                    "Approved"
+                                      ? "border-[#c7ff39]/25 text-[#c7ff39]"
+                                      : roleRequest.status ===
+                                        "Rejected"
+                                      ? "border-[#ff6b6b]/30 text-[#ff8b8b]"
+                                      : "border-white/10 text-[#a1a1aa]"
+                                  }`}
+                                >
+                                  {
+                                    roleRequest.status
+                                  }
+                                </span>
+                              </div>
+
+                              {roleRequest.admin_note && (
+                                <p className="mt-2 text-xs leading-5 text-white/35">
+                                  Admin note:{" "}
+                                  {
+                                    roleRequest.admin_note
+                                  }
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          {!roleRequestOpen ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRoleRequestOpen(
+                                  true
+                                );
+
+                                setRequestedRole(
+                                  ""
+                                );
+
+                                setRoleReason(
+                                  ""
+                                );
+
+                                setError("");
+                              }}
+                              className="inline-flex min-h-11 w-full items-center justify-center gap-2 bg-[#c7ff39] px-5 text-sm font-semibold text-[#071008] transition hover:bg-[#d4ff66]"
+                            >
+                              <Send
+                                size={14}
+                              />
+
+                              Request role change
+                            </button>
+                          ) : (
+                            <div>
+                              <label className="block text-[10px] uppercase tracking-[0.14em] text-[#a1a1aa]">
+                                Requested role
+                              </label>
+
+                              <select
+                                value={
+                                  requestedRole
+                                }
+                                onChange={(
+                                  event
+                                ) =>
+                                  setRequestedRole(
+                                    event.target
+                                      .value
+                                  )
+                                }
+                                className="mt-2 min-h-11 w-full border border-white/10 bg-[#0a0d0b] px-3 text-sm text-[#f2f4ef] outline-none transition focus:border-[#c7ff39]/40"
+                              >
+                                <option value="">
+                                  Select a role
+                                </option>
+
+                                {availableRoleOptions.map(
+                                  (
+                                    role
+                                  ) => (
+                                    <option
+                                      key={
+                                        role
+                                      }
+                                      value={
+                                        role
+                                      }
+                                    >
+                                      {getRoleLabel(
+                                        role
+                                      )}
+                                    </option>
+                                  )
+                                )}
+                              </select>
+
+                              <label className="mt-4 block text-[10px] uppercase tracking-[0.14em] text-[#a1a1aa]">
+                                Reason
+                              </label>
+
+                              <textarea
+                                value={
+                                  roleReason
+                                }
+                                onChange={(
+                                  event
+                                ) =>
+                                  setRoleReason(
+                                    event.target
+                                      .value
+                                  )
+                                }
+                                rows={4}
+                                maxLength={500}
+                                placeholder="Tell the admin why you want to change your role..."
+                                className="mt-2 w-full resize-none border border-white/10 bg-[#0a0d0b] px-3 py-3 text-sm leading-6 text-[#f2f4ef] outline-none placeholder:text-white/20 focus:border-[#c7ff39]/40"
+                              />
+
+                              <div className="mt-4 flex gap-3">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setRoleRequestOpen(
+                                      false
+                                    )
+                                  }
+                                  disabled={
+                                    roleRequestSubmitting
+                                  }
+                                  className="min-h-10 flex-1 border border-white/10 px-4 text-xs text-[#a1a1aa] transition hover:border-white/25 hover:text-white disabled:opacity-50"
+                                >
+                                  Cancel
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={
+                                    submitRoleChangeRequest
+                                  }
+                                  disabled={
+                                    roleRequestSubmitting ||
+                                    !requestedRole
+                                  }
+                                  className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 bg-[#c7ff39] px-4 text-xs font-semibold text-[#071008] transition hover:bg-[#d4ff66] disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  <Send
+                                    size={13}
+                                  />
+
+                                  {roleRequestSubmitting
+                                    ? "Submitting..."
+                                    : "Submit request"}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </>
             )}
 
             {/* TEACHING */}
