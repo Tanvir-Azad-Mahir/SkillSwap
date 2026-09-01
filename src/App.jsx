@@ -122,9 +122,9 @@ export default function App() {
           element={<MyCourses />}
         />
         <Route
-          path="/courses/manage"
-          element={<CourseManage />}
-        />
+  path="/my-courses/:courseId/manage"
+  element={<CourseManage />}
+/>
       </Routes>
     </BrowserRouter>
   );
