@@ -20,6 +20,7 @@ import Messages from "./pages/Messages";
 import Swaps from "./pages/Swaps";
 import MyCourses from "./pages/MyCourses";
 import CourseManage from "./pages/CourseManage";
+import CourseLearn from "./pages/CourseLearn";
 
 export default function App() {
   return (
@@ -125,6 +126,10 @@ export default function App() {
   path="/my-courses/:courseId/manage"
   element={<CourseManage />}
 />
+        <Route
+          path="/my-courses/:courseId/learn"
+          element={<CourseLearn />}
+        />
       </Routes>
     </BrowserRouter>
   );
