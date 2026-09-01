@@ -250,7 +250,7 @@ export default function CourseLearn() {
   const allAssignmentsGraded = assignments.length === 0 || assignments.every((a) => submissionMap.get(a.id)?.status === "Graded");
   const passedQuiz = attempts.some((a) => a.passed === true);
   const quizRequired = quizzes.length > 0;
-  const completionEligible = enrollment?.status === "Approved" && allLecturesComplete && allAssignmentsSubmitted && allAssignmentsGraded && (!quizRequired || passedQuiz);
+  const completionEligible = enrollment?.status === "Approved" && allLecturesComplete && allAssignmentsSubmitted && allAssignmentsGraded && quizRequired && passedQuiz;
 
   const markLectureComplete = async (lecture) => {
     const existing = progressMap.get(lecture.id);
@@ -542,15 +542,18 @@ export default function CourseLearn() {
               <div className="border border-white/10 bg-[#0a0d0b]/70 p-6 md:p-7">
                 <p className="text-[10px] uppercase tracking-[0.16em] text-[#c7ff39]">Course completion</p>
                 <h2 className="mt-2 text-2xl font-medium">Completion requirements</h2>
+
                 <div className="mt-6 space-y-3">
                   {[
                     [`Lectures completed (${completedLectureCount}/${lectures.length})`, allLecturesComplete],
                     [`Assignments submitted (${submittedAssignmentCount}/${assignments.length})`, allAssignmentsSubmitted],
                     [assignments.length ? "Assignments reviewed and graded" : "No assignment grading required", allAssignmentsGraded],
-                    [quizRequired ? "Final quiz passed" : "No final quiz required", !quizRequired || passedQuiz],
+                    [quizRequired ? "Final quiz passed" : "Final quiz not published yet", quizRequired && passedQuiz],
                   ].map(([label, done]) => (
                     <div key={label} className="flex items-center gap-3 border border-white/10 p-4">
-                      <div className={`grid h-7 w-7 place-items-center border ${done ? "border-[#c7ff39]/30 text-[#c7ff39]" : "border-white/10 text-white/25"}`}>{done ? <Check size={14} /> : <LockKeyhole size={13} />}</div>
+                      <div className={`grid h-7 w-7 place-items-center border ${done ? "border-[#c7ff39]/30 text-[#c7ff39]" : "border-white/10 text-white/25"}`}>
+                        {done ? <Check size={14} /> : <LockKeyhole size={13} />}
+                      </div>
                       <span className="text-sm text-[#a1a1aa]">{label}</span>
                     </div>
                   ))}
@@ -559,16 +562,37 @@ export default function CourseLearn() {
 
               <div className="border border-white/10 bg-[#0a0d0b]/70 p-6 md:p-7">
                 <BookOpen size={20} className="text-[#c7ff39]" />
-                <h3 className="mt-5 text-xl font-medium">{enrollment?.status === "Completed" ? "Course completed" : completionEligible ? "Ready for instructor review" : "Keep learning"}</h3>
+
+                <h3 className="mt-5 text-xl font-medium">
+                  {enrollment?.status === "Completed"
+                    ? "Course completed"
+                    : completionEligible
+                    ? "Ready for instructor review"
+                    : "Keep learning"}
+                </h3>
+
                 <p className="mt-3 text-sm leading-7 text-[#a1a1aa]">
                   {enrollment?.status === "Completed"
                     ? "Your instructor has approved course completion."
                     : completionEligible
-                    ? "You have met the learning requirements. The next step will enable the completion request for instructor approval and certificate issuance."
+                    ? "You have completed all learning requirements."
                     : "Complete the outstanding requirements before requesting course completion."}
                 </p>
-                <button type="button" disabled className="mt-6 inline-flex min-h-11 w-full items-center justify-center gap-2 bg-[#c7ff39] px-5 text-sm font-semibold text-[#071008] opacity-40"><Send size={15} /> Request course completion</button>
-                <p className="mt-3 text-center text-[10px] uppercase tracking-[0.12em] text-white/25">Complete all course requirements before requesting completion.</p>
+
+                <button
+                  type="button"
+                  disabled
+                  className="mt-6 inline-flex min-h-11 w-full items-center justify-center gap-2 bg-[#c7ff39] px-5 text-sm font-semibold text-[#071008] opacity-40"
+                >
+                  <Send size={15} />
+                  Request course completion
+                </button>
+
+                <p className="mt-3 text-center text-[10px] uppercase tracking-[0.12em] text-white/25">
+                  {completionEligible
+                    ? "All course requirements are complete."
+                    : "Complete all course requirements before requesting completion."}
+                </p>
               </div>
             </section>
           )}
