@@ -1765,23 +1765,8 @@ export default function Dashboard() {
                   {/* ACTIONS */}
 
                   <div className="mt-6 flex flex-wrap gap-3">
-                    {/* MY COURSES - AVAILABLE TO EVERY USER */}
+                    {/* CREATE COURSE - MENTOR / SWAP MASTER */}
 
-                    <button
-                      type="button"
-                      onClick={() =>
-                        navigate(
-                          "/my-courses"
-                        )
-                      }
-                      className="inline-flex min-h-11 items-center justify-center gap-2 border border-[#c7ff39]/30 bg-[#c7ff39]/[0.04] px-5 text-sm font-medium text-[#c7ff39] transition hover:bg-[#c7ff39]/[0.08]"
-                    >
-                      <BookOpen
-                        size={16}
-                      />
-
-                      My Courses
-                    </button>
                     {canCreateCourse && (
                       <button
                         type="button"
@@ -1799,6 +1784,26 @@ export default function Dashboard() {
                         Create new course
                       </button>
                     )}
+
+                    {/* MY COURSES - AVAILABLE TO EVERY USER */}
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate(
+                          "/my-courses"
+                        )
+                      }
+                      className="inline-flex min-h-11 items-center justify-center gap-2 border border-[#c7ff39]/30 bg-[#c7ff39]/[0.04] px-5 text-sm font-medium text-[#c7ff39] transition hover:bg-[#c7ff39]/[0.08]"
+                    >
+                      <BookOpen
+                        size={16}
+                      />
+
+                      My Courses
+                    </button>
+
+                    {/* LEARNER SKILLS */}
 
                     {isLearner && (
                       <button
@@ -1818,25 +1823,7 @@ export default function Dashboard() {
                       </button>
                     )}
 
-                    {canCreateCourse && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          navigate(
-                            "/profile/edit?tab=teaching"
-                          )
-                        }
-                        className="inline-flex min-h-11 items-center justify-center gap-2 border border-white/15 px-5 text-sm font-medium text-[#f2f4ef] transition hover:border-white/30 hover:bg-white/[0.03]"
-                      >
-                        <GraduationCap
-                          size={16}
-                        />
-
-                        Teaching skills
-                      </button>
-                    )}
-
-                    {/* ENROLLMENT REQUESTS - BESIDE TEACHING SKILLS */}
+                    {/* ENROLLMENT REQUESTS - MENTOR / SWAP MASTER */}
 
                     {canCreateCourse && (
                       <button
@@ -1856,6 +1843,8 @@ export default function Dashboard() {
                       </button>
                     )}
 
+                    {/* SWAP MASTER ONLY */}
+
                     {isSwapMaster && (
                       <button
                         type="button"
@@ -1873,8 +1862,6 @@ export default function Dashboard() {
                         Find skill swaps
                       </button>
                     )}
-
-                    
 
                     {/* HISTORY - AVAILABLE TO EVERY USER */}
 
