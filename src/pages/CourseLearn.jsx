@@ -568,7 +568,7 @@ export default function CourseLearn() {
                     : "Complete the outstanding requirements before requesting course completion."}
                 </p>
                 <button type="button" disabled className="mt-6 inline-flex min-h-11 w-full items-center justify-center gap-2 bg-[#c7ff39] px-5 text-sm font-semibold text-[#071008] opacity-40"><Send size={15} /> Request course completion</button>
-                <p className="mt-3 text-center text-[10px] uppercase tracking-[0.12em] text-white/25">Completion request RPC is next</p>
+                <p className="mt-3 text-center text-[10px] uppercase tracking-[0.12em] text-white/25">  Complete all course requirements before requesting completion.</p>
               </div>
             </section>
           )}
