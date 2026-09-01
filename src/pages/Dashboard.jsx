@@ -19,7 +19,6 @@ import {
   Zap,
   History as HistoryIcon,
   Inbox,
-  MessageCircle,
 } from "lucide-react";
 
 import {
@@ -184,17 +183,18 @@ export default function Dashboard() {
     setMyCourses,
   ] = useState([]);
 
-  /*
-    Taken / finished course cards will be connected
-    from course_enrollments in the next dashboard step.
-  */
+  /* =========================================================
+     LEARNER COURSE ENROLLMENTS
+  ========================================================= */
 
   const [
     takenCourses,
+    setTakenCourses,
   ] = useState([]);
 
   const [
     finishedCourses,
+    setFinishedCourses,
   ] = useState([]);
 
   const [
@@ -619,6 +619,50 @@ export default function Dashboard() {
                   }
                 )
                 .limit(8),
+
+              /* =============================================
+                 9. LEARNER COURSE ENROLLMENTS
+
+                 Approved = currently taking
+                 Completed = finished
+              ============================================= */
+
+              supabase
+                .from(
+                  "course_enrollments"
+                )
+                .select(
+                  `
+                    id,
+                    course_id,
+                    learner_id,
+                    instructor_id,
+                    price_credits,
+                    status,
+                    created_at,
+                    approved_at,
+                    completed_at
+                  `
+                )
+                .eq(
+                  "learner_id",
+                  authUser.id
+                )
+                .in(
+                  "status",
+                  [
+                    "Approved",
+                    "Completed",
+                  ]
+                )
+                .order(
+                  "created_at",
+                  {
+                    ascending:
+                      false,
+                  }
+                )
+                .limit(50),
             ]);
 
           if (!active) {
@@ -634,6 +678,7 @@ export default function Dashboard() {
             profilesResult,
             mentorOfferingsResult,
             coursesResult,
+            enrollmentsResult,
           ] = results;
 
           /* ===================================================
@@ -895,6 +940,353 @@ export default function Dashboard() {
               coursesResult.data ||
                 []
             );
+          }
+
+          /* ===================================================
+             LEARNER TAKEN / FINISHED COURSES
+          =================================================== */
+
+          if (
+            enrollmentsResult.error
+          ) {
+            console.warn(
+              "COURSE ENROLLMENTS ERROR:",
+              enrollmentsResult.error
+            );
+
+            setTakenCourses(
+              []
+            );
+
+            setFinishedCourses(
+              []
+            );
+          } else {
+            const enrollmentRows =
+              enrollmentsResult.data ||
+              [];
+
+            if (
+              enrollmentRows.length ===
+              0
+            ) {
+              setTakenCourses(
+                []
+              );
+
+              setFinishedCourses(
+                []
+              );
+            } else {
+              const enrolledCourseIds =
+                [
+                  ...new Set(
+                    enrollmentRows
+                      .map(
+                        (
+                          enrollment
+                        ) =>
+                          enrollment.course_id
+                      )
+                      .filter(
+                        Boolean
+                      )
+                  ),
+                ];
+
+              const enrollmentInstructorIds =
+                [
+                  ...new Set(
+                    enrollmentRows
+                      .map(
+                        (
+                          enrollment
+                        ) =>
+                          enrollment.instructor_id
+                      )
+                      .filter(
+                        Boolean
+                      )
+                  ),
+                ];
+
+              const [
+                enrolledCoursesResult,
+                enrollmentInstructorsResult,
+              ] =
+                await Promise.all([
+                  enrolledCourseIds.length
+                    ? supabase
+                        .from(
+                          "courses"
+                        )
+                        .select(
+                          `
+                            id,
+                            title,
+                            instructor_id,
+                            skill_id,
+                            price_credits,
+                            course_level,
+                            status,
+                            created_at
+                          `
+                        )
+                        .in(
+                          "id",
+                          enrolledCourseIds
+                        )
+                    : Promise.resolve({
+                        data:
+                          [],
+                        error:
+                          null,
+                      }),
+
+                  enrollmentInstructorIds.length
+                    ? supabase
+                        .from(
+                          "profiles"
+                        )
+                        .select(
+                          `
+                            id,
+                            username,
+                            full_name,
+                            avatar_url,
+                            role,
+                            bio,
+                            location,
+                            is_active
+                          `
+                        )
+                        .in(
+                          "id",
+                          enrollmentInstructorIds
+                        )
+                    : Promise.resolve({
+                        data:
+                          [],
+                        error:
+                          null,
+                      }),
+                ]);
+
+              if (
+                enrolledCoursesResult.error
+              ) {
+                console.warn(
+                  "ENROLLED COURSES ERROR:",
+                  enrolledCoursesResult.error
+                );
+              }
+
+              if (
+                enrollmentInstructorsResult.error
+              ) {
+                console.warn(
+                  "ENROLLMENT INSTRUCTORS ERROR:",
+                  enrollmentInstructorsResult.error
+                );
+              }
+
+              const enrolledCourseMap =
+                new Map(
+                  (
+                    enrolledCoursesResult.data ||
+                    []
+                  ).map(
+                    (
+                      course
+                    ) => [
+                      course.id,
+                      course,
+                    ]
+                  )
+                );
+
+              const enrollmentInstructorMap =
+                new Map(
+                  (
+                    enrollmentInstructorsResult.data ||
+                    []
+                  ).map(
+                    (
+                      instructor
+                    ) => [
+                      instructor.id,
+                      {
+                        ...instructor,
+
+                        role:
+                          normalizeRole(
+                            instructor.role
+                          ),
+                      },
+                    ]
+                  )
+                );
+
+              const enrollmentSkillMap =
+                new Map(
+                  (
+                    skillsResult.data ||
+                    []
+                  ).map(
+                    (
+                      skill
+                    ) => [
+                      skill.id,
+                      skill,
+                    ]
+                  )
+                );
+
+              const joinedEnrollments =
+                enrollmentRows
+                  .map(
+                    (
+                      enrollment
+                    ) => {
+                      const course =
+                        enrolledCourseMap.get(
+                          enrollment.course_id
+                        );
+
+                      if (
+                        !course
+                      ) {
+                        return null;
+                      }
+
+                      const instructor =
+                        enrollmentInstructorMap.get(
+                          enrollment.instructor_id
+                        ) ||
+                        null;
+
+                      const skill =
+                        enrollmentSkillMap.get(
+                          course.skill_id
+                        ) ||
+                        null;
+
+                      return {
+                        ...course,
+
+                        /* Course id remains the card/navigation id. */
+
+                        id:
+                          course.id,
+
+                        enrollment_id:
+                          enrollment.id,
+
+                        enrollment_status:
+                          enrollment.status,
+
+                        status:
+                          enrollment.status,
+
+                        enrolled_at:
+                          enrollment.created_at,
+
+                        approved_at:
+                          enrollment.approved_at,
+
+                        completed_at:
+                          enrollment.completed_at,
+
+                        price_credits:
+                          Number(
+                            enrollment.price_credits
+                          ) ||
+                          Number(
+                            course.price_credits
+                          ) ||
+                          0,
+
+                        skill,
+
+                        instructor,
+
+                        /* Compatibility alias for older card UI. */
+
+                        mentor:
+                          instructor,
+
+                        progress:
+                          enrollment.status ===
+                          "Completed"
+                            ? 100
+                            : 0,
+                      };
+                    }
+                  )
+                  .filter(
+                    Boolean
+                  );
+
+              const currentCourses =
+                joinedEnrollments
+                  .filter(
+                    (
+                      course
+                    ) =>
+                      course.enrollment_status ===
+                      "Approved"
+                  )
+                  .sort(
+                    (
+                      a,
+                      b
+                    ) =>
+                      new Date(
+                        b.approved_at ||
+                          b.enrolled_at ||
+                          0
+                      ).getTime() -
+                      new Date(
+                        a.approved_at ||
+                          a.enrolled_at ||
+                          0
+                      ).getTime()
+                  );
+
+              const completedCourses =
+                joinedEnrollments
+                  .filter(
+                    (
+                      course
+                    ) =>
+                      course.enrollment_status ===
+                      "Completed"
+                  )
+                  .sort(
+                    (
+                      a,
+                      b
+                    ) =>
+                      new Date(
+                        b.completed_at ||
+                          b.enrolled_at ||
+                          0
+                      ).getTime() -
+                      new Date(
+                        a.completed_at ||
+                          a.enrolled_at ||
+                          0
+                      ).getTime()
+                  );
+
+              setTakenCourses(
+                currentCourses
+              );
+
+              setFinishedCourses(
+                completedCourses
+              );
+            }
           }
         } catch (err) {
           console.error(
@@ -1373,6 +1765,23 @@ export default function Dashboard() {
                   {/* ACTIONS */}
 
                   <div className="mt-6 flex flex-wrap gap-3">
+                    {/* MY COURSES - AVAILABLE TO EVERY USER */}
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate(
+                          "/my-courses"
+                        )
+                      }
+                      className="inline-flex min-h-11 items-center justify-center gap-2 border border-[#c7ff39]/30 bg-[#c7ff39]/[0.04] px-5 text-sm font-medium text-[#c7ff39] transition hover:bg-[#c7ff39]/[0.08]"
+                    >
+                      <BookOpen
+                        size={16}
+                      />
+
+                      My Courses
+                    </button>
                     {canCreateCourse && (
                       <button
                         type="button"
@@ -1432,16 +1841,16 @@ export default function Dashboard() {
                         type="button"
                         onClick={() =>
                           navigate(
-                            "/profile/edit?tab=learning"
+                            "/swaps"
                           )
                         }
-                        className="inline-flex min-h-11 items-center justify-center gap-2 border border-white/15 px-5 text-sm font-medium text-[#f2f4ef] transition hover:border-[#c7ff39]/30 hover:bg-[#c7ff39]/[0.03]"
+                        className="inline-flex min-h-11 items-center justify-center gap-2 border border-white/15 px-5 text-sm font-medium text-[#f2f4ef] transition hover:border-[#c7ff39]/30 hover:bg-[#c7ff39]/[0.03] hover:text-[#c7ff39]"
                       >
                         <Repeat2
                           size={16}
                         />
 
-                        Swap preferences
+                        Find skill swaps
                       </button>
                     )}
 
@@ -1465,23 +1874,7 @@ export default function Dashboard() {
                       </button>
                     )}
 
-                    {/* MESSAGES - RESERVED FOR REAL-TIME CHAT */}
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        navigate(
-                          "/messages"
-                        )
-                      }
-                      className="inline-flex min-h-11 items-center justify-center gap-2 border border-white/15 px-5 text-sm font-medium text-[#f2f4ef] transition hover:border-[#c7ff39]/30 hover:bg-[#c7ff39]/[0.03] hover:text-[#c7ff39]"
-                    >
-                      <MessageCircle
-                        size={16}
-                      />
-
-                      Messages
-                    </button>
+                    
 
                     {/* HISTORY - AVAILABLE TO EVERY USER */}
 
@@ -1564,13 +1957,15 @@ export default function Dashboard() {
                   />
 
                   <p className="mt-5 text-3xl font-medium tracking-[-0.05em]">
-                    {
-                      myCourses.length
-                    }
+                    {isLearner
+                      ? takenCourses.length
+                      : myCourses.length}
                   </p>
 
                   <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-[#a1a1aa]">
-                    Courses created
+                    {isLearner
+                      ? "Courses learning"
+                      : "Courses created"}
                   </p>
                 </div>
               </div>
@@ -2077,7 +2472,7 @@ export default function Dashboard() {
             type="taken"
             courses={takenCourses}
             emptyTitle="You haven't taken a course yet."
-            emptyText="Approved course enrollments will appear here with progress and instructor details."
+            emptyText="Approved course enrollments will appear here with course and instructor details."
             actionLabel="Explore courses"
             onAction={() =>
             navigate("/courses")
