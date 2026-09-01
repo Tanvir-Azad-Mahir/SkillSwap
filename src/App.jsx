@@ -18,6 +18,7 @@ import CourseDetails from "./pages/CourseDetails";
 import EnrollmentRequests from "./pages/EnrollmentRequests";
 import Messages from "./pages/Messages";
 import Swaps from "./pages/Swaps";
+import MyCourses from "./pages/MyCourses";
 
 export default function App() {
   return (
@@ -114,6 +115,10 @@ export default function App() {
         <Route
           path="/swaps"
           element={<Swaps />}
+        />
+        <Route
+          path="/my-courses"
+          element={<MyCourses />}
         />
       </Routes>
     </BrowserRouter>
