@@ -100,6 +100,18 @@ function getStatusClasses(status) {
     return "border-[#7dd3fc]/30 bg-[#7dd3fc]/[0.06] text-[#9bdcff]";
   }
 
+  if (clean === "approved" || clean === "graded") {
+    return "border-[#c7ff39]/30 bg-[#c7ff39]/[0.06] text-[#c7ff39]";
+  }
+
+  if (clean === "rejected") {
+    return "border-[#ff6b6b]/30 bg-[#ff6b6b]/[0.06] text-[#ff8b8b]";
+  }
+
+  if (clean === "submitted") {
+    return "border-[#ffbf69]/30 bg-[#ffbf69]/[0.06] text-[#ffca80]";
+  }
+
   return "border-white/10 bg-white/[0.03] text-[#a1a1aa]";
 }
 
@@ -127,6 +139,26 @@ function formatDate(value) {
       day: "numeric",
     }
   ).format(date);
+}
+
+function formatDateTime(value) {
+  if (!value) {
+    return "—";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
 }
 
 /* =========================================================
@@ -213,6 +245,36 @@ export default function CourseManage() {
     setCompletionRequests,
   ] =
     useState([]);
+
+  const [
+    assignmentSubmissions,
+    setAssignmentSubmissions,
+  ] =
+    useState([]);
+
+  const [
+    lectureProgress,
+    setLectureProgress,
+  ] =
+    useState([]);
+
+  const [
+    quizAttempts,
+    setQuizAttempts,
+  ] =
+    useState([]);
+
+  const [
+    gradeDrafts,
+    setGradeDrafts,
+  ] =
+    useState({});
+
+  const [
+    completionReviewNotes,
+    setCompletionReviewNotes,
+  ] =
+    useState({});
 
   const [
     loading,
@@ -862,6 +924,84 @@ export default function CourseManage() {
             })
           );
 
+        const assignmentIds =
+          (assignmentsResult.data || [])
+            .map((item) => item.id)
+            .filter(Boolean);
+
+        let submissionRows = [];
+
+        if (assignmentIds.length > 0) {
+          const {
+            data,
+            error: submissionError,
+          } = await supabase
+            .from("assignment_submissions")
+            .select(`
+              id,
+              assignment_id,
+              learner_id,
+              submission_text,
+              attachment_url,
+              status,
+              grade,
+              feedback,
+              submitted_at,
+              graded_by,
+              graded_at
+            `)
+            .in("assignment_id", assignmentIds)
+            .order("submitted_at", { ascending: false });
+
+          if (submissionError) {
+            throw submissionError;
+          }
+
+          submissionRows = data || [];
+        }
+
+        const publishedModuleIds = new Set(
+          moduleRows
+            .filter((item) => item.is_published)
+            .map((item) => item.id)
+        );
+
+        const publishedLectureIds = lectureRows
+          .filter(
+            (item) =>
+              item.is_published &&
+              publishedModuleIds.has(item.module_id)
+          )
+          .map((item) => item.id);
+
+        let progressRows = [];
+
+        if (
+          publishedLectureIds.length > 0 &&
+          learnerIds.length > 0
+        ) {
+          const {
+            data,
+            error: progressError,
+          } = await supabase
+            .from("lecture_progress")
+            .select(`
+              id,
+              lecture_id,
+              learner_id,
+              completed,
+              completed_at
+            `)
+            .in("lecture_id", publishedLectureIds)
+            .in("learner_id", learnerIds);
+
+          if (progressError) {
+            throw progressError;
+          }
+
+          progressRows = data || [];
+        }
+
         const enrollmentIds =
           enrollmentRows
             .map(
@@ -869,6 +1009,38 @@ export default function CourseManage() {
                 item.id
             )
             .filter(Boolean);
+
+        let attemptRows = [];
+
+        if (
+          quizIds.length > 0 &&
+          enrollmentIds.length > 0
+        ) {
+          const {
+            data,
+            error: attemptError,
+          } = await supabase
+            .from("quiz_attempts")
+            .select(`
+              id,
+              quiz_id,
+              enrollment_id,
+              learner_id,
+              attempt_number,
+              score,
+              passed,
+              submitted_at
+            `)
+            .in("quiz_id", quizIds)
+            .in("enrollment_id", enrollmentIds)
+            .order("submitted_at", { ascending: false });
+
+          if (attemptError) {
+            throw attemptError;
+          }
+
+          attemptRows = data || [];
+        }
 
         let completionRows = [];
 
@@ -986,6 +1158,47 @@ export default function CourseManage() {
         setCompletionRequests(
           completionRows
         );
+
+        setAssignmentSubmissions(
+          submissionRows
+        );
+
+        setLectureProgress(
+          progressRows
+        );
+
+        setQuizAttempts(
+          attemptRows
+        );
+
+        setGradeDrafts(() => {
+          const next = {};
+
+          submissionRows.forEach((submission) => {
+            next[submission.id] = {
+              grade:
+                submission.grade === null ||
+                submission.grade === undefined
+                  ? ""
+                  : String(submission.grade),
+              feedback: submission.feedback || "",
+            };
+          });
+
+          return next;
+        });
+
+        setCompletionReviewNotes((current) => {
+          const next = { ...current };
+
+          completionRows.forEach((request) => {
+            if (next[request.id] === undefined) {
+              next[request.id] = request.instructor_note || "";
+            }
+          });
+
+          return next;
+        });
 
         if (
           !lectureForm.module_id &&
@@ -1106,6 +1319,50 @@ export default function CourseManage() {
       quizQuestions,
     ]);
 
+  const learnerEnrollmentByLearnerId =
+    useMemo(() => {
+      return new Map(
+        learners.map((enrollment) => [
+          enrollment.learner_id,
+          enrollment,
+        ])
+      );
+    }, [learners]);
+
+  const submissionsByAssignment =
+    useMemo(() => {
+      const map = new Map();
+
+      assignments.forEach((assignment) => {
+        map.set(assignment.id, []);
+      });
+
+      assignmentSubmissions.forEach((submission) => {
+        const list = map.get(submission.assignment_id) || [];
+        list.push(submission);
+        map.set(submission.assignment_id, list);
+      });
+
+      return map;
+    }, [assignments, assignmentSubmissions]);
+
+  const publishedLectureIds =
+    useMemo(() => {
+      const publishedModuleIds = new Set(
+        modules
+          .filter((module) => module.is_published)
+          .map((module) => module.id)
+      );
+
+      return lectures
+        .filter(
+          (lecture) =>
+            lecture.is_published &&
+            publishedModuleIds.has(lecture.module_id)
+        )
+        .map((lecture) => lecture.id);
+    }, [modules, lectures]);
+
   const pendingCompletionRequests =
     completionRequests.filter(
       (item) =>
@@ -1149,6 +1406,89 @@ export default function CourseManage() {
       } finally {
         setSaving(false);
       }
+    };
+
+  /* =========================================================
+     ASSIGNMENT GRADING
+  ========================================================= */
+
+  const gradeAssignmentSubmission =
+    async (submission, assignment) => {
+      const draft = gradeDrafts[submission.id] || {
+        grade: "",
+        feedback: "",
+      };
+
+      const grade = Number(draft.grade);
+
+      if (draft.grade === "" || Number.isNaN(grade)) {
+        setError("Enter a valid grade.");
+        return;
+      }
+
+      if (grade < 0 || grade > Number(assignment.max_marks)) {
+        setError(
+          `Grade must be between 0 and ${assignment.max_marks}.`
+        );
+        return;
+      }
+
+      await runMutation(
+        async () => {
+          const { error: rpcError } = await supabase.rpc(
+            "grade_course_assignment",
+            {
+              p_submission_id: submission.id,
+              p_grade: grade,
+              p_feedback: draft.feedback.trim() || null,
+            }
+          );
+
+          if (rpcError) {
+            throw rpcError;
+          }
+        },
+        submission.status === "Graded"
+          ? "Assignment grade updated."
+          : "Assignment graded."
+      );
+    };
+
+  /* =========================================================
+     COMPLETION REVIEW
+  ========================================================= */
+
+  const reviewCompletionRequest =
+    async (request, decision) => {
+      const note =
+        completionReviewNotes[request.id]?.trim() || null;
+
+      if (decision === "Rejected" && !note) {
+        setError(
+          "Add instructor feedback before rejecting the completion request."
+        );
+        return;
+      }
+
+      await runMutation(
+        async () => {
+          const { error: rpcError } = await supabase.rpc(
+            "review_course_completion",
+            {
+              p_request_id: request.id,
+              p_decision: decision,
+              p_instructor_note: note,
+            }
+          );
+
+          if (rpcError) {
+            throw rpcError;
+          }
+        },
+        decision === "Approved"
+          ? "Course completion approved and certificate issued."
+          : "Course completion request rejected."
+      );
     };
 
   /* =========================================================
@@ -3021,102 +3361,77 @@ export default function CourseManage() {
                       </h2>
                     </div>
 
-                    {assignments.length >
-                    0 ? (
-                      assignments.map(
-                        (
-                          assignment
-                        ) => (
-                          <article
-                            key={
-                              assignment.id
-                            }
-                            className="border-b border-white/10 p-5 last:border-b-0"
-                          >
-                            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
-                              <div>
-                                <div className="flex gap-2">
-                                  <span
-                                    className={`border px-2 py-0.5 text-[8px] uppercase tracking-[0.12em] ${
-                                      assignment.is_published
-                                        ? "border-[#c7ff39]/25 text-[#c7ff39]"
-                                        : "border-white/10 text-white/35"
-                                    }`}
-                                  >
-                                    {assignment.is_published
-                                      ? "Published"
-                                      : "Draft"}
-                                  </span>
-
-                                  <span className="border border-white/10 px-2 py-0.5 text-[8px] uppercase tracking-[0.12em] text-white/35">
-                                    {
-                                      assignment.max_marks
-                                    }{" "}
-                                    marks
-                                  </span>
-                                </div>
-
-                                <h3 className="mt-3 text-lg font-medium">
-                                  {
-                                    assignment.title
-                                  }
-                                </h3>
-
-                                <p className="mt-2 text-sm leading-6 text-[#a1a1aa]">
-                                  {
-                                    assignment.instructions
-                                  }
-                                </p>
-
-                                {assignment.due_at && (
-                                  <p className="mt-3 text-xs text-white/35">
-                                    Due{" "}
-                                    {formatDate(
-                                      assignment.due_at
-                                    )}
-                                  </p>
-                                )}
-                              </div>
-
-                              <div className="flex gap-2">
-                                <button
-                                  type="button"
-                                  disabled={
-                                    saving
-                                  }
-                                  onClick={() =>
-                                    toggleAssignmentPublished(
-                                      assignment
-                                    )
-                                  }
-                                  className="min-h-9 border border-white/10 px-3 text-[10px] uppercase tracking-[0.11em] text-[#a1a1aa] transition hover:border-[#c7ff39]/30 hover:text-[#c7ff39]"
+                    {assignments.length > 0 ? (
+                      assignments.map((assignment) => (
+                        <article
+                          key={assignment.id}
+                          className="border-b border-white/10 p-5 last:border-b-0"
+                        >
+                          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+                            <div>
+                              <div className="flex flex-wrap gap-2">
+                                <span
+                                  className={`border px-2 py-0.5 text-[8px] uppercase tracking-[0.12em] ${
+                                    assignment.is_published
+                                      ? "border-[#c7ff39]/25 text-[#c7ff39]"
+                                      : "border-white/10 text-white/35"
+                                  }`}
                                 >
                                   {assignment.is_published
-                                    ? "Unpublish"
-                                    : "Publish"}
-                                </button>
+                                    ? "Published"
+                                    : "Draft"}
+                                </span>
 
-                                <button
-                                  type="button"
-                                  disabled={
-                                    saving
-                                  }
-                                  onClick={() =>
-                                    deleteAssignment(
-                                      assignment
-                                    )
-                                  }
-                                  className="grid h-9 w-9 place-items-center border border-white/10 text-[#a1a1aa] transition hover:border-[#ff6b6b]/30 hover:text-[#ff8b8b]"
-                                >
-                                  <Trash2
-                                    size={14}
-                                  />
-                                </button>
+                                <span className="border border-white/10 px-2 py-0.5 text-[8px] uppercase tracking-[0.12em] text-white/35">
+                                  {assignment.max_marks} marks
+                                </span>
+
+                                <span className="border border-white/10 px-2 py-0.5 text-[8px] uppercase tracking-[0.12em] text-white/35">
+                                  {(submissionsByAssignment.get(assignment.id) || []).length} submissions
+                                </span>
                               </div>
+
+                              <h3 className="mt-3 text-lg font-medium">
+                                {assignment.title}
+                              </h3>
+
+                              <p className="mt-2 text-sm leading-6 text-[#a1a1aa]">
+                                {assignment.instructions}
+                              </p>
+
+                              {assignment.due_at && (
+                                <p className="mt-3 text-xs text-white/35">
+                                  Due {formatDateTime(assignment.due_at)}
+                                </p>
+                              )}
                             </div>
-                          </article>
-                        )
-                      )
+
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                disabled={saving}
+                                onClick={() =>
+                                  toggleAssignmentPublished(assignment)
+                                }
+                                className="min-h-9 border border-white/10 px-3 text-[10px] uppercase tracking-[0.11em] text-[#a1a1aa] transition hover:border-[#c7ff39]/30 hover:text-[#c7ff39]"
+                              >
+                                {assignment.is_published
+                                  ? "Unpublish"
+                                  : "Publish"}
+                              </button>
+
+                              <button
+                                type="button"
+                                disabled={saving}
+                                onClick={() => deleteAssignment(assignment)}
+                                className="grid h-9 w-9 place-items-center border border-white/10 text-[#a1a1aa] transition hover:border-[#ff6b6b]/30 hover:text-[#ff8b8b]"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        </article>
+                      ))
                     ) : (
                       <div className="p-7 text-sm text-[#a1a1aa]">
                         No assignments yet.
@@ -3130,45 +3445,27 @@ export default function CourseManage() {
                     </p>
 
                     <input
-                      value={
-                        assignmentForm.title
-                      }
-                      onChange={(
-                        event
-                      ) =>
-                        setAssignmentForm(
-                          (
-                            current
-                          ) => ({
-                            ...current,
-                            title:
-                              event.target.value,
-                          })
-                        )
+                      value={assignmentForm.title}
+                      onChange={(event) =>
+                        setAssignmentForm((current) => ({
+                          ...current,
+                          title: event.target.value,
+                        }))
                       }
                       placeholder="Assignment title"
-                      className="mt-4 min-h-11 w-full border border-white/10 bg-white/[0.025] px-3 text-sm outline-none focus:border-[#c7ff39]/40"
+                      className="mt-5 min-h-11 w-full border border-white/10 bg-white/[0.025] px-3 text-sm outline-none focus:border-[#c7ff39]/40"
                     />
 
                     <textarea
-                      value={
-                        assignmentForm.instructions
+                      value={assignmentForm.instructions}
+                      onChange={(event) =>
+                        setAssignmentForm((current) => ({
+                          ...current,
+                          instructions: event.target.value,
+                        }))
                       }
-                      onChange={(
-                        event
-                      ) =>
-                        setAssignmentForm(
-                          (
-                            current
-                          ) => ({
-                            ...current,
-                            instructions:
-                              event.target.value,
-                          })
-                        )
-                      }
-                      placeholder="Assignment instructions"
-                      rows={7}
+                      placeholder="Instructions"
+                      rows={6}
                       className="mt-3 w-full border border-white/10 bg-white/[0.025] p-3 text-sm outline-none focus:border-[#c7ff39]/40"
                     />
 
@@ -3177,21 +3474,12 @@ export default function CourseManage() {
                         type="number"
                         min="1"
                         max="100"
-                        value={
-                          assignmentForm.max_marks
-                        }
-                        onChange={(
-                          event
-                        ) =>
-                          setAssignmentForm(
-                            (
-                              current
-                            ) => ({
-                              ...current,
-                              max_marks:
-                                event.target.value,
-                            })
-                          )
+                        value={assignmentForm.max_marks}
+                        onChange={(event) =>
+                          setAssignmentForm((current) => ({
+                            ...current,
+                            max_marks: event.target.value,
+                          }))
                         }
                         placeholder="Max marks"
                         className="min-h-11 border border-white/10 bg-white/[0.025] px-3 text-sm outline-none focus:border-[#c7ff39]/40"
@@ -3199,21 +3487,12 @@ export default function CourseManage() {
 
                       <input
                         type="datetime-local"
-                        value={
-                          assignmentForm.due_at
-                        }
-                        onChange={(
-                          event
-                        ) =>
-                          setAssignmentForm(
-                            (
-                              current
-                            ) => ({
-                              ...current,
-                              due_at:
-                                event.target.value,
-                            })
-                          )
+                        value={assignmentForm.due_at}
+                        onChange={(event) =>
+                          setAssignmentForm((current) => ({
+                            ...current,
+                            due_at: event.target.value,
+                          }))
                         }
                         className="min-h-11 border border-white/10 bg-white/[0.025] px-3 text-sm outline-none focus:border-[#c7ff39]/40"
                       />
@@ -3221,20 +3500,214 @@ export default function CourseManage() {
 
                     <button
                       type="button"
-                      disabled={
-                        saving
-                      }
-                      onClick={
-                        addAssignment
-                      }
+                      disabled={saving}
+                      onClick={addAssignment}
                       className="mt-4 inline-flex min-h-10 items-center gap-2 bg-[#c7ff39] px-4 text-xs font-semibold text-[#071008] disabled:opacity-50"
                     >
-                      <Plus
-                        size={14}
-                      />
-
+                      <Plus size={14} />
                       Add assignment
                     </button>
+                  </div>
+
+                  <div className="border border-white/10 bg-[#0a0d0b]/70 xl:col-span-2">
+                    <div className="border-b border-white/10 p-6">
+                      <p className="text-[10px] uppercase tracking-[0.16em] text-[#c7ff39]">
+                        Learner submissions
+                      </p>
+
+                      <h2 className="mt-2 text-2xl font-medium">
+                        Review & grade
+                      </h2>
+
+                      <p className="mt-2 max-w-3xl text-sm leading-6 text-[#a1a1aa]">
+                        Review submitted work, enter marks, and leave feedback for each learner.
+                      </p>
+                    </div>
+
+                    {assignmentSubmissions.length > 0 ? (
+                      assignments.map((assignment) => {
+                        const submissionRows =
+                          submissionsByAssignment.get(assignment.id) || [];
+
+                        if (submissionRows.length === 0) {
+                          return null;
+                        }
+
+                        return (
+                          <div
+                            key={`submissions-${assignment.id}`}
+                            className="border-b border-white/10 last:border-b-0"
+                          >
+                            <div className="bg-white/[0.015] px-6 py-4">
+                              <div className="flex flex-wrap items-center justify-between gap-3">
+                                <div>
+                                  <p className="text-sm font-medium">
+                                    {assignment.title}
+                                  </p>
+
+                                  <p className="mt-1 text-xs text-white/35">
+                                    Maximum {assignment.max_marks} marks · {submissionRows.length} submission{submissionRows.length === 1 ? "" : "s"}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {submissionRows.map((submission) => {
+                              const enrollment =
+                                learnerEnrollmentByLearnerId.get(
+                                  submission.learner_id
+                                );
+
+                              const learner = enrollment?.learner;
+
+                              const draft = gradeDrafts[submission.id] || {
+                                grade:
+                                  submission.grade === null ||
+                                  submission.grade === undefined
+                                    ? ""
+                                    : String(submission.grade),
+                                feedback: submission.feedback || "",
+                              };
+
+                              return (
+                                <article
+                                  key={submission.id}
+                                  className="border-t border-white/[0.07] p-6 first:border-t-0"
+                                >
+                                  <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
+                                    <div>
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <p className="text-sm font-medium">
+                                          {learner?.full_name ||
+                                            learner?.username ||
+                                            "Learner"}
+                                        </p>
+
+                                        <span
+                                          className={`border px-2 py-0.5 text-[8px] uppercase tracking-[0.12em] ${getStatusClasses(
+                                            submission.status
+                                          )}`}
+                                        >
+                                          {submission.status}
+                                        </span>
+                                      </div>
+
+                                      <p className="mt-1 text-xs text-white/35">
+                                        @{learner?.username || "learner"} · Submitted {formatDateTime(submission.submitted_at)}
+                                      </p>
+                                    </div>
+
+                                    {submission.status === "Graded" && (
+                                      <div className="border border-[#c7ff39]/20 bg-[#c7ff39]/[0.04] px-4 py-3 text-center">
+                                        <p className="text-[8px] uppercase tracking-[0.12em] text-white/35">
+                                          Current grade
+                                        </p>
+
+                                        <p className="mt-1 text-lg font-medium text-[#c7ff39]">
+                                          {submission.grade}/{assignment.max_marks}
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {submission.submission_text && (
+                                    <div className="mt-5 border border-white/10 bg-white/[0.02] p-4">
+                                      <p className="text-[9px] uppercase tracking-[0.13em] text-[#c7ff39]">
+                                        Submission
+                                      </p>
+
+                                      <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-[#a1a1aa]">
+                                        {submission.submission_text}
+                                      </p>
+                                    </div>
+                                  )}
+
+                                  {submission.attachment_url && (
+                                    <a
+                                      href={submission.attachment_url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="mt-4 inline-flex text-xs text-[#c7ff39] hover:underline"
+                                    >
+                                      Open learner attachment
+                                    </a>
+                                  )}
+
+                                  <div className="mt-5 grid gap-3 lg:grid-cols-[180px_1fr_auto] lg:items-end">
+                                    <label>
+                                      <span className="mb-2 block text-[9px] uppercase tracking-[0.12em] text-white/35">
+                                        Marks
+                                      </span>
+
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        max={assignment.max_marks}
+                                        step="0.01"
+                                        value={draft.grade}
+                                        onChange={(event) =>
+                                          setGradeDrafts((current) => ({
+                                            ...current,
+                                            [submission.id]: {
+                                              ...draft,
+                                              grade: event.target.value,
+                                            },
+                                          }))
+                                        }
+                                        className="min-h-11 w-full border border-white/10 bg-white/[0.025] px-3 text-sm outline-none focus:border-[#c7ff39]/40"
+                                      />
+                                    </label>
+
+                                    <label>
+                                      <span className="mb-2 block text-[9px] uppercase tracking-[0.12em] text-white/35">
+                                        Feedback
+                                      </span>
+
+                                      <textarea
+                                        rows={3}
+                                        value={draft.feedback}
+                                        onChange={(event) =>
+                                          setGradeDrafts((current) => ({
+                                            ...current,
+                                            [submission.id]: {
+                                              ...draft,
+                                              feedback: event.target.value,
+                                            },
+                                          }))
+                                        }
+                                        placeholder="Feedback for the learner"
+                                        className="w-full border border-white/10 bg-white/[0.025] p-3 text-sm outline-none focus:border-[#c7ff39]/40"
+                                      />
+                                    </label>
+
+                                    <button
+                                      type="button"
+                                      disabled={saving}
+                                      onClick={() =>
+                                        gradeAssignmentSubmission(
+                                          submission,
+                                          assignment
+                                        )
+                                      }
+                                      className="inline-flex min-h-11 items-center justify-center gap-2 bg-[#c7ff39] px-5 text-xs font-semibold text-[#071008] disabled:opacity-50"
+                                    >
+                                      <Save size={14} />
+                                      {submission.status === "Graded"
+                                        ? "Update grade"
+                                        : "Grade"}
+                                    </button>
+                                  </div>
+                                </article>
+                              );
+                            })}
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="p-7 text-sm text-[#a1a1aa]">
+                        No learner submissions yet.
+                      </div>
+                    )}
                   </div>
                 </section>
               )}
@@ -4105,73 +4578,323 @@ export default function CourseManage() {
                       Completion requests
                     </h2>
 
-                    <p className="mt-2 max-w-2xl text-sm leading-6 text-[#a1a1aa]">
-                      Learners will appear here after meeting the course requirements and requesting instructor review.
+                    <p className="mt-2 max-w-3xl text-sm leading-6 text-[#a1a1aa]">
+                      Review each learner's lecture progress, assignment grades, and final quiz results before approving completion.
                     </p>
                   </div>
 
-                  {completionRequests.length >
-                  0 ? (
-                    completionRequests.map(
-                      (
-                        request
-                      ) => (
+                  {completionRequests.length > 0 ? (
+                    completionRequests.map((request) => {
+                      const enrollment = request.enrollment;
+                      const learner = enrollment?.learner;
+                      const learnerId = enrollment?.learner_id;
+
+                      const completedLectureCount =
+                        lectureProgress.filter(
+                          (item) =>
+                            item.learner_id === learnerId &&
+                            item.completed === true &&
+                            publishedLectureIds.includes(item.lecture_id)
+                        ).length;
+
+                      const publishedAssignments = assignments.filter(
+                        (assignment) => assignment.is_published
+                      );
+
+                      const learnerAssignmentRows = publishedAssignments.map(
+                        (assignment) => ({
+                          assignment,
+                          submission: assignmentSubmissions.find(
+                            (submission) =>
+                              submission.assignment_id === assignment.id &&
+                              submission.learner_id === learnerId
+                          ),
+                        })
+                      );
+
+                      const gradedAssignmentCount =
+                        learnerAssignmentRows.filter(
+                          (item) => item.submission?.status === "Graded"
+                        ).length;
+
+                      const publishedQuizzes = quizzes.filter(
+                        (quiz) => quiz.is_published
+                      );
+
+                      const quizReviewRows = publishedQuizzes.map((quiz) => {
+                        const rows = quizAttempts.filter(
+                          (attempt) =>
+                            attempt.quiz_id === quiz.id &&
+                            attempt.enrollment_id === enrollment?.id
+                        );
+
+                        const best = rows.reduce(
+                          (bestAttempt, current) =>
+                            !bestAttempt ||
+                            Number(current.score) >
+                              Number(bestAttempt.score)
+                              ? current
+                              : bestAttempt,
+                          null
+                        );
+
+                        const requiredScore = Math.max(
+                          Number(quiz.passing_marks || 0),
+                          80
+                        );
+
+                        return {
+                          quiz,
+                          best,
+                          requiredScore,
+                          passed:
+                            best !== null &&
+                            Number(best.score) >= requiredScore,
+                        };
+                      });
+
+                      const note =
+                        completionReviewNotes[request.id] || "";
+
+                      return (
                         <article
-                          key={
-                            request.id
-                          }
-                          className="border-b border-white/10 p-5 last:border-b-0"
+                          key={request.id}
+                          className="border-b border-white/10 p-6 last:border-b-0"
                         >
-                          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+                          <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
                             <div>
-                              <p className="text-sm font-medium">
-                                {request
-                                  .enrollment
-                                  ?.learner
-                                  ?.full_name ||
-                                  request
-                                    .enrollment
-                                    ?.learner
-                                    ?.username ||
-                                  "Learner"}
-                              </p>
+                              <div className="flex flex-wrap items-center gap-3">
+                                <p className="text-lg font-medium">
+                                  {learner?.full_name ||
+                                    learner?.username ||
+                                    "Learner"}
+                                </p>
+
+                                <span
+                                  className={`border px-2 py-1 text-[9px] uppercase tracking-[0.13em] ${getStatusClasses(
+                                    request.status
+                                  )}`}
+                                >
+                                  {request.status}
+                                </span>
+                              </div>
 
                               <p className="mt-1 text-xs text-[#a1a1aa]">
-                                Requested{" "}
-                                {formatDate(
-                                  request.requested_at
-                                )}
+                                @{learner?.username || "learner"} · Requested {formatDateTime(request.requested_at)}
                               </p>
 
                               {request.learner_note && (
-                                <p className="mt-3 max-w-2xl text-sm leading-6 text-[#a1a1aa]">
-                                  {
-                                    request.learner_note
-                                  }
-                                </p>
+                                <div className="mt-4 max-w-3xl border border-white/10 bg-white/[0.02] p-4">
+                                  <p className="text-[9px] uppercase tracking-[0.13em] text-[#c7ff39]">
+                                    Learner note
+                                  </p>
+
+                                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[#a1a1aa]">
+                                    {request.learner_note}
+                                  </p>
+                                </div>
                               )}
                             </div>
 
-                            <span
-                              className={`border px-2 py-1 text-[9px] uppercase tracking-[0.13em] ${getStatusClasses(
-                                request.status
-                              )}`}
-                            >
-                              {
-                                request.status
-                              }
-                            </span>
+                            <div className="grid min-w-[260px] grid-cols-3 gap-2">
+                              <div className="border border-white/10 p-3 text-center">
+                                <p className="text-[8px] uppercase tracking-[0.11em] text-white/30">
+                                  Lectures
+                                </p>
+                                <p className="mt-1 text-sm font-medium">
+                                  {completedLectureCount}/{publishedLectureIds.length}
+                                </p>
+                              </div>
+
+                              <div className="border border-white/10 p-3 text-center">
+                                <p className="text-[8px] uppercase tracking-[0.11em] text-white/30">
+                                  Graded
+                                </p>
+                                <p className="mt-1 text-sm font-medium">
+                                  {gradedAssignmentCount}/{publishedAssignments.length}
+                                </p>
+                              </div>
+
+                              <div className="border border-white/10 p-3 text-center">
+                                <p className="text-[8px] uppercase tracking-[0.11em] text-white/30">
+                                  Quizzes
+                                </p>
+                                <p className="mt-1 text-sm font-medium">
+                                  {quizReviewRows.filter((item) => item.passed).length}/{publishedQuizzes.length}
+                                </p>
+                              </div>
+                            </div>
                           </div>
 
-                          {request.status ===
-                            "Pending" && (
-                            <p className="mt-4 border-t border-white/10 pt-4 text-xs text-white/35">
-                              Approval / rejection will be enabled after the secure completion-review RPC is added.
-                            </p>
+                          <div className="mt-6 grid gap-5 xl:grid-cols-2">
+                            <div className="border border-white/10">
+                              <div className="border-b border-white/10 px-4 py-3">
+                                <p className="text-[9px] uppercase tracking-[0.13em] text-[#c7ff39]">
+                                  Assignment grades
+                                </p>
+                              </div>
+
+                              {learnerAssignmentRows.length > 0 ? (
+                                learnerAssignmentRows.map(
+                                  ({ assignment, submission }) => (
+                                    <div
+                                      key={assignment.id}
+                                      className="flex flex-col justify-between gap-2 border-b border-white/[0.07] px-4 py-3 last:border-b-0 sm:flex-row sm:items-center"
+                                    >
+                                      <div>
+                                        <p className="text-sm">
+                                          {assignment.title}
+                                        </p>
+                                        <p className="mt-1 text-[10px] text-white/35">
+                                          {submission?.status || "Not submitted"}
+                                        </p>
+                                      </div>
+
+                                      <p
+                                        className={`text-sm font-medium ${
+                                          submission?.status === "Graded"
+                                            ? "text-[#c7ff39]"
+                                            : "text-white/30"
+                                        }`}
+                                      >
+                                        {submission?.status === "Graded"
+                                          ? `${submission.grade}/${assignment.max_marks}`
+                                          : "—"}
+                                      </p>
+                                    </div>
+                                  )
+                                )
+                              ) : (
+                                <div className="p-4 text-xs text-[#a1a1aa]">
+                                  No published assignments.
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="border border-white/10">
+                              <div className="border-b border-white/10 px-4 py-3">
+                                <p className="text-[9px] uppercase tracking-[0.13em] text-[#c7ff39]">
+                                  Final quiz results
+                                </p>
+                              </div>
+
+                              {quizReviewRows.length > 0 ? (
+                                quizReviewRows.map((item) => (
+                                  <div
+                                    key={item.quiz.id}
+                                    className="flex flex-col justify-between gap-2 border-b border-white/[0.07] px-4 py-3 last:border-b-0 sm:flex-row sm:items-center"
+                                  >
+                                    <div>
+                                      <p className="text-sm">
+                                        {item.quiz.title}
+                                      </p>
+                                      <p className="mt-1 text-[10px] text-white/35">
+                                        Required {item.requiredScore}/100
+                                      </p>
+                                    </div>
+
+                                    <div className="text-right">
+                                      <p
+                                        className={`text-sm font-medium ${
+                                          item.passed
+                                            ? "text-[#c7ff39]"
+                                            : "text-[#ff8b8b]"
+                                        }`}
+                                      >
+                                        {item.best
+                                          ? `${item.best.score}/100`
+                                          : "No attempt"}
+                                      </p>
+
+                                      <p className="mt-1 text-[9px] uppercase tracking-[0.11em] text-white/30">
+                                        {item.passed ? "Passed" : "Not passed"}
+                                      </p>
+                                    </div>
+                                  </div>
+                                ))
+                              ) : (
+                                <div className="p-4 text-xs text-[#a1a1aa]">
+                                  No published final quiz.
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {request.status === "Pending" ? (
+                            <div className="mt-6 border-t border-white/10 pt-5">
+                              <label>
+                                <span className="mb-2 block text-[9px] uppercase tracking-[0.13em] text-white/35">
+                                  Instructor note
+                                </span>
+
+                                <textarea
+                                  rows={4}
+                                  value={note}
+                                  onChange={(event) =>
+                                    setCompletionReviewNotes((current) => ({
+                                      ...current,
+                                      [request.id]: event.target.value,
+                                    }))
+                                  }
+                                  placeholder="Optional for approval. Required when rejecting."
+                                  className="w-full border border-white/10 bg-white/[0.025] p-3 text-sm outline-none focus:border-[#c7ff39]/40"
+                                />
+                              </label>
+
+                              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-end">
+                                <button
+                                  type="button"
+                                  disabled={saving}
+                                  onClick={() =>
+                                    reviewCompletionRequest(
+                                      request,
+                                      "Rejected"
+                                    )
+                                  }
+                                  className="inline-flex min-h-11 items-center justify-center gap-2 border border-[#ff6b6b]/30 px-5 text-xs font-semibold text-[#ff8b8b] transition hover:bg-[#ff6b6b]/[0.05] disabled:opacity-50"
+                                >
+                                  <X size={14} />
+                                  Reject
+                                </button>
+
+                                <button
+                                  type="button"
+                                  disabled={saving}
+                                  onClick={() =>
+                                    reviewCompletionRequest(
+                                      request,
+                                      "Approved"
+                                    )
+                                  }
+                                  className="inline-flex min-h-11 items-center justify-center gap-2 bg-[#c7ff39] px-5 text-xs font-semibold text-[#071008] disabled:opacity-50"
+                                >
+                                  <CheckCircle2 size={14} />
+                                  Approve & issue certificate
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="mt-6 border-t border-white/10 pt-5">
+                              <p className="text-xs text-white/35">
+                                Reviewed {formatDateTime(request.reviewed_at)}
+                              </p>
+
+                              {request.instructor_note && (
+                                <div className="mt-3 border border-white/10 bg-white/[0.02] p-4">
+                                  <p className="text-[9px] uppercase tracking-[0.13em] text-[#c7ff39]">
+                                    Instructor note
+                                  </p>
+
+                                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[#a1a1aa]">
+                                    {request.instructor_note}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
                           )}
                         </article>
-                      )
-                    )
+                      );
+                    })
                   ) : (
                     <div className="p-7 text-sm text-[#a1a1aa]">
                       No completion requests yet.
