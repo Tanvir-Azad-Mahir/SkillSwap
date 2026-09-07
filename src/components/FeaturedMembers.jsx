@@ -8,7 +8,7 @@ export default function FeaturedMembers() {
       <div className="mx-auto grid max-w-7xl gap-14 px-5 md:px-8 lg:grid-cols-2 lg:items-center lg:px-10">
         <div className="reveal max-w-lg">
           <UserCard image={MAYA} name="The Deep" role="Lord of Seven Seas · SkillSwap member">
-            <p className="mt-3 max-w-sm text-sm leading-6 text-zinc-300">Take responsibilty for racism · Learning conversational Japanese</p>
+            <p className="mt-3 max-w-sm text-sm leading-6 text-zinc-300">Swapped over 20 skills · Learning conversational Japanese</p>
           </UserCard>
         </div>
         <div className="reveal" style={{ transitionDelay: "90ms" }}>
