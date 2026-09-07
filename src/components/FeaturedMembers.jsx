@@ -1,6 +1,6 @@
 import UserCard from "./UserCard";
 
-const MAYA = "https://akpcainfbirpjvexinzt.supabase.co/storage/v1/object/sign/image/The%20Deep.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8xZDM3MGYyYy02Nzk4LTQ3MjItOWNmYy1lNmFlOWE0YTU1YzUiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJpbWFnZS9UaGUgRGVlcC5qcGciLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzg2MTMwMjY1LCJleHAiOjE4MTc2NjYyNjV9.j0fe_E9gqsYFf_nt3QxrYaxIRHr6zhVNTA3tjYQznsI";
+const member = "https://akpcainfbirpjvexinzt.supabase.co/storage/v1/object/sign/image/The%20Deep.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8xZDM3MGYyYy02Nzk4LTQ3MjItOWNmYy1lNmFlOWE0YTU1YzUiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJpbWFnZS9UaGUgRGVlcC5qcGciLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzg2MTMwMjY1LCJleHAiOjE4MTc2NjYyNjV9.j0fe_E9gqsYFf_nt3QxrYaxIRHr6zhVNTA3tjYQznsI";
 
 export default function FeaturedMembers() {
   return (
