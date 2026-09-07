@@ -17,7 +17,7 @@ export default function Hero() {
 
           <h1 className="text-[3.3rem] font-semibold leading-[0.95] tracking-[-0.055em] text-[#f2f4ef] sm:text-6xl md:text-7xl lg:text-[6.6rem]">
             Learn what matters.
-            <span className="mt-2 block text-zinc-500">Share what you know.</span>
+            <span className="mt-2 block text-zinc-500">Share what matters.</span>
           </h1>
 
           <p className="mt-8 max-w-xl text-base leading-7 text-zinc-400 md:text-lg md:leading-8">

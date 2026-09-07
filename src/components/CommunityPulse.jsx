@@ -8,7 +8,7 @@ export default function CommunityPulse() {
         </span>
         <div>
           <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Community pulse</p>
-          <p className="mt-1 text-xs font-semibold text-white">248 swaps active now</p>
+          <p className="mt-1 text-xs font-semibold text-white">117 swaps active right now</p>
         </div>
       </div>
     </div>
