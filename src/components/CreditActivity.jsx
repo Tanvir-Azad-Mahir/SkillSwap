@@ -71,9 +71,8 @@ export default function CreditActivity({ wallet, transactions = [] }) {
                   </div>
 
                   <p
-                    className={`text-sm font-medium tabular-nums ${
-                      positive ? "text-[#c7ff39]" : "text-[#f2f4ef]"
-                    }`}
+                    className={`text-sm font-medium tabular-nums ${positive ? "text-[#c7ff39]" : "text-[#f2f4ef]"
+                      }`}
                   >
                     {positive ? "+" : ""}
                     {transaction.amount} SS
