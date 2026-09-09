@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import { Menu, Moon, Sun, X } from "lucide-react";
+import { useTheme } from "../lib/ThemeContext";
 
 const links = [
   ["Discover", "#discover"],
@@ -12,6 +13,7 @@ const links = [
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const { resolvedTheme, toggleTheme } = useTheme();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 100);
@@ -56,6 +58,15 @@ export default function Navbar() {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="grid h-10 w-10 place-items-center rounded-sm border border-white/15 text-zinc-400 transition hover:border-white/30 hover:text-white focus:outline-none focus:ring-2 focus:ring-[#c7ff39] focus:ring-offset-4 focus:ring-offset-[#060807]"
+            aria-label={`Switch to ${resolvedTheme === "light" ? "dark" : "light"} theme`}
+            title={`Switch to ${resolvedTheme === "light" ? "dark" : "light"} theme`}
+          >
+            {resolvedTheme === "light" ? <Moon size={17} /> : <Sun size={17} />}
+          </button>
           <Link
             to="/login"
             className="rounded-sm px-3 py-2 text-sm text-zinc-400 transition hover:text-white focus:outline-none focus:ring-2 focus:ring-[#c7ff39] focus:ring-offset-4 focus:ring-offset-[#060807]"

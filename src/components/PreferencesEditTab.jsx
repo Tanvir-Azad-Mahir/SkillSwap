@@ -1,4 +1,5 @@
 import { Globe2, Moon, SunMedium } from "lucide-react";
+import { useTheme } from "../lib/ThemeContext";
 
 const languages = ["English", "Bangla", "Hindi", "Spanish", "French"];
 
@@ -15,7 +16,13 @@ export default function PreferencesEditTab({
   preferences,
   setPreferences,
 }) {
+  const { setTheme } = useTheme();
+
   const update = (field, value) => {
+    if (field === "theme") {
+      setTheme(value);
+    }
+
     setPreferences((current) => ({
       ...current,
       [field]: value,

@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ThemeProvider } from "./lib/ThemeContext";
 
 import Landing from "./pages/landing";
 import Signup from "./pages/Signup";
@@ -21,11 +22,14 @@ import Swaps from "./pages/Swaps";
 import MyCourses from "./pages/MyCourses";
 import CourseManage from "./pages/CourseManage";
 import CourseLearn from "./pages/CourseLearn";
+import Certificate from "./pages/Certificate";
+import CertificateVerify from "./pages/CertificateVerify";
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
+    <ThemeProvider>
+      <BrowserRouter>
+        <Routes>
         {/* Landing */}
         <Route
           path="/"
@@ -130,7 +134,16 @@ export default function App() {
           path="/my-courses/:courseId/learn"
           element={<CourseLearn />}
         />
-      </Routes>
-    </BrowserRouter>
+        <Route
+        path="/certificates/:certificateId"
+  element={<Certificate />}
+      />
+      <Route
+  path="/certificates/verify"
+  element={<CertificateVerify />}
+/>
+        </Routes>
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }

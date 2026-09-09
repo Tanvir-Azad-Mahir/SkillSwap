@@ -92,7 +92,7 @@ export default function ChooseUsername() {
   };
 
   return (
-    <main className="relative grid min-h-screen place-items-center overflow-hidden bg-[#060807] px-5 text-[#f2f4ef]">
+    <main className="auth-page relative grid min-h-screen place-items-center overflow-hidden bg-[#060807] px-5 text-[#f2f4ef]">
       <div className="noise pointer-events-none fixed inset-0" />
 
       <div className="relative z-10 w-full max-w-lg border border-white/10 bg-[#0a0d0b]/90 p-7 md:p-10">

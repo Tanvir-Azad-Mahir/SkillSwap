@@ -1757,7 +1757,7 @@ export default function ProfileSetup() {
 
   if (initialLoading) {
     return (
-      <main className="relative grid min-h-screen place-items-center overflow-hidden bg-[#060807] text-[#f2f4ef]">
+      <main className="profile-setup-page relative grid min-h-screen place-items-center overflow-hidden bg-[#060807] text-[#f2f4ef]">
         <div className="noise pointer-events-none fixed inset-0" />
 
         <div className="relative z-10 text-center">
@@ -1776,7 +1776,7 @@ export default function ProfileSetup() {
   ========================================================= */
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#060807] text-[#f2f4ef]">
+    <main className="profile-setup-page relative min-h-screen overflow-hidden bg-[#060807] text-[#f2f4ef]">
       {/* BACKGROUND */}
 
       <div className="noise pointer-events-none fixed inset-0 z-0" />

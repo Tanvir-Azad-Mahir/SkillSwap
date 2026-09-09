@@ -27,7 +27,7 @@ const steps = [
 
 export default function HowItWorks() {
   return (
-    <section id="how-it-works" className="py-28 md:py-36 lg:py-40">
+    <section id="how-it-works" className="how-it-works-section py-28 md:py-36 lg:py-40">
       <div className="mx-auto max-w-7xl px-5 md:px-8 lg:px-10">
         <div className="reveal mb-12 max-w-2xl">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#c7ff39]">/ How it works</p>
@@ -37,10 +37,10 @@ export default function HowItWorks() {
           {steps.map(({ icon: Icon, label, title, text, featured }, index) => (
             <article
               key={title}
-              className={`reveal group min-h-[21rem] border border-white/15 p-7 transition duration-300 hover:border-white/30 md:p-8 ${featured ? "bg-[#0c120d]" : "bg-[#060807]"}`}
+              className={`how-it-works-card reveal group min-h-[21rem] border border-white/15 p-7 transition duration-300 hover:border-white/30 md:p-8 ${featured ? "how-it-works-card-featured bg-[#0c120d]" : "bg-[#060807]"}`}
               style={{ transitionDelay: `${index * 80}ms` }}
             >
-              <div className={`flex h-12 w-12 items-center justify-center border ${featured ? "border-[#c7ff39]/30 bg-[#c7ff39]/[0.06] text-[#c7ff39]" : "border-white/15 text-zinc-500"}`}>
+              <div className={`how-it-works-icon flex h-12 w-12 items-center justify-center border ${featured ? "how-it-works-icon-featured border-[#c7ff39]/30 bg-[#c7ff39]/[0.06] text-[#c7ff39]" : "border-white/15 text-zinc-500"}`}>
                 <Icon size={19} strokeWidth={1.5} />
               </div>
               <p className="mt-12 text-[10px] uppercase tracking-[0.18em] text-zinc-500">{label}</p>

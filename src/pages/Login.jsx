@@ -9,10 +9,12 @@ import {
 } from "lucide-react";
 
 import { supabase } from "../lib/supabase";
+import { useTheme } from "../lib/ThemeContext";
 
 export default function Login() {
   const navigate =
     useNavigate();
+  const { setTheme } = useTheme();
 
   const [email, setEmail] =
     useState("");
@@ -52,6 +54,25 @@ export default function Login() {
         throw new Error(
           "AUTH_USER_MISSING"
         );
+      }
+
+      const {
+        data: settings,
+        error: settingsError,
+      } = await supabase
+        .from("user_settings")
+        .select("theme")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (settingsError) {
+        console.warn("LOGIN THEME LOAD ERROR:", settingsError);
+      } else if (
+        settings?.theme === "dark" ||
+        settings?.theme === "light" ||
+        settings?.theme === "system"
+      ) {
+        setTheme(settings.theme);
       }
 
       console.log(
@@ -483,7 +504,7 @@ export default function Login() {
   ========================================================= */
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#060807] text-[#f2f4ef]">
+    <main className="auth-page relative min-h-screen overflow-hidden bg-[#060807] text-[#f2f4ef]">
       {/* =====================================================
           BACKGROUND
       ===================================================== */}

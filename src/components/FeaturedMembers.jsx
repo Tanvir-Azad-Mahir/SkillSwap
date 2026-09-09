@@ -15,7 +15,7 @@ export default function FeaturedMembers() {
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#c7ff39]">/ Community</p>
           <h2 className="mt-4 max-w-xl text-4xl font-semibold tracking-[-0.045em] text-white md:text-5xl">Senior thinking. Beginner energy. Same table.</h2>
           <p className="mt-6 max-w-xl text-base leading-7 text-zinc-400">The best exchanges happen when people can be expert and beginner at the same time. SkillSwap+ makes that normal.</p>
-          <blockquote className="mt-8 max-w-xl border-l border-[#c7ff39] pl-6 text-xl leading-8 text-zinc-200">
+          <blockquote className="community-quote mt-8 max-w-xl border-l border-[#c7ff39] pl-6 text-xl leading-8 text-zinc-200">
             “I can help someone understand product design on Tuesday and be the complete beginner in a language session on Thursday.”
           </blockquote>
         </div>

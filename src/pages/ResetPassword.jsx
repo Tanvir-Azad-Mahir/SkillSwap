@@ -250,7 +250,7 @@ export default function ResetPassword() {
 
   if (checking) {
     return (
-      <main className="relative grid min-h-screen place-items-center overflow-hidden bg-[#060807] text-[#f2f4ef]">
+      <main className="auth-page relative grid min-h-screen place-items-center overflow-hidden bg-[#060807] text-[#f2f4ef]">
         <div className="noise pointer-events-none fixed inset-0" />
 
         <div className="relative z-10 text-center">
@@ -270,7 +270,7 @@ export default function ResetPassword() {
 
   if (success) {
     return (
-      <main className="relative grid min-h-screen place-items-center overflow-hidden bg-[#060807] px-5 text-[#f2f4ef]">
+      <main className="auth-page relative grid min-h-screen place-items-center overflow-hidden bg-[#060807] px-5 text-[#f2f4ef]">
         <div className="noise pointer-events-none fixed inset-0" />
 
         <div className="relative z-10 w-full max-w-md border border-white/10 bg-[#0a0d0b]/90 p-8">
@@ -318,7 +318,7 @@ export default function ResetPassword() {
 
   if (!validRecovery) {
     return (
-      <main className="relative grid min-h-screen place-items-center overflow-hidden bg-[#060807] px-5 text-[#f2f4ef]">
+      <main className="auth-page relative grid min-h-screen place-items-center overflow-hidden bg-[#060807] px-5 text-[#f2f4ef]">
         <div className="noise pointer-events-none fixed inset-0" />
 
         <div className="relative z-10 w-full max-w-md border border-white/10 bg-[#0a0d0b]/90 p-8">
@@ -360,7 +360,7 @@ export default function ResetPassword() {
   ========================================================= */
 
   return (
-    <main className="relative grid min-h-screen place-items-center overflow-hidden bg-[#060807] px-5 py-20 text-[#f2f4ef]">
+    <main className="auth-page relative grid min-h-screen place-items-center overflow-hidden bg-[#060807] px-5 py-20 text-[#f2f4ef]">
       <div className="noise pointer-events-none fixed inset-0" />
 
       <div

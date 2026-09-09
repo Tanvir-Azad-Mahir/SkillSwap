@@ -6,6 +6,7 @@ import {
 
 import {
   ArrowLeft,
+  Award,
   BookOpen,
   ChevronRight,
   GraduationCap,
@@ -595,8 +596,94 @@ export default function MyCourses() {
                 Boolean
               );
 
+          /* ===============================================
+             CERTIFICATES FOR FINISHED COURSES
+          =============================================== */
+
+          const completedEnrollmentIds =
+            enrollmentRows
+              .filter(
+                (row) =>
+                  row.status ===
+                  "Completed"
+              )
+              .map(
+                (row) =>
+                  row.id
+              );
+
+          let certificateMap =
+            new Map();
+
+          if (
+            completedEnrollmentIds.length >
+            0
+          ) {
+            const {
+              data:
+                certificateRows,
+              error:
+                certificateError,
+            } =
+              await supabase
+                .from(
+                  "certificates"
+                )
+                .select(
+                  `
+                    id,
+                    enrollment_id,
+                    certificate_number,
+                    verification_code,
+                    final_score,
+                    issued_at
+                  `
+                )
+                .in(
+                  "enrollment_id",
+                  completedEnrollmentIds
+                );
+
+            if (
+              certificateError
+            ) {
+              console.warn(
+                "MY COURSES CERTIFICATE ERROR:",
+                certificateError
+              );
+            } else {
+              certificateMap =
+                new Map(
+                  (
+                    certificateRows ||
+                    []
+                  ).map(
+                    (
+                      certificate
+                    ) => [
+                      certificate.enrollment_id,
+                      certificate,
+                    ]
+                  )
+                );
+            }
+          }
+
+          const joinedWithCertificates =
+            joined.map(
+              (course) => ({
+                ...course,
+
+                certificate:
+                  certificateMap.get(
+                    course.enrollment_id
+                  ) ||
+                  null,
+              })
+            );
+
           setLearningCourses(
-            joined
+            joinedWithCertificates
           );
         } catch (err) {
           console.error(
@@ -1088,13 +1175,20 @@ export default function MyCourses() {
                 )}
               </div>
 
-              {/* COMPLETED LEARNING */}
+              {/* FINISHED LEARNING */}
 
               <div>
                 <div className="flex items-center justify-between gap-4 px-6 py-4">
-                  <p className="text-[10px] uppercase tracking-[0.15em] text-[#a1a1aa]">
-                    Completed
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <Award
+                      size={14}
+                      className="text-[#c7ff39]"
+                    />
+
+                    <p className="text-[10px] uppercase tracking-[0.15em] text-[#a1a1aa]">
+                      Finished courses
+                    </p>
+                  </div>
 
                   <span className="text-xs text-white/35">
                     {
@@ -1114,22 +1208,24 @@ export default function MyCourses() {
                           key={
                             course.enrollment_id
                           }
-                          className="border-t border-r border-white/10 p-6"
+                          className="group border-t border-r border-white/10 p-6 transition hover:bg-white/[0.02]"
                         >
-                          <p className="text-[10px] uppercase tracking-[0.15em] text-[#a1a1aa]">
-                            {course
-                              .skill
-                              ?.name ||
-                              "Course"}
-                          </p>
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <p className="text-[10px] uppercase tracking-[0.15em] text-[#a1a1aa]">
+                                {course
+                                  .skill
+                                  ?.name ||
+                                  "Course"}
+                              </p>
 
-                          <h3 className="mt-2 text-lg font-medium">
-                            {
-                              course.title
-                            }
-                          </h3>
+                              <h3 className="mt-2 text-lg font-medium">
+                                {
+                                  course.title
+                                }
+                              </h3>
+                            </div>
 
-                          <div className="mt-4">
                             <span
                               className={`border px-2 py-1 text-[9px] uppercase tracking-[0.13em] ${getCourseStatusClasses(
                                 "Completed"
@@ -1140,8 +1236,96 @@ export default function MyCourses() {
                           </div>
 
                           <p className="mt-4 text-xs text-[#a1a1aa]">
-                            Certificate access will be added when the completion workflow is built.
+                            Instructor:{" "}
+                            {course
+                              .instructor
+                              ?.full_name ||
+                              course
+                                .instructor
+                                ?.username ||
+                              "Instructor"}
                           </p>
+
+                          {course.completed_at && (
+                            <p className="mt-2 text-xs text-white/35">
+                              Completed{" "}
+                              {new Intl.DateTimeFormat(
+                                undefined,
+                                {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                }
+                              ).format(
+                                new Date(
+                                  course.completed_at
+                                )
+                              )}
+                            </p>
+                          )}
+
+                          {course.certificate ? (
+                            <>
+                              <div className="mt-5 border border-[#c7ff39]/20 bg-[#c7ff39]/[0.04] p-4">
+                                <p className="text-[9px] uppercase tracking-[0.13em] text-[#a1a1aa]">
+                                  Certificate
+                                </p>
+
+                                <p className="mt-2 font-mono text-xs text-[#c7ff39]">
+                                  {
+                                    course
+                                      .certificate
+                                      .certificate_number
+                                  }
+                                </p>
+
+                                {course
+                                  .certificate
+                                  .final_score !==
+                                  null &&
+                                  course
+                                    .certificate
+                                    .final_score !==
+                                    undefined && (
+                                    <p className="mt-2 text-xs text-[#a1a1aa]">
+                                      Final score:{" "}
+                                      {
+                                        course
+                                          .certificate
+                                          .final_score
+                                      }
+                                      /100
+                                    </p>
+                                  )}
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  navigate(
+                                    `/certificates/${course.certificate.id}`
+                                  )
+                                }
+                                className="mt-4 flex min-h-11 w-full items-center justify-between bg-[#c7ff39] px-4 text-sm font-semibold text-[#071008] transition hover:bg-[#d4ff66]"
+                              >
+                                <span className="inline-flex items-center gap-2">
+                                  <Award
+                                    size={15}
+                                  />
+
+                                  View certificate
+                                </span>
+
+                                <ChevronRight
+                                  size={16}
+                                />
+                              </button>
+                            </>
+                          ) : (
+                            <div className="mt-5 border border-white/10 px-4 py-3 text-xs text-[#a1a1aa]">
+                              Certificate is not available yet.
+                            </div>
+                          )}
                         </article>
                       )
                     )}

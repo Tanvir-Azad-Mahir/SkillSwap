@@ -115,7 +115,7 @@ export default function ForgotPassword() {
   };
 
   return (
-    <main className="relative grid min-h-screen place-items-center overflow-hidden bg-[#060807] px-5 py-20 text-[#f2f4ef]">
+    <main className="auth-page relative grid min-h-screen place-items-center overflow-hidden bg-[#060807] px-5 py-20 text-[#f2f4ef]">
       <div className="noise pointer-events-none fixed inset-0" />
 
       <div

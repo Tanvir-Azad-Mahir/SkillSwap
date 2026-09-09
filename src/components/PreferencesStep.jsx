@@ -1,3 +1,5 @@
+import { useTheme } from "../lib/ThemeContext";
+
 const selectClass =
   "min-h-[52px] w-full rounded-md border border-white/15 bg-[#060807] px-4 text-[#f2f4ef] transition hover:border-white/25 focus:border-[#c7ff39]/70 focus:outline-none focus:ring-1 focus:ring-[#c7ff39]/30";
 
@@ -5,7 +7,13 @@ export default function PreferencesStep({
   settings,
   setSettings,
 }) {
+  const { setTheme } = useTheme();
+
   const update = (field) => (event) => {
+    if (field === "theme") {
+      setTheme(event.target.value);
+    }
+
     setSettings((current) => ({
       ...current,
       [field]: event.target.value,
