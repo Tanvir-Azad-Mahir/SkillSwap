@@ -8,6 +8,7 @@ import {
   ArrowRight,
   Plus,
   BookOpen,
+  CalendarDays,
   GraduationCap,
   Repeat2,
   Sparkles,
@@ -163,6 +164,11 @@ export default function Dashboard() {
   const [
     sessions,
     setSessions,
+  ] = useState([]);
+
+  const [
+    swapSessions,
+    setSwapSessions,
   ] = useState([]);
 
   const [
@@ -495,6 +501,10 @@ export default function Dashboard() {
                 .or(
                   `learner_id.eq.${authUser.id},mentor_id.eq.${authUser.id}`
                 )
+                .gte(
+                  "scheduled_at",
+                  new Date().toISOString()
+                )
                 .order(
                   "scheduled_at",
                   {
@@ -505,7 +515,77 @@ export default function Dashboard() {
                 .limit(10),
 
               /* =============================================
-                 5. CREDIT TRANSACTIONS
+                 5. SWAP MASTER SHARED SESSIONS
+              ============================================= */
+
+              normalizedProfile.role ===
+              "swap_master"
+                ? supabase
+                    .from(
+                      "swap_sessions"
+                    )
+                    .select(
+                      `
+                        id,
+                        swap_id,
+                        title,
+                        description,
+                        scheduled_at,
+                        duration_minutes,
+                        meeting_url,
+                        status,
+                        created_by,
+                        created_at,
+                        completed_at
+                      `
+                    )
+                    .gte(
+                      "scheduled_at",
+                      new Date().toISOString()
+                    )
+                    .order(
+                      "scheduled_at",
+                      {
+                        ascending:
+                          true,
+                      }
+                    )
+                    .limit(20)
+                : Promise.resolve({
+                    data: [],
+                    error: null,
+                  }),
+
+              /* =============================================
+                 6. CURRENT USER SKILL SWAPS
+              ============================================= */
+
+              normalizedProfile.role ===
+              "swap_master"
+                ? supabase
+                    .from(
+                      "skill_swaps"
+                    )
+                    .select(
+                      `
+                        id,
+                        requester_id,
+                        partner_id,
+                        requester_teaches_skill_id,
+                        partner_teaches_skill_id,
+                        status
+                      `
+                    )
+                    .or(
+                      `requester_id.eq.${authUser.id},partner_id.eq.${authUser.id}`
+                    )
+                : Promise.resolve({
+                    data: [],
+                    error: null,
+                  }),
+
+              /* =============================================
+                 7. CREDIT TRANSACTIONS
               ============================================= */
 
               supabase
@@ -535,7 +615,7 @@ export default function Dashboard() {
                 .limit(8),
 
               /* =============================================
-                 6. ACTIVE MEMBERS
+                 8. ACTIVE MEMBERS
               ============================================= */
 
               supabase
@@ -573,7 +653,7 @@ export default function Dashboard() {
                 .limit(300),
 
               /* =============================================
-                 7. ALL TEACHING SKILLS
+                 9. ALL TEACHING SKILLS
               ============================================= */
 
               supabase
@@ -594,7 +674,7 @@ export default function Dashboard() {
                 ),
 
               /* =============================================
-                 8. CURRENT USER COURSES
+                 10. CURRENT USER COURSES
               ============================================= */
 
               supabase
@@ -627,7 +707,7 @@ export default function Dashboard() {
                 .limit(8),
 
               /* =============================================
-                 9. LEARNER COURSE ENROLLMENTS
+                 11. LEARNER COURSE ENROLLMENTS
 
                  Approved = currently taking
                  Completed = finished
@@ -680,6 +760,8 @@ export default function Dashboard() {
             userSkillsResult,
             learningResult,
             sessionsResult,
+            swapSessionsResult,
+            skillSwapsResult,
             transactionsResult,
             profilesResult,
             mentorOfferingsResult,
@@ -843,6 +925,192 @@ export default function Dashboard() {
 
             setSessions(
               upcoming
+            );
+          }
+
+          /* ===================================================
+             SWAP MASTER SHARED SESSIONS
+          =================================================== */
+
+          if (
+            swapSessionsResult.error
+          ) {
+            console.warn(
+              "SWAP SESSIONS ERROR:",
+              swapSessionsResult.error
+            );
+
+            setSwapSessions(
+              []
+            );
+          } else if (
+            skillSwapsResult.error
+          ) {
+            console.warn(
+              "SKILL SWAPS ERROR:",
+              skillSwapsResult.error
+            );
+
+            setSwapSessions(
+              []
+            );
+          } else {
+            const now =
+              Date.now();
+
+            const profileLookup =
+              new Map(
+                (
+                  profilesResult.data ||
+                  []
+                ).map(
+                  (
+                    member
+                  ) => [
+                    member.id,
+                    member,
+                  ]
+                )
+              );
+
+            const skillLookup =
+              new Map(
+                (
+                  skillsResult.data ||
+                  []
+                ).map(
+                  (
+                    skill
+                  ) => [
+                    skill.id,
+                    skill,
+                  ]
+                )
+              );
+
+            const swapLookup =
+              new Map(
+                (
+                  skillSwapsResult.data ||
+                  []
+                ).map(
+                  (
+                    swap
+                  ) => [
+                    swap.id,
+                    swap,
+                  ]
+                )
+              );
+
+            const upcomingSwapSessions =
+              (
+                swapSessionsResult.data ||
+                []
+              )
+                .filter(
+                  (
+                    item
+                  ) => {
+                    if (
+                      !item.scheduled_at
+                    ) {
+                      return false;
+                    }
+
+                    const status =
+                      String(
+                        item.status ||
+                          ""
+                      ).toLowerCase();
+
+                    const time =
+                      new Date(
+                        item.scheduled_at
+                      ).getTime();
+
+                    return (
+                      time >=
+                        now &&
+                      ![
+                        "completed",
+                        "cancelled",
+                        "canceled",
+                      ].includes(
+                        status
+                      )
+                    );
+                  }
+                )
+                .map(
+                  (
+                    item
+                  ) => {
+                    const swap =
+                      swapLookup.get(
+                        item.swap_id
+                      );
+
+                    if (
+                      !swap
+                    ) {
+                      return {
+                        ...item,
+                        session_type:
+                          "swap",
+                      };
+                    }
+
+                    const amRequester =
+                      swap.requester_id ===
+                      authUser.id;
+
+                    const partnerId =
+                      amRequester
+                        ? swap.partner_id
+                        : swap.requester_id;
+
+                    const mySkillId =
+                      amRequester
+                        ? swap.requester_teaches_skill_id
+                        : swap.partner_teaches_skill_id;
+
+                    const partnerSkillId =
+                      amRequester
+                        ? swap.partner_teaches_skill_id
+                        : swap.requester_teaches_skill_id;
+
+                    return {
+                      ...item,
+
+                      session_type:
+                        "swap",
+
+                      partner:
+                        profileLookup.get(
+                          partnerId
+                        ) ||
+                        null,
+
+                      my_skill:
+                        skillLookup.get(
+                          mySkillId
+                        ) ||
+                        null,
+
+                      partner_skill:
+                        skillLookup.get(
+                          partnerSkillId
+                        ) ||
+                        null,
+
+                      swap,
+                    };
+                  }
+                );
+
+            setSwapSessions(
+              upcomingSwapSessions
             );
           }
 
@@ -1444,24 +1712,47 @@ export default function Dashboard() {
 
   const sessionItems =
     useMemo(() => {
-      return sessions.map(
-        (item) => ({
-          ...item,
+      const normalSessionItems =
+        sessions.map(
+          (item) => ({
+            ...item,
 
-          skill:
-            skillMap.get(
-              item.skill_id
-            ),
+            session_type:
+              "standard",
 
-          viewerRole:
-            item.mentor_id ===
-            user?.id
-              ? "Mentor"
-              : "Learner",
-        })
+            skill:
+              skillMap.get(
+                item.skill_id
+              ),
+
+            viewerRole:
+              item.mentor_id ===
+              user?.id
+                ? "Mentor"
+                : "Learner",
+          })
+        );
+
+      return [
+        ...normalSessionItems,
+        ...swapSessions,
+      ].sort(
+        (
+          a,
+          b
+        ) =>
+          new Date(
+            a.scheduled_at ||
+              0
+          ).getTime() -
+          new Date(
+            b.scheduled_at ||
+              0
+          ).getTime()
       );
     }, [
       sessions,
+      swapSessions,
       skillMap,
       user,
     ]);
@@ -1855,6 +2146,24 @@ export default function Dashboard() {
                         Enrollment requests
                       </button>
                     )}
+
+                    {/* SESSIONS - AVAILABLE TO EVERY USER */}
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate(
+                          "/sessions"
+                        )
+                      }
+                      className="inline-flex min-h-11 items-center justify-center gap-2 border border-white/15 px-5 text-sm font-medium text-[#f2f4ef] transition hover:border-[#c7ff39]/30 hover:bg-[#c7ff39]/[0.03] hover:text-[#c7ff39]"
+                    >
+                      <CalendarDays
+                        size={16}
+                      />
+
+                      Sessions
+                    </button>
 
                     {/* SWAP MASTER ONLY */}
 
@@ -2379,6 +2688,25 @@ export default function Dashboard() {
               <UpcomingSessions
                 sessions={
                   sessionItems
+                }
+                onViewAll={() =>
+                  navigate(
+                    "/sessions"
+                  )
+                }
+                onOpenMeeting={(
+                  meetingUrl
+                ) => {
+                  window.open(
+                    meetingUrl,
+                    "_blank",
+                    "noopener,noreferrer"
+                  );
+                }}
+                onOpenSwap={() =>
+                  navigate(
+                    "/swaps"
+                  )
                 }
               />
 

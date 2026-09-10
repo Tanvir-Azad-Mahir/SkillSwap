@@ -8,16 +8,22 @@ import {
 import {
   ArrowLeft,
   ArrowRight,
+  CalendarDays,
   Check,
+  CheckCircle2,
   Clock3,
+  ExternalLink,
   GraduationCap,
   Loader2,
   MapPin,
+  MessageSquare,
+  Plus,
   RefreshCw,
   Repeat2,
   Send,
   Sparkles,
   UserRound,
+  Video,
   X,
 } from "lucide-react";
 
@@ -56,6 +62,55 @@ function formatDate(value) {
   );
 }
 
+function toDateTimeLocalValue(
+  date
+) {
+  const value =
+    date instanceof Date
+      ? date
+      : new Date(date);
+
+  if (
+    Number.isNaN(
+      value.getTime()
+    )
+  ) {
+    return "";
+  }
+
+  const offset =
+    value.getTimezoneOffset();
+
+  const local =
+    new Date(
+      value.getTime() -
+        offset * 60 * 1000
+    );
+
+  return local
+    .toISOString()
+    .slice(0, 16);
+}
+
+function defaultSessionTime() {
+  const date =
+    new Date();
+
+  date.setDate(
+    date.getDate() + 1
+  );
+
+  date.setMinutes(
+    0,
+    0,
+    0
+  );
+
+  return toDateTimeLocalValue(
+    date
+  );
+}
+
 const TABS = [
   {
     id: "discover",
@@ -72,6 +127,10 @@ const TABS = [
   {
     id: "active",
     label: "Active",
+  },
+  {
+    id: "completed",
+    label: "Completed",
   },
 ];
 
@@ -145,6 +204,29 @@ export default function Swaps() {
     setSuccess,
   ] = useState("");
 
+  const [
+    sessions,
+    setSessions,
+  ] = useState([]);
+
+  const [
+    sessionModalSwap,
+    setSessionModalSwap,
+  ] = useState(null);
+
+  const [
+    sessionForm,
+    setSessionForm,
+  ] = useState({
+    title:
+      "Skill swap session",
+    description: "",
+    scheduledAt:
+      defaultSessionTime(),
+    durationMinutes: 60,
+    meetingUrl: "",
+  });
+
   /* =========================================================
      LOAD MATCHES
   ========================================================= */
@@ -185,6 +267,7 @@ export default function Swaps() {
           setSwaps([]);
           setProfiles([]);
           setSkills([]);
+          setSessions([]);
           return;
         }
 
@@ -265,9 +348,18 @@ export default function Swaps() {
             ),
           ];
 
+        const swapIds =
+          rows
+            .map(
+              (row) =>
+                row.id
+            )
+            .filter(Boolean);
+
         const [
           profilesResult,
           skillsResult,
+          sessionsResult,
         ] =
           await Promise.all([
             profileIds.length
@@ -314,6 +406,46 @@ export default function Swaps() {
                   data: [],
                   error: null,
                 }),
+
+            swapIds.length
+              ? supabase
+                  .from(
+                    "swap_sessions"
+                  )
+                  .select(
+                    `
+                      id,
+                      swap_id,
+                      title,
+                      description,
+                      scheduled_at,
+                      duration_minutes,
+                      meeting_url,
+                      status,
+                      created_by,
+                      created_at,
+                      updated_at,
+                      completed_at,
+                      completed_by,
+                      cancelled_at,
+                      cancelled_by
+                    `
+                  )
+                  .in(
+                    "swap_id",
+                    swapIds
+                  )
+                  .order(
+                    "scheduled_at",
+                    {
+                      ascending:
+                        true,
+                    }
+                  )
+              : Promise.resolve({
+                  data: [],
+                  error: null,
+                }),
           ]);
 
         if (
@@ -332,6 +464,14 @@ export default function Swaps() {
           );
         }
 
+        if (
+          sessionsResult.error
+        ) {
+          throw (
+            sessionsResult.error
+          );
+        }
+
         setProfiles(
           profilesResult.data ||
             []
@@ -339,6 +479,11 @@ export default function Swaps() {
 
         setSkills(
           skillsResult.data ||
+            []
+        );
+
+        setSessions(
+          sessionsResult.data ||
             []
         );
       },
@@ -562,6 +707,35 @@ export default function Swaps() {
       [skills]
     );
 
+  const sessionsBySwap =
+    useMemo(
+      () => {
+        const map =
+          new Map();
+
+        sessions.forEach(
+          (session) => {
+            const current =
+              map.get(
+                session.swap_id
+              ) || [];
+
+            current.push(
+              session
+            );
+
+            map.set(
+              session.swap_id,
+              current
+            );
+          }
+        );
+
+        return map;
+      },
+      [sessions]
+    );
+
   /* =========================================================
      SWAP GROUPS
   ========================================================= */
@@ -605,6 +779,17 @@ export default function Swaps() {
           (swap) =>
             swap.status ===
             "Accepted"
+        ),
+      [swaps]
+    );
+
+  const completedSwaps =
+    useMemo(
+      () =>
+        swaps.filter(
+          (swap) =>
+            swap.status ===
+            "Completed"
         ),
       [swaps]
     );
@@ -855,6 +1040,574 @@ export default function Swaps() {
     };
 
   /* =========================================================
+     MARK MY SIDE COMPLETE
+  ========================================================= */
+
+  const markMySideComplete =
+    async (
+      swap
+    ) => {
+      if (
+        actionId ||
+        !swap ||
+        !user
+      ) {
+        return;
+      }
+
+      const actionKey =
+        `complete-${swap.id}`;
+
+      try {
+        setActionId(
+          actionKey
+        );
+
+        setError("");
+        setSuccess("");
+
+        const {
+          data,
+          error:
+            completionError,
+        } =
+          await supabase.rpc(
+            "mark_skill_swap_complete",
+            {
+              p_swap_id:
+                swap.id,
+            }
+          );
+
+        if (
+          completionError
+        ) {
+          throw completionError;
+        }
+
+        const result =
+          data || {};
+
+        if (
+          result.completed_now ===
+          true
+        ) {
+          setSuccess(
+            Number(
+              result.reward_credits ||
+                0
+            ) > 0
+              ? `Skill swap completed. You earned ${result.reward_credits} SS.`
+              : "Skill swap completed."
+          );
+
+          setActiveTab(
+            "completed"
+          );
+        } else {
+          setSuccess(
+            "Your side is marked complete. Waiting for your partner to confirm their side."
+          );
+        }
+
+        await Promise.all([
+          loadMatches(),
+          loadSwaps(
+            user.id
+          ),
+        ]);
+      } catch (err) {
+        console.error(
+          "COMPLETE SWAP ERROR:",
+          err
+        );
+
+        const message =
+          String(
+            err?.message ||
+              ""
+          );
+
+        if (
+          message.includes(
+            "COMPLETED_SESSION_REQUIRED"
+          )
+        ) {
+          setError(
+            "Complete at least one shared swap session before confirming the whole swap."
+          );
+        } else if (
+          message.includes(
+            "SWAP_NOT_ACTIVE"
+          )
+        ) {
+          setError(
+            "Only an accepted skill swap can be marked complete."
+          );
+        } else if (
+          message.includes(
+            "SWAP_ACCESS_DENIED"
+          )
+        ) {
+          setError(
+            "You do not have access to this skill swap."
+          );
+        } else {
+          setError(
+            err?.message ||
+              "Your completion could not be saved."
+          );
+        }
+      } finally {
+        setActionId(
+          null
+        );
+      }
+    };
+
+  /* =========================================================
+     SHARED SWAP SESSIONS
+  ========================================================= */
+
+  const openSessionModal =
+    (
+      swap
+    ) => {
+      setError("");
+      setSuccess("");
+
+      setSessionForm({
+        title:
+          "Skill swap session",
+        description: "",
+        scheduledAt:
+          defaultSessionTime(),
+        durationMinutes: 60,
+        meetingUrl: "",
+      });
+
+      setSessionModalSwap(
+        swap
+      );
+    };
+
+  const closeSessionModal =
+    () => {
+      if (
+        actionId &&
+        String(
+          actionId
+        ).startsWith(
+          "schedule-"
+        )
+      ) {
+        return;
+      }
+
+      setSessionModalSwap(
+        null
+      );
+    };
+
+  const createSession =
+    async (
+      event
+    ) => {
+      event.preventDefault();
+
+      if (
+        !sessionModalSwap ||
+        !user ||
+        actionId
+      ) {
+        return;
+      }
+
+      const actionKey =
+        `schedule-${sessionModalSwap.id}`;
+
+      const title =
+        sessionForm.title
+          .trim();
+
+      if (!title) {
+        setError(
+          "Enter a session title."
+        );
+        return;
+      }
+
+      if (
+        !sessionForm.scheduledAt
+      ) {
+        setError(
+          "Choose a session date and time."
+        );
+        return;
+      }
+
+      const scheduledDate =
+        new Date(
+          sessionForm.scheduledAt
+        );
+
+      if (
+        Number.isNaN(
+          scheduledDate.getTime()
+        )
+      ) {
+        setError(
+          "Choose a valid session date and time."
+        );
+        return;
+      }
+
+      try {
+        setActionId(
+          actionKey
+        );
+
+        setError("");
+        setSuccess("");
+
+        const {
+          error:
+            sessionError,
+        } =
+          await supabase.rpc(
+            "create_swap_session",
+            {
+              p_swap_id:
+                sessionModalSwap.id,
+              p_title:
+                title,
+              p_description:
+                sessionForm.description
+                  .trim() ||
+                null,
+              p_scheduled_at:
+                scheduledDate.toISOString(),
+              p_duration_minutes:
+                Number(
+                  sessionForm.durationMinutes
+                ),
+              p_meeting_url:
+                sessionForm.meetingUrl
+                  .trim() ||
+                null,
+            }
+          );
+
+        if (
+          sessionError
+        ) {
+          throw sessionError;
+        }
+
+        setSessionModalSwap(
+          null
+        );
+
+        setSuccess(
+          "Shared swap session scheduled."
+        );
+
+        await loadSwaps(
+          user.id
+        );
+      } catch (err) {
+        console.error(
+          "CREATE SWAP SESSION ERROR:",
+          err
+        );
+
+        const message =
+          String(
+            err?.message ||
+              ""
+          );
+
+        if (
+          message.includes(
+            "SESSION_TIME_MUST_BE_FUTURE"
+          )
+        ) {
+          setError(
+            "The session must be scheduled for a future time."
+          );
+        } else if (
+          message.includes(
+            "SWAP_NOT_ACTIVE"
+          )
+        ) {
+          setError(
+            "Sessions can only be scheduled for an active swap."
+          );
+        } else {
+          setError(
+            err?.message ||
+              "The session could not be scheduled."
+          );
+        }
+      } finally {
+        setActionId(
+          null
+        );
+      }
+    };
+
+  const completeSession =
+    async (
+      session
+    ) => {
+      if (
+        actionId ||
+        !session ||
+        !user
+      ) {
+        return;
+      }
+
+      const actionKey =
+        `session-complete-${session.id}`;
+
+      try {
+        setActionId(
+          actionKey
+        );
+
+        setError("");
+        setSuccess("");
+
+        const {
+          error:
+            sessionError,
+        } =
+          await supabase.rpc(
+            "complete_swap_session",
+            {
+              p_session_id:
+                session.id,
+            }
+          );
+
+        if (
+          sessionError
+        ) {
+          throw sessionError;
+        }
+
+        setSuccess(
+          "Shared session marked complete."
+        );
+
+        await loadSwaps(
+          user.id
+        );
+      } catch (err) {
+        console.error(
+          "COMPLETE SWAP SESSION ERROR:",
+          err
+        );
+
+        const message =
+          String(
+            err?.message ||
+              ""
+          );
+
+        if (
+          message.includes(
+            "SESSION_HAS_NOT_STARTED"
+          )
+        ) {
+          setError(
+            "You can mark the session complete after its scheduled start time."
+          );
+        } else {
+          setError(
+            err?.message ||
+              "The session could not be completed."
+          );
+        }
+      } finally {
+        setActionId(
+          null
+        );
+      }
+    };
+
+  const cancelSession =
+    async (
+      session
+    ) => {
+      if (
+        actionId ||
+        !session ||
+        !user
+      ) {
+        return;
+      }
+
+      const confirmed =
+        window.confirm(
+          `Cancel "${session.title}"?`
+        );
+
+      if (
+        !confirmed
+      ) {
+        return;
+      }
+
+      const actionKey =
+        `session-cancel-${session.id}`;
+
+      try {
+        setActionId(
+          actionKey
+        );
+
+        setError("");
+        setSuccess("");
+
+        const {
+          error:
+            sessionError,
+        } =
+          await supabase.rpc(
+            "cancel_swap_session",
+            {
+              p_session_id:
+                session.id,
+            }
+          );
+
+        if (
+          sessionError
+        ) {
+          throw sessionError;
+        }
+
+        setSuccess(
+          "Shared session cancelled."
+        );
+
+        await loadSwaps(
+          user.id
+        );
+      } catch (err) {
+        console.error(
+          "CANCEL SWAP SESSION ERROR:",
+          err
+        );
+
+        setError(
+          err?.message ||
+            "The session could not be cancelled."
+        );
+      } finally {
+        setActionId(
+          null
+        );
+      }
+    };
+
+  const openMeeting =
+    (
+      meetingUrl
+    ) => {
+      if (
+        !meetingUrl
+      ) {
+        setError(
+          "No meeting link has been added for this session."
+        );
+        return;
+      }
+
+      window.open(
+        meetingUrl,
+        "_blank",
+        "noopener,noreferrer"
+      );
+    };
+
+  /* =========================================================
+     MESSAGE SWAP PARTNER
+  ========================================================= */
+
+  const messagePartner =
+    async (
+      partnerId
+    ) => {
+      if (
+        actionId ||
+        !partnerId
+      ) {
+        return;
+      }
+
+      const actionKey =
+        `message-${partnerId}`;
+
+      try {
+        setActionId(
+          actionKey
+        );
+
+        setError("");
+        setSuccess("");
+
+        const {
+          data:
+            conversationId,
+          error:
+            conversationError,
+        } =
+          await supabase.rpc(
+            "get_or_create_conversation",
+            {
+              p_other_user_id:
+                partnerId,
+            }
+          );
+
+        if (
+          conversationError
+        ) {
+          throw conversationError;
+        }
+
+        if (
+          !conversationId
+        ) {
+          throw new Error(
+            "CONVERSATION_NOT_CREATED"
+          );
+        }
+
+        navigate(
+          `/messages/${conversationId}`
+        );
+      } catch (err) {
+        console.error(
+          "MESSAGE PARTNER ERROR:",
+          err
+        );
+
+        setError(
+          err?.message ||
+            "The conversation could not be opened."
+        );
+      } finally {
+        setActionId(
+          null
+        );
+      }
+    };
+
+  /* =========================================================
      LOADING
   ========================================================= */
 
@@ -1032,6 +1785,14 @@ export default function Swaps() {
                     activeSwaps.length;
                 }
 
+                if (
+                  tab.id ===
+                  "completed"
+                ) {
+                  count =
+                    completedSwaps.length;
+                }
+
                 return (
                   <button
                     key={
@@ -1192,11 +1953,92 @@ export default function Swaps() {
               actionId={
                 actionId
               }
+              sessionsBySwap={
+                sessionsBySwap
+              }
               active
+              onScheduleSession={
+                openSessionModal
+              }
+              onCompleteSession={
+                completeSession
+              }
+              onCancelSession={
+                cancelSession
+              }
+              onOpenMeeting={
+                openMeeting
+              }
+              onComplete={
+                markMySideComplete
+              }
+              onMessage={
+                messagePartner
+              }
+            />
+          )}
+
+          {/* COMPLETED */}
+
+          {activeTab ===
+            "completed" && (
+            <SwapList
+              title="Completed swaps"
+              emptyTitle="No completed swaps yet."
+              emptyText="A skill swap moves here after both members confirm completion."
+              swaps={
+                completedSwaps
+              }
+              currentUserId={
+                user?.id
+              }
+              profileMap={
+                profileMap
+              }
+              skillMap={
+                skillMap
+              }
+              actionId={
+                actionId
+              }
+              sessionsBySwap={
+                sessionsBySwap
+              }
+              completed
+              onOpenMeeting={
+                openMeeting
+              }
+              onMessage={
+                messagePartner
+              }
             />
           )}
         </div>
       </div>
+
+      {sessionModalSwap && (
+        <SessionModal
+          swap={
+            sessionModalSwap
+          }
+          form={
+            sessionForm
+          }
+          setForm={
+            setSessionForm
+          }
+          saving={
+            actionId ===
+            `schedule-${sessionModalSwap.id}`
+          }
+          onClose={
+            closeSessionModal
+          }
+          onSubmit={
+            createSession
+          }
+        />
+      )}
     </main>
   );
 }
@@ -1436,10 +2278,18 @@ function SwapList({
   profileMap,
   skillMap,
   actionId,
+  sessionsBySwap,
   incoming = false,
   active = false,
+  completed = false,
   onAccept,
   onReject,
+  onScheduleSession,
+  onCompleteSession,
+  onCancelSession,
+  onOpenMeeting,
+  onComplete,
+  onMessage,
 }) {
   if (
     swaps.length ===
@@ -1447,10 +2297,17 @@ function SwapList({
   ) {
     return (
       <section className="mt-6 border border-white/10 bg-[#0a0d0b]/70 p-9 md:p-12">
-        <Clock3
-          size={24}
-          className="text-[#737373]"
-        />
+        {completed ? (
+          <CheckCircle2
+            size={24}
+            className="text-white/25"
+          />
+        ) : (
+          <Clock3
+            size={24}
+            className="text-[#737373]"
+          />
+        )}
 
         <h2 className="mt-5 text-2xl font-medium tracking-[-0.04em]">
           {
@@ -1516,17 +2373,64 @@ function SwapList({
                 theirSkillId
               );
 
+            const myCompleted =
+              amRequester
+                ? Boolean(
+                    swap.requester_completed
+                  )
+                : Boolean(
+                    swap.partner_completed
+                  );
+
+            const partnerCompleted =
+              amRequester
+                ? Boolean(
+                    swap.partner_completed
+                  )
+                : Boolean(
+                    swap.requester_completed
+                  );
+
+            const swapSessions =
+              sessionsBySwap?.get(
+                swap.id
+              ) || [];
+
+            const completedSessionCount =
+              swapSessions.filter(
+                (session) =>
+                  session.status ===
+                  "Completed"
+              ).length;
+
+            const scheduledSessions =
+              swapSessions.filter(
+                (session) =>
+                  session.status ===
+                  "Scheduled"
+              );
+
             const acceptKey =
               `Accepted-${swap.id}`;
 
             const rejectKey =
               `Rejected-${swap.id}`;
 
+            const completeKey =
+              `complete-${swap.id}`;
+
+            const messageKey =
+              `message-${otherId}`;
+
             const processing =
               actionId ===
                 acceptKey ||
               actionId ===
-                rejectKey;
+                rejectKey ||
+              actionId ===
+                completeKey ||
+              actionId ===
+                messageKey;
 
             return (
               <article
@@ -1535,14 +2439,16 @@ function SwapList({
                 }
                 className="border border-white/10 bg-[#0a0d0b]/80 p-6"
               >
-                <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
+                <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_300px] xl:items-start">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <span
                         className={`border px-2 py-1 text-[9px] uppercase tracking-[0.14em] ${
-                          active
-                            ? "border-[#c7ff39]/25 bg-[#c7ff39]/[0.04] text-[#c7ff39]"
-                            : "border-[#ffbf69]/25 bg-[#ffbf69]/[0.04] text-[#ffca80]"
+                          completed
+                            ? "border-[#7dd3fc]/25 bg-[#7dd3fc]/[0.04] text-[#9bdcff]"
+                            : active
+                              ? "border-[#c7ff39]/25 bg-[#c7ff39]/[0.04] text-[#c7ff39]"
+                              : "border-[#ffbf69]/25 bg-[#ffbf69]/[0.04] text-[#ffca80]"
                         }`}
                       >
                         {
@@ -1550,13 +2456,14 @@ function SwapList({
                         }
                       </span>
 
-                      {active && (
+                      {(active ||
+                        completed) && (
                         <span className="border border-white/10 px-2 py-1 text-[9px] uppercase tracking-[0.14em] text-[#a1a1aa]">
                           Reward{" "}
                           {
                             swap.reward_credits
                           }{" "}
-                          SS
+                          SS each
                         </span>
                       )}
                     </div>
@@ -1624,18 +2531,26 @@ function SwapList({
                     </div>
 
                     <p className="mt-4 text-xs text-white/35">
-                      {active
-                        ? `Accepted ${formatDate(
-                            swap.accepted_at
+                      {completed
+                        ? `Completed ${formatDate(
+                            swap.completed_at
                           )}`
-                        : `Requested ${formatDate(
-                            swap.created_at
-                          )}`}
+                        : active
+                          ? `Accepted ${formatDate(
+                              swap.accepted_at
+                            )}`
+                          : `Requested ${formatDate(
+                              swap.created_at
+                            )}`}
                     </p>
                   </div>
 
+                  {/* =======================================
+                      REQUEST ACTIONS
+                  ======================================= */}
+
                   {incoming && (
-                    <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
+                    <div className="flex flex-col gap-3 sm:flex-row xl:flex-col">
                       <button
                         type="button"
                         onClick={() =>
@@ -1692,23 +2607,297 @@ function SwapList({
                     </div>
                   )}
 
+                  {/* =======================================
+                      ACTIVE SWAP
+                  ======================================= */}
+
                   {active && (
-                    <div className="border border-white/10 bg-[#060807] px-5 py-4">
+                    <div className="space-y-4">
+                      <div className="border border-white/10 bg-[#060807] p-5">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2 text-[#c7ff39]">
+                            <CalendarDays
+                              size={14}
+                            />
+
+                            <p className="text-[9px] uppercase tracking-[0.14em]">
+                              Shared sessions
+                            </p>
+                          </div>
+
+                          <span className="text-[9px] text-white/30">
+                            {completedSessionCount} completed
+                          </span>
+                        </div>
+
+                        <div className="mt-4 space-y-3">
+                          {swapSessions.length > 0 ? (
+                            swapSessions.map(
+                              (session) => (
+                                <SessionRow
+                                  key={
+                                    session.id
+                                  }
+                                  session={
+                                    session
+                                  }
+                                  actionId={
+                                    actionId
+                                  }
+                                  onComplete={
+                                    onCompleteSession
+                                  }
+                                  onCancel={
+                                    onCancelSession
+                                  }
+                                  onOpenMeeting={
+                                    onOpenMeeting
+                                  }
+                                />
+                              )
+                            )
+                          ) : (
+                            <p className="text-xs leading-5 text-[#a1a1aa]">
+                              No shared meetings scheduled yet.
+                            </p>
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onScheduleSession(
+                              swap
+                            )
+                          }
+                          disabled={
+                            Boolean(
+                              actionId
+                            )
+                          }
+                          className="mt-4 inline-flex min-h-10 w-full items-center justify-center gap-2 border border-[#c7ff39]/25 bg-[#c7ff39]/[0.04] px-4 text-xs font-medium text-[#c7ff39] transition hover:bg-[#c7ff39]/[0.08] disabled:opacity-50"
+                        >
+                          <Plus
+                            size={14}
+                          />
+
+                          Schedule session
+                        </button>
+                      </div>
+
+                      <div className="border border-white/10 bg-[#060807] p-5">
+                        <div className="flex items-center gap-2 text-[#c7ff39]">
+                          <GraduationCap
+                            size={14}
+                          />
+
+                          <p className="text-[9px] uppercase tracking-[0.14em]">
+                            Completion status
+                          </p>
+                        </div>
+
+                      <div className="mt-4 space-y-3">
+                        <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-3">
+                          <span className="text-xs text-[#a1a1aa]">
+                            You
+                          </span>
+
+                          <span
+                            className={`inline-flex items-center gap-1.5 text-xs ${
+                              myCompleted
+                                ? "text-[#c7ff39]"
+                                : "text-[#ffca80]"
+                            }`}
+                          >
+                            {myCompleted && (
+                              <CheckCircle2
+                                size={13}
+                              />
+                            )}
+
+                            {myCompleted
+                              ? "Complete"
+                              : "Pending"}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-xs text-[#a1a1aa]">
+                            Partner
+                          </span>
+
+                          <span
+                            className={`inline-flex items-center gap-1.5 text-xs ${
+                              partnerCompleted
+                                ? "text-[#c7ff39]"
+                                : "text-[#ffca80]"
+                            }`}
+                          >
+                            {partnerCompleted && (
+                              <CheckCircle2
+                                size={13}
+                              />
+                            )}
+
+                            {partnerCompleted
+                              ? "Complete"
+                              : "Pending"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={
+                          processing ||
+                          myCompleted ||
+                          completedSessionCount < 1
+                        }
+                        onClick={() =>
+                          onComplete(
+                            swap
+                          )
+                        }
+                        className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 bg-[#c7ff39] px-4 text-sm font-semibold text-[#071008] transition hover:bg-[#d4ff66] disabled:cursor-not-allowed disabled:opacity-45"
+                      >
+                        {actionId ===
+                        completeKey ? (
+                          <Loader2
+                            size={15}
+                            className="animate-spin"
+                          />
+                        ) : (
+                          <CheckCircle2
+                            size={15}
+                          />
+                        )}
+
+                        {myCompleted
+                          ? "You confirmed completion"
+                          : "Mark my side complete"}
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={
+                          processing
+                        }
+                        onClick={() =>
+                          onMessage(
+                            otherId
+                          )
+                        }
+                        className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 border border-white/15 px-4 text-sm text-[#f2f4ef] transition hover:border-[#c7ff39]/30 hover:text-[#c7ff39] disabled:opacity-50"
+                      >
+                        {actionId ===
+                        messageKey ? (
+                          <Loader2
+                            size={15}
+                            className="animate-spin"
+                          />
+                        ) : (
+                          <MessageSquare
+                            size={15}
+                          />
+                        )}
+
+                        Message partner
+                      </button>
+
+                      {myCompleted &&
+                        !partnerCompleted && (
+                          <p className="mt-3 text-center text-[10px] leading-5 text-white/35">
+                            Your confirmation is saved. The swap will finish when your partner confirms completion.
+                          </p>
+                        )}
+
+                        {!myCompleted &&
+                          partnerCompleted && (
+                            <p className="mt-3 text-center text-[10px] leading-5 text-[#c7ff39]">
+                              Your partner has already confirmed. Your confirmation will complete the swap and release the SS reward.
+                            </p>
+                          )}
+
+                        {completedSessionCount < 1 && (
+                          <p className="mt-3 text-center text-[10px] leading-5 text-[#ffca80]">
+                            Complete at least one shared session before either member can confirm the whole swap.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* =======================================
+                      COMPLETED SWAP
+                  ======================================= */}
+
+                  {completed && (
+                    <div className="border border-[#c7ff39]/20 bg-[#c7ff39]/[0.035] p-5">
                       <div className="flex items-center gap-2 text-[#c7ff39]">
-                        <GraduationCap
-                          size={14}
+                        <CheckCircle2
+                          size={15}
                         />
 
                         <p className="text-[9px] uppercase tracking-[0.14em]">
-                          Swap active
+                          Swap completed
                         </p>
                       </div>
 
-                      <p className="mt-2 max-w-[220px] text-xs leading-5 text-[#a1a1aa]">
-                        Completion confirmation
-                        and SS rewards will be
-                        added in the next step.
+                      <p className="mt-3 text-sm leading-6 text-[#f2f4ef]">
+                        Both members confirmed completion.
                       </p>
+
+                      <div className="mt-4 border border-white/10 bg-[#060807] p-4">
+                        <p className="text-[9px] uppercase tracking-[0.13em] text-white/30">
+                          Reward earned
+                        </p>
+
+                        <p className="mt-1 text-xl font-medium text-[#c7ff39]">
+                          {
+                            swap.reward_credits
+                          }{" "}
+                          SS
+                        </p>
+                      </div>
+
+                      <div className="mt-3 border border-white/10 bg-[#060807] p-4">
+                        <p className="text-[9px] uppercase tracking-[0.13em] text-white/30">
+                          Shared sessions completed
+                        </p>
+
+                        <p className="mt-1 text-xl font-medium text-[#f2f4ef]">
+                          {
+                            completedSessionCount
+                          }
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={
+                          processing
+                        }
+                        onClick={() =>
+                          onMessage(
+                            otherId
+                          )
+                        }
+                        className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 border border-white/15 px-4 text-sm text-[#f2f4ef] transition hover:border-[#c7ff39]/30 hover:text-[#c7ff39] disabled:opacity-50"
+                      >
+                        {actionId ===
+                        messageKey ? (
+                          <Loader2
+                            size={15}
+                            className="animate-spin"
+                          />
+                        ) : (
+                          <MessageSquare
+                            size={15}
+                          />
+                        )}
+
+                        Message partner
+                      </button>
                     </div>
                   )}
                 </div>
@@ -1718,6 +2907,445 @@ function SwapList({
         )}
       </div>
     </section>
+  );
+}
+
+/* =========================================================
+   SWAP SESSION ROW
+========================================================= */
+
+function SessionRow({
+  session,
+  actionId,
+  onComplete,
+  onCancel,
+  onOpenMeeting,
+}) {
+  const completeKey =
+    `session-complete-${session.id}`;
+
+  const cancelKey =
+    `session-cancel-${session.id}`;
+
+  const busy =
+    actionId ===
+      completeKey ||
+    actionId ===
+      cancelKey;
+
+  const scheduled =
+    session.status ===
+    "Scheduled";
+
+  const completed =
+    session.status ===
+    "Completed";
+
+  const cancelled =
+    session.status ===
+    "Cancelled";
+
+  return (
+    <div className="border border-white/10 bg-white/[0.02] p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-xs font-medium text-[#f2f4ef]">
+            {
+              session.title
+            }
+          </p>
+
+          <p className="mt-1 text-[10px] leading-5 text-[#a1a1aa]">
+            {formatDate(
+              session.scheduled_at
+            )}
+            {" · "}
+            {
+              session.duration_minutes
+            }{" "}
+            min
+          </p>
+        </div>
+
+        <span
+          className={`shrink-0 text-[9px] uppercase tracking-[0.12em] ${
+            completed
+              ? "text-[#c7ff39]"
+              : cancelled
+                ? "text-[#ff8b8b]"
+                : "text-[#ffca80]"
+          }`}
+        >
+          {
+            session.status
+          }
+        </span>
+      </div>
+
+      {session.description && (
+        <p className="mt-2 text-[10px] leading-5 text-white/35">
+          {
+            session.description
+          }
+        </p>
+      )}
+
+      {!cancelled && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {session.meeting_url && (
+            <button
+              type="button"
+              onClick={() =>
+                onOpenMeeting(
+                  session.meeting_url
+                )
+              }
+              className="inline-flex min-h-8 items-center gap-1.5 border border-white/10 px-2.5 text-[10px] text-[#f2f4ef] transition hover:border-[#c7ff39]/30 hover:text-[#c7ff39]"
+            >
+              <Video
+                size={11}
+              />
+
+              Open meeting
+
+              <ExternalLink
+                size={10}
+              />
+            </button>
+          )}
+
+          {scheduled && (
+            <>
+              <button
+                type="button"
+                disabled={
+                  busy
+                }
+                onClick={() =>
+                  onComplete(
+                    session
+                  )
+                }
+                className="inline-flex min-h-8 items-center gap-1.5 bg-[#c7ff39] px-2.5 text-[10px] font-semibold text-[#071008] disabled:opacity-45"
+              >
+                {actionId ===
+                completeKey ? (
+                  <Loader2
+                    size={11}
+                    className="animate-spin"
+                  />
+                ) : (
+                  <Check
+                    size={11}
+                  />
+                )}
+
+                Complete
+              </button>
+
+              <button
+                type="button"
+                disabled={
+                  busy
+                }
+                onClick={() =>
+                  onCancel(
+                    session
+                  )
+                }
+                className="inline-flex min-h-8 items-center gap-1.5 border border-white/10 px-2.5 text-[10px] text-[#a1a1aa] transition hover:border-[#ff6b6b]/30 hover:text-[#ff8b8b] disabled:opacity-45"
+              >
+                {actionId ===
+                cancelKey ? (
+                  <Loader2
+                    size={11}
+                    className="animate-spin"
+                  />
+                ) : (
+                  <X
+                    size={11}
+                  />
+                )}
+
+                Cancel
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* =========================================================
+   SCHEDULE SESSION MODAL
+========================================================= */
+
+function SessionModal({
+  swap,
+  form,
+  setForm,
+  saving,
+  onClose,
+  onSubmit,
+}) {
+  return (
+    <div className="fixed inset-0 z-[80] grid place-items-center overflow-y-auto bg-black/75 p-4 backdrop-blur-sm">
+      <div className="my-8 w-full max-w-xl border border-white/10 bg-[#0a0d0b]">
+        <div className="flex items-start justify-between gap-4 border-b border-white/10 p-5">
+          <div>
+            <div className="flex items-center gap-2 text-[#c7ff39]">
+              <CalendarDays
+                size={14}
+              />
+
+              <p className="text-[10px] uppercase tracking-[0.16em]">
+                Shared swap meeting
+              </p>
+            </div>
+
+            <h2 className="mt-2 text-xl font-medium tracking-[-0.035em]">
+              Schedule a session
+            </h2>
+
+            <p className="mt-2 text-xs leading-5 text-[#a1a1aa]">
+              Both Swap Masters will use this same meeting to teach each other.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            disabled={
+              saving
+            }
+            onClick={
+              onClose
+            }
+            className="grid h-9 w-9 shrink-0 place-items-center border border-white/10 text-[#a1a1aa] transition hover:text-white disabled:opacity-50"
+          >
+            <X
+              size={14}
+            />
+          </button>
+        </div>
+
+        <form
+          onSubmit={
+            onSubmit
+          }
+          className="p-5"
+        >
+          <label className="block">
+            <span className="text-[10px] uppercase tracking-[0.13em] text-[#a1a1aa]">
+              Session title
+            </span>
+
+            <input
+              value={
+                form.title
+              }
+              onChange={(
+                event
+              ) =>
+                setForm(
+                  (
+                    current
+                  ) => ({
+                    ...current,
+                    title:
+                      event.target.value,
+                  })
+                )
+              }
+              maxLength={
+                120
+              }
+              required
+              className="mt-2 min-h-11 w-full border border-white/10 bg-[#060807] px-3 text-sm outline-none transition focus:border-[#c7ff39]/40"
+            />
+          </label>
+
+          <label className="mt-4 block">
+            <span className="text-[10px] uppercase tracking-[0.13em] text-[#a1a1aa]">
+              Description
+            </span>
+
+            <textarea
+              value={
+                form.description
+              }
+              onChange={(
+                event
+              ) =>
+                setForm(
+                  (
+                    current
+                  ) => ({
+                    ...current,
+                    description:
+                      event.target.value,
+                  })
+                )
+              }
+              maxLength={
+                2000
+              }
+              rows={
+                3
+              }
+              placeholder="What will you cover in this meeting?"
+              className="mt-2 w-full resize-none border border-white/10 bg-[#060807] px-3 py-3 text-sm outline-none transition placeholder:text-white/20 focus:border-[#c7ff39]/40"
+            />
+          </label>
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <label className="block">
+              <span className="text-[10px] uppercase tracking-[0.13em] text-[#a1a1aa]">
+                Date & time
+              </span>
+
+              <input
+                type="datetime-local"
+                value={
+                  form.scheduledAt
+                }
+                onChange={(
+                  event
+                ) =>
+                  setForm(
+                    (
+                      current
+                    ) => ({
+                      ...current,
+                      scheduledAt:
+                        event.target.value,
+                    })
+                  )
+                }
+                required
+                className="mt-2 min-h-11 w-full border border-white/10 bg-[#060807] px-3 text-sm outline-none transition focus:border-[#c7ff39]/40"
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-[10px] uppercase tracking-[0.13em] text-[#a1a1aa]">
+                Duration
+              </span>
+
+              <select
+                value={
+                  form.durationMinutes
+                }
+                onChange={(
+                  event
+                ) =>
+                  setForm(
+                    (
+                      current
+                    ) => ({
+                      ...current,
+                      durationMinutes:
+                        Number(
+                          event.target.value
+                        ),
+                    })
+                  )
+                }
+                className="mt-2 min-h-11 w-full border border-white/10 bg-[#060807] px-3 text-sm outline-none transition focus:border-[#c7ff39]/40"
+              >
+                <option value="30">
+                  30 minutes
+                </option>
+
+                <option value="45">
+                  45 minutes
+                </option>
+
+                <option value="60">
+                  60 minutes
+                </option>
+
+                <option value="90">
+                  90 minutes
+                </option>
+
+                <option value="120">
+                  120 minutes
+                </option>
+              </select>
+            </label>
+          </div>
+
+          <label className="mt-4 block">
+            <span className="text-[10px] uppercase tracking-[0.13em] text-[#a1a1aa]">
+              Meeting link
+            </span>
+
+            <input
+              type="url"
+              value={
+                form.meetingUrl
+              }
+              onChange={(
+                event
+              ) =>
+                setForm(
+                  (
+                    current
+                  ) => ({
+                    ...current,
+                    meetingUrl:
+                      event.target.value,
+                  })
+                )
+              }
+              placeholder="https://meet.google.com/..."
+              className="mt-2 min-h-11 w-full border border-white/10 bg-[#060807] px-3 text-sm outline-none transition placeholder:text-white/20 focus:border-[#c7ff39]/40"
+            />
+
+            <p className="mt-2 text-[10px] leading-5 text-white/30">
+              Google Meet, Zoom, Microsoft Teams, or another meeting URL.
+            </p>
+          </label>
+
+          <div className="mt-6 flex flex-col-reverse gap-3 border-t border-white/10 pt-5 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              disabled={
+                saving
+              }
+              onClick={
+                onClose
+              }
+              className="min-h-11 border border-white/15 px-5 text-sm text-[#a1a1aa] transition hover:text-white disabled:opacity-50"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              disabled={
+                saving
+              }
+              className="inline-flex min-h-11 items-center justify-center gap-2 bg-[#c7ff39] px-5 text-sm font-semibold text-[#071008] transition hover:bg-[#d4ff66] disabled:opacity-50"
+            >
+              {saving ? (
+                <Loader2
+                  size={15}
+                  className="animate-spin"
+                />
+              ) : (
+                <CalendarDays
+                  size={15}
+                />
+              )}
+
+              Schedule session
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
 

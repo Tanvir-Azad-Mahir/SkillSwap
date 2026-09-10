@@ -20,6 +20,8 @@ import EnrollmentRequests from "./pages/EnrollmentRequests";
 import Messages from "./pages/Messages";
 import Swaps from "./pages/Swaps";
 import MyCourses from "./pages/MyCourses";
+import Sessions from "./pages/Sessions";
+import UpcomingSessions from "./pages/UpcomingSessions";
 import CourseManage from "./pages/CourseManage";
 import CourseLearn from "./pages/CourseLearn";
 import Certificate from "./pages/Certificate";
@@ -125,6 +127,14 @@ export default function App() {
         <Route
           path="/swaps"
           element={<Swaps />}
+        />
+        <Route
+          path="/sessions"
+          element={<Sessions />}
+        />
+        <Route
+          path="/upcoming-sessions"
+          element={<UpcomingSessions />}
         />
         <Route
           path="/my-courses"
