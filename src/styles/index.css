@@ -102,6 +102,31 @@
   );
 }
 
+.skillswap-logo-word {
+  display: inline-block;
+  overflow: hidden;
+}
+
+.skillswap-logo-word::after {
+  position: absolute;
+  inset: 0 auto 0 -45%;
+  width: 24%;
+  content: "";
+  background: rgba(255, 255, 255, 0.32);
+  transform: skewX(-18deg);
+  animation: skillswap-logo-shine 3s cubic-bezier(.16, 1, .3, 1) infinite;
+  pointer-events: none;
+}
+
+@keyframes skillswap-logo-shine {
+  0%, 72% {
+    left: -45%;
+  }
+  92%, 100% {
+    left: 125%;
+  }
+}
+
 .reveal {
   opacity: 0;
   transform: translateY(1.5rem);
@@ -129,6 +154,19 @@ html.light .signup-page {
   color: #172019;
 }
 
+html.light .featured-members-section {
+  background-color: #ffffff;
+}
+
+html.light .user-card-overlay {
+  background: linear-gradient(
+    to top,
+    rgba(255, 255, 255, 0.96),
+    rgba(255, 255, 255, 0.16) 58%,
+    transparent
+  );
+}
+
 html.light .auth-page,
 html.light .profile-setup-page {
   background: #f7f9f5;
@@ -147,6 +185,9 @@ html.light [class~="bg-[#060807]/85"],
 html.light [class~="bg-[#060807]/90"],
 html.light [class~="bg-[#080a09]"],
 html.light [class~="bg-[#080a09]/85"],
+html.light [class~="bg-[#080b09]/70"],
+html.light [class~="bg-[#080b09]/90"],
+html.light [class~="bg-[#080b09]/95"],
 html.light [class~="bg-[#0a0d0b]"],
 html.light [class~="bg-[#0a0d0b]/65"],
 html.light [class~="bg-[#0a0d0b]/70"],

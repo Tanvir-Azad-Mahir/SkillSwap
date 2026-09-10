@@ -38,6 +38,7 @@ import CreditActivity from "../components/CreditActivity";
 import DashboardStats from "../components/DashboardStats";
 import DashboardCourses from "../components/DashboardCourses";
 import RecommendedMentors from "../components/RecommendedMentors";
+import DashboardMessagesDrawer from "../components/DashboardMessagesDrawer";
 
 /* =========================================================
    ROLE NORMALIZER
@@ -206,6 +207,11 @@ export default function Dashboard() {
     error,
     setError,
   ] = useState("");
+
+  const [
+    messagesOpen,
+    setMessagesOpen,
+  ] = useState(false);
 
   /* =========================================================
      LOAD DASHBOARD
@@ -1679,7 +1685,14 @@ export default function Dashboard() {
           onLogout={
             handleLogout
           }
+          onOpenMessages={() => setMessagesOpen(true)}
         />
+
+        {messagesOpen && (
+          <DashboardMessagesDrawer
+            onClose={() => setMessagesOpen(false)}
+          />
+        )}
 
         {/* ===================================================
             CONTENT
@@ -2330,20 +2343,22 @@ export default function Dashboard() {
           ================================================= */}
 
           <div className="mt-8 grid gap-6 xl:grid-cols-[1.4fr_.75fr]">
-            <div className="grid gap-6 lg:grid-cols-2">
-              <SkillSection
-                type="learning"
-                title="Learning"
-                eyebrow="Your focus"
-                items={
-                  learningItems
-                }
-                onAdd={() =>
-                  navigate(
-                    "/profile/edit?tab=learning"
-                  )
-                }
-              />
+            <div className={`grid gap-6 ${isMentor ? "lg:grid-cols-1" : "lg:grid-cols-2"}`}>
+              {!isMentor && (
+                <SkillSection
+                  type="learning"
+                  title="Learning"
+                  eyebrow="Your focus"
+                  items={
+                    learningItems
+                  }
+                  onAdd={() =>
+                    navigate(
+                      "/profile/edit?tab=learning"
+                    )
+                  }
+                />
+              )}
 
               <SkillSection
                 type="teaching"
@@ -2453,39 +2468,43 @@ export default function Dashboard() {
               TAKEN COURSES
           ================================================= */}
 
-       <DashboardCourses
-            title="Taken courses"
-            eyebrow="Continue learning"
-            type="taken"
-            courses={takenCourses}
-            emptyTitle="You haven't taken a course yet."
-            emptyText="Approved course enrollments will appear here with course and instructor details."
-            actionLabel="Explore courses"
-            onAction={() =>
-            navigate("/courses")
-                }
+          {!isMentor && (
+            <DashboardCourses
+              title="Taken courses"
+              eyebrow="Continue learning"
+              type="taken"
+              courses={takenCourses}
+              emptyTitle="You haven't taken a course yet."
+              emptyText="Approved course enrollments will appear here with course and instructor details."
+              actionLabel="Explore courses"
+              onAction={() =>
+                navigate("/courses")
+              }
             />
+          )}
 
           {/* =================================================
               FINISHED COURSES
           ================================================= */}
 
-          <DashboardCourses
-            title="Finished courses"
-            eyebrow="Your achievements"
-            type="finished"
-            courses={
-              finishedCourses
-            }
-            emptyTitle="No finished courses yet."
-            emptyText="Completed courses will appear here with completion information and achievements."
-            actionLabel="View learning skills"
-            onAction={() =>
-              navigate(
-                "/profile/edit?tab=learning"
-              )
-            }
-          />
+          {!isMentor && (
+            <DashboardCourses
+              title="Finished courses"
+              eyebrow="Your achievements"
+              type="finished"
+              courses={
+                finishedCourses
+              }
+              emptyTitle="No finished courses yet."
+              emptyText="Completed courses will appear here with completion information and achievements."
+              actionLabel="View learning skills"
+              onAction={() =>
+                navigate(
+                  "/profile/edit?tab=learning"
+                )
+              }
+            />
+          )}
 
           {/* =================================================
               RECOMMENDED MENTORS
@@ -2495,10 +2514,15 @@ export default function Dashboard() {
             mentors={
               mentors
             }
-            onEditLearning={() =>
-              navigate(
-                "/profile/edit?tab=learning"
-              )
+            title={isMentor ? "Popular mentors" : "Recommended mentors"}
+            eyebrow={isMentor ? "Community network" : "Discover people"}
+            onEditLearning={
+              isMentor
+                ? undefined
+                : () =>
+                    navigate(
+                      "/profile/edit?tab=learning"
+                    )
             }
           />
 

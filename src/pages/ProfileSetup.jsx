@@ -260,10 +260,6 @@ export default function ProfileSetup() {
                   category_id
                 `
               )
-              .eq(
-                "is_active",
-                true
-              )
               .order(
                 "name",
                 {

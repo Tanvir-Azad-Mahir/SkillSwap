@@ -17,7 +17,10 @@ create policy "Authenticated users can view active skills"
 on public.skills
 for select
 to authenticated
-using (is_active = true);
+using (
+  is_active = true
+  or status = 'Active'
+);
 
 drop policy if exists "Users can view own skills"
 on public.user_skills;

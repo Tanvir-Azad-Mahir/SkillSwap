@@ -42,12 +42,6 @@ export default function QuickActions({ role, navigate }) {
             icon: GraduationCap,
             onClick: () => navigate("/profile-setup"),
           },
-          {
-            label: "Learn something",
-            description: "Optional: add learning interests to your profile.",
-            icon: BookOpen,
-            onClick: () => navigate("/profile-setup"),
-          },
         ]
       : [
           {

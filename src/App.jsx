@@ -119,6 +119,10 @@ export default function App() {
           element={<Messages />}
         />
         <Route
+          path="/messages/:conversationId"
+          element={<Messages />}
+        />
+        <Route
           path="/swaps"
           element={<Swaps />}
         />

@@ -38,10 +38,10 @@ export default function Navbar() {
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 md:px-8 lg:px-10">
         <a
           href="#top"
-          className="group inline-flex items-center gap-2 rounded-sm text-xl font-black tracking-[-0.045em] text-white outline-none focus:ring-2 focus:ring-[#c7ff39] focus:ring-offset-4 focus:ring-offset-[#060807] md:text-2xl"
+          className="skillswap-logo group inline-flex items-center gap-2 rounded-sm text-xl font-black tracking-[-0.045em] text-white outline-none focus:ring-2 focus:ring-[#c7ff39] focus:ring-offset-4 focus:ring-offset-[#060807] md:text-2xl"
           aria-label="SkillSwap home"
         >
-          <span className="relative">SKILLSWAP</span>
+          <span className="skillswap-logo-word relative">SKILLSWAP</span>
           <span className="text-[#c7ff39] transition-transform duration-300 group-hover:rotate-12">+</span>
         </a>
 
@@ -99,8 +99,8 @@ export default function Navbar() {
         }`}
       >
         <div className="flex items-center justify-between">
-          <a href="#top" onClick={() => setOpen(false)} className="text-2xl font-black tracking-[-0.045em] text-white">
-            SKILLSWAP<span className="text-[#c7ff39]">+</span>
+          <a href="#top" onClick={() => setOpen(false)} className="skillswap-logo text-2xl font-black tracking-[-0.045em] text-white">
+            <span className="skillswap-logo-word relative">SKILLSWAP</span><span className="text-[#c7ff39]">+</span>
           </a>
           <button
             type="button"

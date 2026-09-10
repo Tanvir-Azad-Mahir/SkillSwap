@@ -4,7 +4,7 @@ const MAYA = "https://akpcainfbirpjvexinzt.supabase.co/storage/v1/object/sign/im
 
 export default function FeaturedMembers() {
   return (
-    <section id="community" className="border-y border-white/10 bg-[#080a09] py-28 md:py-36 lg:py-40">
+    <section id="community" className="featured-members-section border-y border-white/10 bg-[#080a09] py-28 md:py-36 lg:py-40">
       <div className="mx-auto grid max-w-7xl gap-14 px-5 md:px-8 lg:grid-cols-2 lg:items-center lg:px-10">
         <div className="reveal max-w-lg">
           <UserCard image={MAYA} name="The Deep" role="Lord of Seven Seas · SkillSwap member">

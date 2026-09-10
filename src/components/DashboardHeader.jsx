@@ -106,6 +106,7 @@ export default function DashboardHeader({
   learningSkills = [],
   teachingSkills = [],
   onLogout,
+  onOpenMessages,
 }) {
   const navigate = useNavigate();
 
@@ -135,8 +136,63 @@ export default function DashboardHeader({
     setNotificationError,
   ] = useState("");
 
+  const [
+    unreadMessageCount,
+    setUnreadMessageCount,
+  ] = useState(0);
+
   const notificationRef =
     useRef(null);
+
+  useEffect(() => {
+    if (!profile?.id) {
+      setUnreadMessageCount(0);
+      return undefined;
+    }
+
+    let active = true;
+
+    const loadUnreadMessages = async () => {
+      const {
+        data,
+        error,
+      } = await supabase.rpc(
+        "get_my_conversations"
+      );
+
+      if (error) {
+        console.error(
+          "UNREAD MESSAGE COUNT ERROR:",
+          error
+        );
+        return;
+      }
+
+      if (active) {
+        setUnreadMessageCount(
+          (data || []).reduce(
+            (total, conversation) =>
+              total + Number(
+                conversation.unread_count || 0
+              ),
+            0
+          )
+        );
+      }
+    };
+
+    loadUnreadMessages();
+
+    const interval = window.setInterval(
+      loadUnreadMessages,
+      5000
+    );
+
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, [profile?.id]);
 
   /* =======================================================
      NOTIFICATIONS
@@ -1190,19 +1246,23 @@ export default function DashboardHeader({
 
           <button
             type="button"
-            onClick={() =>
-              navigate(
-                "/messages"
-              )
-            }
+            onClick={onOpenMessages || (() => navigate("/messages"))}
             aria-label="Messages"
             title="Messages"
-            className="grid h-10 w-10 place-items-center border border-white/10 text-[#a1a1aa] transition hover:border-[#c7ff39]/30 hover:bg-[#c7ff39]/[0.03] hover:text-[#c7ff39]"
+            className="relative grid h-10 w-10 place-items-center border border-white/10 text-[#a1a1aa] transition hover:border-[#c7ff39]/30 hover:bg-[#c7ff39]/[0.03] hover:text-[#c7ff39]"
           >
             <MessageCircle
               size={17}
               strokeWidth={1.5}
             />
+
+            {unreadMessageCount > 0 && (
+              <span className="absolute -right-1 -top-1 grid min-h-5 min-w-5 place-items-center rounded-full border-2 border-[#060807] bg-[#c7ff39] px-1 text-[9px] font-bold text-[#071008] shadow-[0_0_12px_rgba(199,255,57,0.85)]">
+                {unreadMessageCount > 99
+                  ? "99+"
+                  : unreadMessageCount}
+              </span>
+            )}
           </button>
 
           {/* Notifications */}

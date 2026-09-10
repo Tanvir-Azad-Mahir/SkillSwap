@@ -3,6 +3,8 @@ import { ArrowRight, MapPin, UserRound } from "lucide-react";
 export default function RecommendedMentors({
   mentors = [],
   onEditLearning,
+  title = "Recommended mentors",
+  eyebrow = "Discover people",
 }) {
   const visible = mentors.slice(0, 4);
 
@@ -11,33 +13,35 @@ export default function RecommendedMentors({
       <div className="flex flex-col gap-4 border-b border-white/10 p-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-[10px] uppercase tracking-[0.16em] text-[#a1a1aa]">
-            Discover people
+            {eyebrow}
           </p>
 
           <h2 className="mt-1 text-2xl font-medium tracking-[-0.035em]">
-            Recommended mentors
+            {title}
           </h2>
         </div>
 
-        <button
-          type="button"
-          onClick={onEditLearning}
-          className="inline-flex items-center gap-2 text-xs font-medium text-[#c7ff39] hover:underline"
-        >
-          Update learning interests
-          <ArrowRight size={13} />
-        </button>
+        {onEditLearning && (
+          <button
+            type="button"
+            onClick={onEditLearning}
+            className="inline-flex items-center gap-2 text-xs font-medium text-[#c7ff39] hover:underline"
+          >
+            Update learning interests
+            <ArrowRight size={13} />
+          </button>
+        )}
       </div>
 
       <div className="p-5">
         {visible.length === 0 ? (
           <div className="border border-dashed border-white/10 px-5 py-10 text-center">
             <p className="text-sm text-[#a1a1aa]">
-              No mentor recommendations yet.
+              No mentors available yet.
             </p>
 
             <p className="mt-1 text-xs text-white/30">
-              Add learning interests to improve future matching.
+              Add skills to improve future matching.
             </p>
           </div>
         ) : (
