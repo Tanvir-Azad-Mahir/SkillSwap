@@ -80,6 +80,21 @@ export default function EnrollmentRequests() {
     setEnrollments,
   ] = useState([]);
 
+  const [
+    mentorshipRequests,
+    setMentorshipRequests,
+  ] = useState([]);
+
+  const [
+    mentorshipLearners,
+    setMentorshipLearners,
+  ] = useState([]);
+
+  const [
+    mentorshipSkills,
+    setMentorshipSkills,
+  ] = useState([]);
+
 
   const [
     courses,
@@ -315,6 +330,129 @@ export default function EnrollmentRequests() {
             rows
           );
 
+          const {
+            data: mentorshipData,
+            error: mentorshipError,
+          } = await supabase
+            .from("mentorship_requests")
+            .select(
+              `
+                id,
+                learner_id,
+                mentor_id,
+                skill_id,
+                status,
+                created_at
+              `
+            )
+            .eq(
+              "mentor_id",
+              authUser.id
+            )
+            .eq(
+              "status",
+              "Pending"
+            )
+            .order(
+              "created_at",
+              {
+                ascending: false,
+              }
+            );
+
+          if (mentorshipError) {
+            throw mentorshipError;
+          }
+
+          const mentorshipRows =
+            mentorshipData || [];
+
+          setMentorshipRequests(
+            mentorshipRows
+          );
+
+          const mentorshipLearnerIds = [
+            ...new Set(
+              mentorshipRows
+                .map(
+                  (row) => row.learner_id
+                )
+                .filter(Boolean)
+            ),
+          ];
+
+          const mentorshipSkillIds = [
+            ...new Set(
+              mentorshipRows
+                .map(
+                  (row) => row.skill_id
+                )
+                .filter(Boolean)
+            ),
+          ];
+
+          const [
+            mentorshipLearnerResult,
+            mentorshipSkillResult,
+          ] = await Promise.all([
+            mentorshipLearnerIds.length
+              ? supabase
+                  .from("profiles")
+                  .select(
+                    `
+                      id,
+                      username,
+                      full_name,
+                      avatar_url
+                    `
+                  )
+                  .in(
+                    "id",
+                    mentorshipLearnerIds
+                  )
+              : Promise.resolve({
+                  data: [],
+                  error: null,
+                }),
+            mentorshipSkillIds.length
+              ? supabase
+                  .from("skills")
+                  .select(
+                    `
+                      id,
+                      name
+                    `
+                  )
+                  .in(
+                    "id",
+                    mentorshipSkillIds
+                  )
+              : Promise.resolve({
+                  data: [],
+                  error: null,
+                }),
+          ]);
+
+          if (
+            mentorshipLearnerResult.error
+          ) {
+            throw mentorshipLearnerResult.error;
+          }
+
+          if (
+            mentorshipSkillResult.error
+          ) {
+            throw mentorshipSkillResult.error;
+          }
+
+          setMentorshipLearners(
+            mentorshipLearnerResult.data || []
+          );
+
+          setMentorshipSkills(
+            mentorshipSkillResult.data || []
+          );
+
 
           const courseIds = [
             ...new Set(
@@ -493,6 +631,34 @@ export default function EnrollmentRequests() {
           )
         ),
       [learners]
+    );
+
+  const mentorshipLearnerMap =
+    useMemo(
+      () =>
+        new Map(
+          mentorshipLearners.map(
+            (learner) => [
+              learner.id,
+              learner,
+            ]
+          )
+        ),
+      [mentorshipLearners]
+    );
+
+  const mentorshipSkillMap =
+    useMemo(
+      () =>
+        new Map(
+          mentorshipSkills.map(
+            (skill) => [
+              skill.id,
+              skill,
+            ]
+          )
+        ),
+      [mentorshipSkills]
     );
 
 
@@ -710,6 +876,75 @@ export default function EnrollmentRequests() {
         setError(
           err?.message ||
             "The enrollment request could not be rejected."
+        );
+      } finally {
+        setActionId(null);
+      }
+    };
+
+  const updateMentorshipRequest =
+    async (
+      request,
+      status
+    ) => {
+      if (
+        actionId ||
+        !request
+      ) {
+        return;
+      }
+
+      try {
+        setActionId(
+          request.id
+        );
+
+        setError("");
+        setSuccess("");
+
+        const {
+          error: updateError,
+        } = await supabase
+          .from("mentorship_requests")
+          .update({
+            status,
+          })
+          .eq(
+            "id",
+            request.id
+          )
+          .eq(
+            "status",
+            "Pending"
+          );
+
+        if (updateError) {
+          throw updateError;
+        }
+
+        setMentorshipRequests(
+          (current) =>
+            current.filter(
+              (item) =>
+                item.id !==
+                request.id
+            )
+        );
+
+        setSuccess(
+          status === "Accepted"
+            ? "Mentorship request approved."
+            : "Mentorship request rejected."
+        );
+      } catch (err) {
+        console.error(
+          "MENTORSHIP REQUEST UPDATE ERROR:",
+          err
+        );
+
+        setError(
+          err?.message ||
+            "The mentorship request could not be updated."
         );
       } finally {
         setActionId(null);
@@ -1056,6 +1291,127 @@ export default function EnrollmentRequests() {
               )}
             </section>
           )}
+
+          <section className="mt-10">
+            <div className="border-b border-white/10 pb-5">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-[#c7ff39]">
+                Mentorship
+              </p>
+
+              <h2 className="mt-2 text-2xl font-medium tracking-[-0.04em]">
+                Mentorship requests.
+              </h2>
+
+              <p className="mt-2 text-sm leading-6 text-[#a1a1aa]">
+                People who asked to learn from you will appear here.
+              </p>
+            </div>
+
+            {mentorshipRequests.length === 0 ? (
+              <div className="mt-6 border border-dashed border-white/10 px-6 py-8 text-sm text-[#a1a1aa]">
+                No pending mentorship requests.
+              </div>
+            ) : (
+              <div className="mt-6 grid gap-4">
+                {mentorshipRequests.map((request) => {
+                  const learner = mentorshipLearnerMap.get(
+                    request.learner_id
+                  );
+
+                  const skill = mentorshipSkillMap.get(
+                    request.skill_id
+                  );
+
+                  return (
+                    <article
+                      key={request.id}
+                      className="border border-white/10 bg-[#0a0d0b]/80 p-6"
+                    >
+                      <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
+                        <div className="flex items-center gap-4">
+                          {learner?.avatar_url ? (
+                            <img
+                              src={learner.avatar_url}
+                              alt={learner.full_name || "Learner"}
+                              className="h-12 w-12 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="grid h-12 w-12 place-items-center rounded-full border border-white/10">
+                              <UserRound
+                                size={18}
+                                className="text-[#737373]"
+                              />
+                            </div>
+                          )}
+
+                          <div>
+                            <h3 className="text-lg font-medium">
+                              {learner?.full_name || "Learner"}
+                            </h3>
+
+                            <p className="mt-1 text-xs text-[#a1a1aa]">
+                              @{learner?.username || "member"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="grid gap-3 sm:min-w-[280px]">
+                          <div className="text-sm sm:text-right">
+                            <p className="text-[#f2f4ef]">
+                              Wants to learn: {skill?.name || "your skill"}
+                            </p>
+
+                            <p className="mt-1 text-xs text-[#737373]">
+                              Requested {formatDate(request.created_at)}
+                            </p>
+                          </div>
+
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            <button
+                              type="button"
+                              disabled={actionId !== null}
+                              onClick={() =>
+                                updateMentorshipRequest(
+                                  request,
+                                  "Accepted"
+                                )
+                              }
+                              className="inline-flex min-h-10 items-center justify-center gap-2 bg-[#c7ff39] px-4 text-xs font-semibold text-[#071008] transition hover:bg-[#d4ff66] disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {actionId === request.id ? (
+                                <Loader2
+                                  size={14}
+                                  className="animate-spin"
+                                />
+                              ) : (
+                                <Check size={14} />
+                              )}
+                              Approve
+                            </button>
+
+                            <button
+                              type="button"
+                              disabled={actionId !== null}
+                              onClick={() =>
+                                updateMentorshipRequest(
+                                  request,
+                                  "Rejected"
+                                )
+                              }
+                              className="inline-flex min-h-10 items-center justify-center gap-2 border border-white/15 px-4 text-xs text-[#a1a1aa] transition hover:border-[#ff6b6b]/40 hover:text-[#ff8b8b] disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <X size={14} />
+                              Reject
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </section>
         </div>
       </div>
     </main>

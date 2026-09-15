@@ -26,6 +26,7 @@ import CourseManage from "./pages/CourseManage";
 import CourseLearn from "./pages/CourseLearn";
 import Certificate from "./pages/Certificate";
 import CertificateVerify from "./pages/CertificateVerify";
+import MentorshipRequests from "./pages/MentorshipRequests";
 
 export default function App() {
   return (
@@ -155,6 +156,10 @@ export default function App() {
       <Route
   path="/certificates/verify"
   element={<CertificateVerify />}
+/>
+        <Route
+  path="/mentorship-requests"
+  element={<MentorshipRequests />}
 />
         </Routes>
       </BrowserRouter>

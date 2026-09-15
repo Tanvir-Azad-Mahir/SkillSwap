@@ -13,6 +13,13 @@ import {
 
 import { supabase } from "../lib/supabase";
 
+function normalizeRole(role) {
+  return String(role || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+}
+
 function roleLabel(role) {
   if (role === "swap_master") {
     return "Swap Master";
@@ -164,6 +171,16 @@ export default function PublicProfile() {
     setActionLoading,
   ] = useState("");
 
+  const [
+    mentorshipModalOpen,
+    setMentorshipModalOpen,
+  ] = useState(false);
+
+  const [
+    selectedMentorshipSkillId,
+    setSelectedMentorshipSkillId,
+  ] = useState("");
+
   /* =========================================================
      LOAD PUBLIC PROFILE
   ========================================================= */
@@ -250,93 +267,36 @@ export default function PublicProfile() {
           return;
         }
 
-        setProfile(
-          profileData
+        setProfile({
+          ...profileData,
+          role: normalizeRole(profileData.role),
+        });
+
+        /* ===============================================
+           PUBLIC TEACHING + LEARNING SKILLS
+
+           Use one security-definer RPC instead of
+           reading user_skills / user_interests directly.
+        =============================================== */
+
+        const {
+          data: publicSkillsData,
+          error: publicSkillsError,
+        } = await supabase.rpc(
+          "get_public_profile_skills",
+          {
+            p_profile_id:
+              profileData.id,
+          }
         );
 
-        /* ===============================================
-           TEACHING SKILLS
-
-           ProfileSetup stores teaching skills in
-           user_skills with type = "offering".
-        =============================================== */
-
-        const {
-          data: teachingData,
-          error:
-            teachingError,
-        } = await supabase
-          .from("user_skills")
-          .select(
-            `
-              id,
-              skill_id,
-              proficiency_level,
-              years_experience,
-              is_verified,
-              skills (
-                id,
-                name,
-                description,
-                difficulty_level
-              )
-            `
-          )
-          .eq(
-            "user_id",
-            profileData.id
-          )
-          .eq(
-            "type",
-            "offering"
-          );
-
-        if (teachingError) {
+        if (publicSkillsError) {
           console.error(
-            "Teaching skills error:",
-            teachingError
-          );
-        }
-
-        /* ===============================================
-           LEARNING SKILLS
-
-           Your ProfileSetup stores learning skills
-           inside user_interests.
-        =============================================== */
-
-        const {
-          data: learningData,
-          error:
-            learningError,
-        } = await supabase
-          .from(
-            "user_interests"
-          )
-          .select(
-            `
-              id,
-              skill_id,
-              interest_text,
-              weight,
-              skills (
-                id,
-                name,
-                description,
-                difficulty_level
-              )
-            `
-          )
-          .eq(
-            "user_id",
-            profileData.id
+            "Public profile skills error:",
+            publicSkillsError
           );
 
-        if (learningError) {
-          console.error(
-            "Learning skills error:",
-            learningError
-          );
+          throw publicSkillsError;
         }
 
         if (!active) {
@@ -344,11 +304,13 @@ export default function PublicProfile() {
         }
 
         setTeachingSkills(
-          teachingData || []
+          publicSkillsData?.teaching_skills ||
+            []
         );
 
         setLearningSkills(
-          learningData || []
+          publicSkillsData?.learning_skills ||
+            []
         );
       } catch (err) {
         console.error(
@@ -421,6 +383,68 @@ export default function PublicProfile() {
      PROFILE ACTIONS
   ========================================================= */
 
+  const openMentorshipModal =
+    () => {
+      setRequestNotice("");
+
+      if (!currentUser) {
+        navigate("/login");
+        return;
+      }
+
+      if (isOwnProfile) {
+        setRequestNotice(
+          "You cannot request mentorship from your own profile."
+        );
+        return;
+      }
+
+      if (!canMentor) {
+        setRequestNotice(
+          "This member is not currently offering mentorship."
+        );
+        return;
+      }
+
+      if (
+        teachingSkills.length ===
+        0
+      ) {
+        setRequestNotice(
+          "This mentor has not added any teaching skills yet."
+        );
+        return;
+      }
+
+      setSelectedMentorshipSkillId(
+        teachingSkills[0]
+          ?.skill_id ||
+          ""
+      );
+
+      setMentorshipModalOpen(
+        true
+      );
+    };
+
+  const closeMentorshipModal =
+    () => {
+      if (
+        actionLoading ===
+        "mentorship"
+      ) {
+        return;
+      }
+
+      setMentorshipModalOpen(
+        false
+      );
+
+      setSelectedMentorshipSkillId(
+        ""
+      );
+    };
+
   const handleRequestMentorship =
     async () => {
       setRequestNotice("");
@@ -445,29 +469,46 @@ export default function PublicProfile() {
       }
 
       if (
-        teachingSkills.length === 0
+        !selectedMentorshipSkillId
       ) {
         setRequestNotice(
-          "This mentor has not added any teaching skills yet."
+          "Choose a teaching skill first."
         );
         return;
       }
 
       try {
-        setActionLoading("mentorship");
+        setActionLoading(
+          "mentorship"
+        );
 
-        const { error: requestError } = await supabase
-          .from("mentorship_requests")
-          .insert({
-            learner_id: currentUser.id,
-            mentor_id: profile.id,
-            skill_id: teachingSkills[0].skill_id,
-            status: "Pending",
-          });
+        const {
+          error:
+            requestError,
+        } =
+          await supabase.rpc(
+            "request_mentorship",
+            {
+              p_mentor_id:
+                profile.id,
+              p_skill_id:
+                selectedMentorshipSkillId,
+            }
+          );
 
-        if (requestError) {
+        if (
+          requestError
+        ) {
           throw requestError;
         }
+
+        setMentorshipModalOpen(
+          false
+        );
+
+        setSelectedMentorshipSkillId(
+          ""
+        );
 
         setRequestNotice(
           "Mentorship request sent successfully."
@@ -478,12 +519,42 @@ export default function PublicProfile() {
           err
         );
 
-        setRequestNotice(
-          err?.code === "23505"
-            ? "You already have a request with this mentor."
-            : err?.message ||
+        const message =
+          String(
+            err?.message ||
+              ""
+          );
+
+        if (
+          message.includes(
+            "MENTORSHIP_REQUEST_EXISTS"
+          )
+        ) {
+          setRequestNotice(
+            "You already have a pending mentorship request for this skill."
+          );
+        } else if (
+          message.includes(
+            "MENTOR_NOT_AVAILABLE"
+          )
+        ) {
+          setRequestNotice(
+            "This member is not currently available for mentorship."
+          );
+        } else if (
+          message.includes(
+            "SKILL_NOT_OFFERED"
+          )
+        ) {
+          setRequestNotice(
+            "This skill is no longer offered by the mentor."
+          );
+        } else {
+          setRequestNotice(
+            err?.message ||
               "Your mentorship request could not be sent."
-        );
+          );
+        }
       } finally {
         setActionLoading("");
       }
@@ -728,25 +799,26 @@ export default function PublicProfile() {
                 </Link>
               ) : (
                 <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
-                  <button
-                    type="button"
-                    onClick={
-                      handleRequestMentorship
-                    }
-                    disabled={
-                      !canMentor ||
-                      actionLoading !== ""
-                    }
-                    className="flex min-h-[50px] w-full items-center justify-center gap-2 bg-[#c7ff39] px-5 text-sm font-semibold text-[#071008] transition hover:bg-[#d2ff64] disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-[#737373]"
-                  >
-                    {actionLoading === "mentorship" && (
-                      <Loader2
-                        size={16}
-                        className="animate-spin"
-                      />
-                    )}
-                    Request Mentorship
-                  </button>
+                  {canMentor && (
+                    <button
+                      type="button"
+                      onClick={
+                        openMentorshipModal
+                      }
+                      disabled={
+                        actionLoading !== ""
+                      }
+                      className="flex min-h-[50px] w-full items-center justify-center gap-2 bg-[#c7ff39] px-5 text-sm font-semibold text-[#071008] transition hover:bg-[#d2ff64] disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-[#737373]"
+                    >
+                      {actionLoading === "mentorship" && (
+                        <Loader2
+                          size={16}
+                          className="animate-spin"
+                        />
+                      )}
+                      Request Mentorship
+                    </button>
+                  )}
 
                   <button
                     type="button"
@@ -959,6 +1031,156 @@ export default function PublicProfile() {
             history are private.
           </p>
         </div>
+
+        {mentorshipModalOpen && (
+          <div className="fixed inset-0 z-[80] grid place-items-center overflow-y-auto bg-black/75 p-4 backdrop-blur-sm">
+            <div className="my-8 w-full max-w-xl border border-white/10 bg-[#0a0d0b]">
+              <div className="flex items-start justify-between gap-4 border-b border-white/10 p-5">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-[#c7ff39]">
+                    Mentorship request
+                  </p>
+
+                  <h2 className="mt-2 text-2xl font-medium tracking-[-0.035em]">
+                    Choose what you want to learn.
+                  </h2>
+
+                  <p className="mt-2 text-sm leading-6 text-[#a1a1aa]">
+                    Select one of {profile.full_name || profile.username}&apos;s teaching skills.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={
+                    closeMentorshipModal
+                  }
+                  disabled={
+                    actionLoading ===
+                    "mentorship"
+                  }
+                  className="grid h-9 w-9 shrink-0 place-items-center border border-white/10 text-[#a1a1aa] transition hover:border-[#c7ff39]/30 hover:text-[#c7ff39] disabled:opacity-50"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="p-5">
+                <div className="space-y-2">
+                  {teachingSkills.map(
+                    (skill) => {
+                      const skillName =
+                        skill.skills
+                          ?.name ||
+                        "Unnamed skill";
+
+                      const selected =
+                        selectedMentorshipSkillId ===
+                        skill.skill_id;
+
+                      return (
+                        <button
+                          key={
+                            skill.skill_id
+                          }
+                          type="button"
+                          onClick={() =>
+                            setSelectedMentorshipSkillId(
+                              skill.skill_id
+                            )
+                          }
+                          className={`flex w-full items-center justify-between gap-4 border p-4 text-left transition ${
+                            selected
+                              ? "border-[#c7ff39]/40 bg-[#c7ff39]/[0.055]"
+                              : "border-white/10 bg-[#060807] hover:border-white/20"
+                          }`}
+                        >
+                          <div>
+                            <p className="text-sm font-medium text-[#f2f4ef]">
+                              {
+                                skillName
+                              }
+                            </p>
+
+                            {skill.skills
+                              ?.difficulty && (
+                              <p className="mt-1 text-xs text-[#737373]">
+                                {
+                                  skill
+                                    .skills
+                                    .difficulty
+                                }
+                              </p>
+                            )}
+                          </div>
+
+                          <span
+                            className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border ${
+                              selected
+                                ? "border-[#c7ff39] bg-[#c7ff39] text-[#071008]"
+                                : "border-white/20"
+                            }`}
+                          >
+                            {selected
+                              ? "✓"
+                              : ""}
+                          </span>
+                        </button>
+                      );
+                    }
+                  )}
+                </div>
+
+                {requestNotice && (
+                  <p className="mt-4 text-xs leading-5 text-[#ffca80]">
+                    {
+                      requestNotice
+                    }
+                  </p>
+                )}
+
+                <div className="mt-6 flex flex-col-reverse gap-3 border-t border-white/10 pt-5 sm:flex-row sm:justify-end">
+                  <button
+                    type="button"
+                    onClick={
+                      closeMentorshipModal
+                    }
+                    disabled={
+                      actionLoading ===
+                      "mentorship"
+                    }
+                    className="min-h-11 border border-white/15 px-5 text-sm text-[#a1a1aa] transition hover:text-white disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={
+                      handleRequestMentorship
+                    }
+                    disabled={
+                      actionLoading ===
+                        "mentorship" ||
+                      !selectedMentorshipSkillId
+                    }
+                    className="inline-flex min-h-11 items-center justify-center gap-2 bg-[#c7ff39] px-5 text-sm font-semibold text-[#071008] transition hover:bg-[#d2ff64] disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-[#737373]"
+                  >
+                    {actionLoading ===
+                    "mentorship" ? (
+                      <Loader2
+                        size={16}
+                        className="animate-spin"
+                      />
+                    ) : null}
+
+                    Send request
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );

@@ -4,7 +4,7 @@ grant select on table public.skills to authenticated;
 grant select on table public.user_skills to authenticated;
 grant select on table public.user_interests to authenticated;
 grant select on table public.sessions to authenticated;
-grant select, insert on table public.mentorship_requests to authenticated;
+grant select, insert, update on table public.mentorship_requests to authenticated;
 
 alter table public.skills enable row level security;
 alter table public.user_skills enable row level security;
@@ -23,23 +23,29 @@ using (
   or status = 'Active'
 );
 
+drop policy if exists "Users can view profile skills"
+on public.user_skills;
+
 drop policy if exists "Users can view own skills"
 on public.user_skills;
 
-create policy "Users can view own skills"
+create policy "Users can view profile skills"
 on public.user_skills
 for select
 to authenticated
-using ((select auth.uid()) = user_id);
+using (true);
+
+drop policy if exists "Users can view profile interests"
+on public.user_interests;
 
 drop policy if exists "Users can view own interests"
 on public.user_interests;
 
-create policy "Users can view own interests"
+create policy "Users can view profile interests"
 on public.user_interests
 for select
 to authenticated
-using ((select auth.uid()) = user_id);
+using (true);
 
 drop policy if exists "Users can view own sessions"
 on public.sessions;
@@ -77,3 +83,13 @@ using (
   or
   (select auth.uid()) = mentor_id
 );
+
+drop policy if exists "Mentors can update mentorship requests"
+on public.mentorship_requests;
+
+create policy "Mentors can update mentorship requests"
+on public.mentorship_requests
+for update
+to authenticated
+using ((select auth.uid()) = mentor_id)
+with check ((select auth.uid()) = mentor_id);
