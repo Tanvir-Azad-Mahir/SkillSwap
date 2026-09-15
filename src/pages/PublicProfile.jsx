@@ -4,7 +4,9 @@ import {
   ArrowLeft,
   BookOpen,
   GraduationCap,
+  Loader2,
   MapPin,
+  MessageSquare,
   Target,
   UserRound,
 } from "lucide-react";
@@ -155,6 +157,11 @@ export default function PublicProfile() {
   const [
     requestNotice,
     setRequestNotice,
+  ] = useState("");
+
+  const [
+    actionLoading,
+    setActionLoading,
   ] = useState("");
 
   /* =========================================================
@@ -411,14 +418,11 @@ export default function PublicProfile() {
     );
 
   /* =========================================================
-     REQUEST MENTORSHIP
-
-     Full mentorship request form/database flow
-     will be connected in the next step.
+     PROFILE ACTIONS
   ========================================================= */
 
   const handleRequestMentorship =
-    () => {
+    async () => {
       setRequestNotice("");
 
       if (!currentUser) {
@@ -449,15 +453,90 @@ export default function PublicProfile() {
         return;
       }
 
-      /*
-        NEXT STEP:
-        open mentorship request modal here.
-      */
+      try {
+        setActionLoading("mentorship");
+
+        const { error: requestError } = await supabase
+          .from("mentorship_requests")
+          .insert({
+            learner_id: currentUser.id,
+            mentor_id: profile.id,
+            skill_id: teachingSkills[0].skill_id,
+            status: "Pending",
+          });
+
+        if (requestError) {
+          throw requestError;
+        }
+
+        setRequestNotice(
+          "Mentorship request sent successfully."
+        );
+      } catch (err) {
+        console.error(
+          "MENTORSHIP REQUEST ERROR:",
+          err
+        );
+
+        setRequestNotice(
+          err?.code === "23505"
+            ? "You already have a request with this mentor."
+            : err?.message ||
+              "Your mentorship request could not be sent."
+        );
+      } finally {
+        setActionLoading("");
+      }
+    };
+
+  const handleMessage = async () => {
+    setRequestNotice("");
+
+    if (!currentUser) {
+      navigate("/login");
+      return;
+    }
+
+    if (isOwnProfile) {
+      setRequestNotice(
+        "You cannot message your own profile."
+      );
+      return;
+    }
+
+    try {
+      setActionLoading("message");
+
+      const { data, error: conversationError } = await supabase.rpc(
+        "get_or_create_conversation",
+        {
+          p_other_user_id: profile.id,
+        }
+      );
+
+      if (conversationError) {
+        throw conversationError;
+      }
+
+      if (!data) {
+        throw new Error("CONVERSATION_NOT_CREATED");
+      }
+
+      navigate(`/messages/${data}`);
+    } catch (err) {
+      console.error(
+        "START PROFILE MESSAGE ERROR:",
+        err
+      );
 
       setRequestNotice(
-        "Mentorship request form will open here."
+        err?.message ||
+          "The conversation could not be started."
       );
-    };
+    } finally {
+      setActionLoading("");
+    }
+  };
 
   /* =========================================================
      LOADING
@@ -648,18 +727,50 @@ export default function PublicProfile() {
                   Edit profile
                 </Link>
               ) : (
-                <button
-                  type="button"
-                  onClick={
-                    handleRequestMentorship
-                  }
-                  disabled={
-                    !canMentor
-                  }
-                  className="flex min-h-[50px] w-full items-center justify-center bg-[#c7ff39] px-5 text-sm font-semibold text-[#071008] transition hover:bg-[#d2ff64] disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-[#737373]"
-                >
-                  Request Mentorship
-                </button>
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+                  <button
+                    type="button"
+                    onClick={
+                      handleRequestMentorship
+                    }
+                    disabled={
+                      !canMentor ||
+                      actionLoading !== ""
+                    }
+                    className="flex min-h-[50px] w-full items-center justify-center gap-2 bg-[#c7ff39] px-5 text-sm font-semibold text-[#071008] transition hover:bg-[#d2ff64] disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-[#737373]"
+                  >
+                    {actionLoading === "mentorship" && (
+                      <Loader2
+                        size={16}
+                        className="animate-spin"
+                      />
+                    )}
+                    Request Mentorship
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={
+                      handleMessage
+                    }
+                    disabled={
+                      actionLoading !== ""
+                    }
+                    className="flex min-h-[50px] w-full items-center justify-center gap-2 border border-white/15 px-5 text-sm font-medium transition hover:border-[#c7ff39]/40 hover:text-[#c7ff39] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {actionLoading === "message" ? (
+                      <Loader2
+                        size={16}
+                        className="animate-spin"
+                      />
+                    ) : (
+                      <MessageSquare
+                        size={16}
+                      />
+                    )}
+                    Message
+                  </button>
+                </div>
               )}
 
               {requestNotice && (
