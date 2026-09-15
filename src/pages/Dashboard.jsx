@@ -162,6 +162,11 @@ export default function Dashboard() {
   ] = useState([]);
 
   const [
+    mentorCourseCounts,
+    setMentorCourseCounts,
+  ] = useState({});
+
+  const [
     sessions,
     setSessions,
   ] = useState([]);
@@ -674,7 +679,19 @@ export default function Dashboard() {
                 ),
 
               /* =============================================
-                 10. CURRENT USER COURSES
+                 10. MENTOR COURSE COUNTS
+              ============================================= */
+
+              supabase
+                .from(
+                  "courses"
+                )
+                .select(
+                  "instructor_id"
+                ),
+
+              /* =============================================
+                 11. CURRENT USER COURSES
               ============================================= */
 
               supabase
@@ -707,7 +724,7 @@ export default function Dashboard() {
                 .limit(8),
 
               /* =============================================
-                 11. LEARNER COURSE ENROLLMENTS
+                 12. LEARNER COURSE ENROLLMENTS
 
                  Approved = currently taking
                  Completed = finished
@@ -765,6 +782,7 @@ export default function Dashboard() {
             transactionsResult,
             profilesResult,
             mentorOfferingsResult,
+            mentorCoursesResult,
             coursesResult,
             enrollmentsResult,
           ] = results;
@@ -1169,6 +1187,43 @@ export default function Dashboard() {
 
             setSearchProfiles(
               members
+            );
+          }
+
+          if (
+            mentorCoursesResult.error
+          ) {
+            console.warn(
+              "MENTOR COURSE COUNTS ERROR:",
+              mentorCoursesResult.error
+            );
+
+            setMentorCourseCounts(
+              {}
+            );
+          } else {
+            const courseCounts = {};
+
+            (
+              mentorCoursesResult.data ||
+              []
+            ).forEach(
+              (course) => {
+                if (!course.instructor_id) {
+                  return;
+                }
+
+                courseCounts[
+                  course.instructor_id
+                ] =
+                  (courseCounts[
+                    course.instructor_id
+                  ] || 0) + 1;
+              }
+            );
+
+            setMentorCourseCounts(
+              courseCounts
             );
           }
 
@@ -1812,11 +1867,17 @@ export default function Dashboard() {
             offeringsByUser.get(
               member.id
             ) || [],
+
+          courseCount:
+            mentorCourseCounts[
+              member.id
+            ] || 0,
         })
       );
     }, [
       searchProfiles,
       offeringsByUser,
+      mentorCourseCounts,
     ]);
 
   /* =========================================================
@@ -2842,8 +2903,8 @@ export default function Dashboard() {
             mentors={
               mentors
             }
-            title={isMentor ? "Popular mentors" : "Recommended mentors"}
-            eyebrow={isMentor ? "Community network" : "Discover people"}
+            title="Popular mentors"
+            eyebrow="Discover people"
             onEditLearning={
               isMentor
                 ? undefined

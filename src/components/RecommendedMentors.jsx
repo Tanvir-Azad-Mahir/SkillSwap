@@ -97,6 +97,10 @@ export default function RecommendedMentors({
                     </p>
                   )}
 
+                  <p className="mt-4 text-xs text-white/45">
+                    {mentor.courseCount} created {mentor.courseCount === 1 ? "course" : "courses"}
+                  </p>
+
                   {teaching.length > 0 && (
                     <div className="mt-4 flex flex-wrap gap-2">
                       {teaching.map((skill) => (

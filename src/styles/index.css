@@ -140,6 +140,16 @@
   transform: translateY(0);
 }
 
+.faq-grid {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 300ms ease;
+}
+
+.faq-grid.is-open {
+  grid-template-rows: 1fr;
+}
+
 /* Existing screens use dark utility colors directly; remap them in light mode. */
 html.light body {
   background-color: #f7f9f5;

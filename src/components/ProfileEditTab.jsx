@@ -164,7 +164,7 @@ export default function ProfileEditTab({
               </div>
             )}
 
-            <label className="absolute inset-x-0 bottom-0 flex cursor-pointer items-center justify-center gap-2 bg-black/75 px-3 py-2.5 text-xs text-white backdrop-blur-sm">
+            <label className="absolute inset-x-0 bottom-0 flex cursor-pointer items-center justify-center gap-2 bg-[#c7ff39] px-3 py-2.5 text-xs font-semibold text-[#071008] transition hover:bg-[#d4ff66]">
               <Camera
                 size={14}
               />
