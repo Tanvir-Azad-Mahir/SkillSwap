@@ -20,6 +20,7 @@ import {
   Zap,
   History as HistoryIcon,
   Inbox,
+  UserCheck,
 } from "lucide-react";
 
 import {
@@ -2205,6 +2206,26 @@ export default function Dashboard() {
                         />
 
                         Enrollment requests
+                      </button>
+                    )}
+
+                    {/* MENTORSHIP REQUESTS - MENTOR / SWAP MASTER */}
+
+                    {canCreateCourse && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          navigate(
+                            "/mentorship-requests"
+                          )
+                        }
+                        className="inline-flex min-h-11 items-center justify-center gap-2 border border-white/15 px-5 text-sm font-medium text-[#f2f4ef] transition hover:border-[#c7ff39]/30 hover:bg-[#c7ff39]/[0.03] hover:text-[#c7ff39]"
+                      >
+                        <UserCheck
+                          size={16}
+                        />
+
+                        Mentorship requests
                       </button>
                     )}
 
