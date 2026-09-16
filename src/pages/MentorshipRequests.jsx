@@ -906,6 +906,8 @@ export default function MentorshipRequests() {
         setSuccess("");
 
         const {
+          data:
+            completionData,
           error:
             completeError,
         } =
@@ -938,8 +940,15 @@ export default function MentorshipRequests() {
             )
         );
 
+        const transferredCredits =
+          Number(
+            completionData?.price_credits ??
+            request.price_credits ??
+            50
+          ) || 50;
+
         setSuccess(
-          "Mentorship marked completed."
+          `Mentorship completed. ${transferredCredits} SS transferred from the learner to you.`
         );
       } catch (err) {
         console.error(
@@ -960,6 +969,22 @@ export default function MentorshipRequests() {
         ) {
           setError(
             "Complete at least one mentor session before completing the mentorship."
+          );
+        } else if (
+          message.includes(
+            "INSUFFICIENT_CREDITS"
+          )
+        ) {
+          setError(
+            "The learner does not have enough SS credits to complete this mentorship yet."
+          );
+        } else if (
+          message.includes(
+            "MENTORSHIP_PRICE_INVALID"
+          )
+        ) {
+          setError(
+            "This mentorship has an invalid credit price."
           );
         } else {
           setError(
@@ -1339,7 +1364,7 @@ export default function MentorshipRequests() {
                 />
               </label>
 
-              <div className="mt-5 grid grid-cols-2 gap-4">
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 <label className="block">
                   <span className="text-[10px] uppercase tracking-[0.14em] text-[#a1a1aa]">
                     Date and time
@@ -1359,7 +1384,7 @@ export default function MentorshipRequests() {
                 />
               </label>
 
-              <label className="block">
+              <label className="mt-5 block">
                 <span className="text-[10px] uppercase tracking-[0.14em] text-[#a1a1aa]">
                   Duration
                 </span>
@@ -1620,6 +1645,20 @@ function RequestCard({
 
               <div>
                 <p className="text-[9px] uppercase tracking-[0.14em] text-white/30">
+                  Mentorship fee
+                </p>
+
+                <p className="mt-1 text-sm font-medium text-[#c7ff39]">
+                  {
+                    request.price_credits ??
+                    50
+                  }{" "}
+                  SS
+                </p>
+              </div>
+
+              <div>
+                <p className="text-[9px] uppercase tracking-[0.14em] text-white/30">
                   Requested
                 </p>
 
@@ -1769,7 +1808,10 @@ function RequestCard({
                   />
                 )}
 
-                Complete mentorship
+                Complete mentorship · +{
+                  request.price_credits ??
+                  50
+                } SS
               </button>
             </>
           )}

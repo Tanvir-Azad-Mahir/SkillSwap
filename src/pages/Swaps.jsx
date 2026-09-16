@@ -2459,7 +2459,7 @@ function SwapList({
                       {(active ||
                         completed) && (
                         <span className="border border-white/10 px-2 py-1 text-[9px] uppercase tracking-[0.14em] text-[#a1a1aa]">
-                          Reward{" "}
+                          Swap reward{" "}
                           {
                             swap.reward_credits
                           }{" "}
@@ -2849,14 +2849,18 @@ function SwapList({
 
                       <div className="mt-4 border border-white/10 bg-[#060807] p-4">
                         <p className="text-[9px] uppercase tracking-[0.13em] text-white/30">
-                          Reward earned
+                          Swap reward earned
                         </p>
 
                         <p className="mt-1 text-xl font-medium text-[#c7ff39]">
-                          {
+                          +{
                             swap.reward_credits
                           }{" "}
                           SS
+                        </p>
+
+                        <p className="mt-1 text-[9px] uppercase tracking-[0.12em] text-white/25">
+                          Credit type: Swap reward
                         </p>
                       </div>
 

@@ -142,6 +142,11 @@ export default function PublicProfile() {
   ] = useState(null);
 
   const [
+    currentProfile,
+    setCurrentProfile,
+  ] = useState(null);
+
+  const [
     teachingSkills,
     setTeachingSkills,
   ] = useState([]);
@@ -205,6 +210,63 @@ export default function PublicProfile() {
         if (active) {
           setCurrentUser(
             authData?.user || null
+          );
+        }
+
+        if (
+          authData?.user?.id
+        ) {
+          const {
+            data:
+              currentProfileData,
+            error:
+              currentProfileError,
+          } =
+            await supabase
+              .from("profiles")
+              .select(
+                `
+                  id,
+                  role,
+                  credits,
+                  is_active
+                `
+              )
+              .eq(
+                "id",
+                authData.user.id
+              )
+              .maybeSingle();
+
+          if (
+            currentProfileError
+          ) {
+            console.error(
+              "Current profile load error:",
+              currentProfileError
+            );
+          } else if (
+            active
+          ) {
+            setCurrentProfile(
+              currentProfileData
+                ? {
+                    ...currentProfileData,
+                    role:
+                      normalizeRole(
+                        currentProfileData.role
+                      ),
+                    credits:
+                      Number(
+                        currentProfileData.credits
+                      ) || 0,
+                  }
+                : null
+            );
+          }
+        } else if (active) {
+          setCurrentProfile(
+            null
           );
         }
 
@@ -366,6 +428,22 @@ export default function PublicProfile() {
     profile?.role ===
       "swap_master";
 
+  const canSendMentorshipRequest =
+    !currentUser ||
+    currentProfile?.role ===
+      "learner" ||
+    currentProfile?.role ===
+      "swap_master";
+
+  const mentorshipBalance =
+    Number(
+      currentProfile?.credits
+    ) || 0;
+
+  const hasMentorshipCredits =
+    !currentUser ||
+    mentorshipBalance >= 50;
+
   const avatarInitials =
     useMemo(
       () =>
@@ -395,6 +473,24 @@ export default function PublicProfile() {
       if (isOwnProfile) {
         setRequestNotice(
           "You cannot request mentorship from your own profile."
+        );
+        return;
+      }
+
+      if (
+        !canSendMentorshipRequest
+      ) {
+        setRequestNotice(
+          "Mentors cannot send mentorship requests."
+        );
+        return;
+      }
+
+      if (
+        !hasMentorshipCredits
+      ) {
+        setRequestNotice(
+          `You need at least 50 SS to request mentorship. Your balance is ${mentorshipBalance} SS.`
         );
         return;
       }
@@ -457,6 +553,24 @@ export default function PublicProfile() {
       if (isOwnProfile) {
         setRequestNotice(
           "You cannot request mentorship from your own profile."
+        );
+        return;
+      }
+
+      if (
+        !canSendMentorshipRequest
+      ) {
+        setRequestNotice(
+          "Mentors cannot send mentorship requests."
+        );
+        return;
+      }
+
+      if (
+        !hasMentorshipCredits
+      ) {
+        setRequestNotice(
+          `You need at least 50 SS to request mentorship. Your balance is ${mentorshipBalance} SS.`
         );
         return;
       }
@@ -532,6 +646,22 @@ export default function PublicProfile() {
         ) {
           setRequestNotice(
             "You already have a pending mentorship request for this skill."
+          );
+        } else if (
+          message.includes(
+            "INSUFFICIENT_CREDITS"
+          )
+        ) {
+          setRequestNotice(
+            "You need at least 50 SS to request mentorship."
+          );
+        } else if (
+          message.includes(
+            "MENTORSHIP_REQUEST_NOT_ALLOWED"
+          )
+        ) {
+          setRequestNotice(
+            "Mentors cannot send mentorship requests."
           );
         } else if (
           message.includes(
@@ -799,14 +929,16 @@ export default function PublicProfile() {
                 </Link>
               ) : (
                 <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
-                  {canMentor && (
+                  {canMentor &&
+                    canSendMentorshipRequest && (
                     <button
                       type="button"
                       onClick={
                         openMentorshipModal
                       }
                       disabled={
-                        actionLoading !== ""
+                        actionLoading !== "" ||
+                        !hasMentorshipCredits
                       }
                       className="flex min-h-[50px] w-full items-center justify-center gap-2 bg-[#c7ff39] px-5 text-sm font-semibold text-[#071008] transition hover:bg-[#d2ff64] disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-[#737373]"
                     >
@@ -816,7 +948,11 @@ export default function PublicProfile() {
                           className="animate-spin"
                         />
                       )}
-                      Request Mentorship
+
+                      {currentUser &&
+                      !hasMentorshipCredits
+                        ? `Need 50 SS · ${mentorshipBalance} SS available`
+                        : "Request Mentorship"}
                     </button>
                   )}
 
@@ -1048,6 +1184,16 @@ export default function PublicProfile() {
                   <p className="mt-2 text-sm leading-6 text-[#a1a1aa]">
                     Select one of {profile.full_name || profile.username}&apos;s teaching skills.
                   </p>
+
+                  <div className="mt-4 border border-[#c7ff39]/20 bg-[#c7ff39]/[0.035] px-4 py-3">
+                    <p className="text-[9px] uppercase tracking-[0.14em] text-[#c7ff39]">
+                      Mentorship fee · 50 SS
+                    </p>
+
+                    <p className="mt-1 text-xs leading-5 text-[#a1a1aa]">
+                      The 50 SS fee is charged only after the mentorship is successfully completed.
+                    </p>
+                  </div>
                 </div>
 
                 <button
