@@ -202,24 +202,15 @@ function isUpcoming(
     return false;
   }
 
-  if (
-    !session.scheduled_at
-  ) {
-    return false;
-  }
-
-  return (
-    new Date(
-      session.scheduled_at
-    ).getTime() >=
-    Date.now()
+  return Boolean(
+    session.scheduled_at
   );
 }
 
 const TABS = [
   {
     id: "upcoming",
-    label: "Upcoming",
+    label: "Scheduled",
   },
   {
     id: "completed",
@@ -457,6 +448,9 @@ export default function Sessions() {
                     learner_id,
                     mentor_id,
                     skill_id,
+                    title,
+                    description,
+                    meeting_url,
                     scheduled_at,
                     duration_minutes,
                     status
@@ -1172,6 +1166,155 @@ export default function Sessions() {
     };
 
   /* =========================================================
+     STANDARD MENTOR SESSION ACTIONS
+  ========================================================= */
+
+  const completeMentorSession =
+    async (
+      session
+    ) => {
+      if (
+        !session?.id ||
+        actionId
+      ) {
+        return;
+      }
+
+      const key =
+        `mentor-complete-${session.id}`;
+
+      try {
+        setActionId(
+          key
+        );
+
+        setError("");
+        setSuccess("");
+
+        const {
+          error:
+            rpcError,
+        } =
+          await supabase.rpc(
+            "complete_mentor_session",
+            {
+              p_session_id:
+                session.id,
+            }
+          );
+
+        if (
+          rpcError
+        ) {
+          throw rpcError;
+        }
+
+        setSuccess(
+          "Mentor session marked complete."
+        );
+
+        await loadSessions(
+          false
+        );
+      } catch (err) {
+        const message =
+          String(
+            err?.message ||
+              ""
+          );
+
+        if (
+          message.includes(
+            "SESSION_HAS_NOT_STARTED"
+          )
+        ) {
+          setError(
+            "This session can only be completed after its scheduled start time."
+          );
+        } else {
+          setError(
+            err?.message ||
+              "The mentor session could not be completed."
+          );
+        }
+      } finally {
+        setActionId(
+          null
+        );
+      }
+    };
+
+  const cancelMentorSession =
+    async (
+      session
+    ) => {
+      if (
+        !session?.id ||
+        actionId
+      ) {
+        return;
+      }
+
+      const confirmed =
+        window.confirm(
+          "Cancel this mentor session?"
+        );
+
+      if (
+        !confirmed
+      ) {
+        return;
+      }
+
+      const key =
+        `mentor-cancel-${session.id}`;
+
+      try {
+        setActionId(
+          key
+        );
+
+        setError("");
+        setSuccess("");
+
+        const {
+          error:
+            rpcError,
+        } =
+          await supabase.rpc(
+            "cancel_mentor_session",
+            {
+              p_session_id:
+                session.id,
+            }
+          );
+
+        if (
+          rpcError
+        ) {
+          throw rpcError;
+        }
+
+        setSuccess(
+          "Mentor session cancelled."
+        );
+
+        await loadSessions(
+          false
+        );
+      } catch (err) {
+        setError(
+          err?.message ||
+            "The mentor session could not be cancelled."
+        );
+      } finally {
+        setActionId(
+          null
+        );
+      }
+    };
+
+  /* =========================================================
      LOADING
   ========================================================= */
 
@@ -1302,7 +1445,7 @@ export default function Sessions() {
                   value={
                     counts.upcoming
                   }
-                  label="Upcoming"
+                  label="Scheduled"
                 />
 
                 <SessionMetric
@@ -1426,6 +1569,12 @@ export default function Sessions() {
                       onCancelSwapSession={
                         cancelSwapSession
                       }
+                      onCompleteMentorSession={
+                        completeMentorSession
+                      }
+                      onCancelMentorSession={
+                        cancelMentorSession
+                      }
                       last={
                         index ===
                         filteredSessions.length -
@@ -1500,6 +1649,8 @@ function SessionCard({
   onOpenSwap,
   onCompleteSwapSession,
   onCancelSwapSession,
+  onCompleteMentorSession,
+  onCancelMentorSession,
   last,
 }) {
   const swapSession =
@@ -1525,11 +1676,26 @@ function SessionCard({
   const cancelKey =
     `cancel-${session.id}`;
 
+  const mentorCompleteKey =
+    `mentor-complete-${session.id}`;
+
+  const mentorCancelKey =
+    `mentor-cancel-${session.id}`;
+
   const busy =
     actionId ===
       completeKey ||
     actionId ===
-      cancelKey;
+      cancelKey ||
+    actionId ===
+      mentorCompleteKey ||
+    actionId ===
+      mentorCancelKey;
+
+  const canManageMentorSession =
+    !swapSession &&
+    session.viewer_role ===
+      "Mentor";
 
   const completed =
     isCompleted(
@@ -1553,9 +1719,10 @@ function SessionCard({
           .join(" ↔ ") ||
         session.title ||
         "Skill swap session"
-      : session.skill
+      : session.title ||
+        session.skill
           ?.name ||
-        "Learning session";
+        "Mentor session";
 
   const subtitle =
     swapSession
@@ -1637,6 +1804,16 @@ function SessionCard({
                 </p>
               )}
 
+            {!swapSession &&
+              session.title &&
+              session.skill?.name && (
+                <p className="mt-1 text-xs text-white/40">
+                  {
+                    session.skill.name
+                  }
+                </p>
+              )}
+
             <div className="mt-3 flex items-center gap-2 text-xs text-[#a1a1aa]">
               <UserRound
                 size={12}
@@ -1647,19 +1824,18 @@ function SessionCard({
               }
             </div>
 
-            {swapSession &&
-              session.description && (
-                <p className="mt-3 max-w-2xl text-xs leading-6 text-white/35">
-                  {
-                    session.description
-                  }
-                </p>
-              )}
+            {session.description && (
+              <p className="mt-3 max-w-2xl text-xs leading-6 text-white/35">
+                {
+                  session.description
+                }
+              </p>
+            )}
           </div>
         </div>
 
         <div className="xl:min-w-[390px]">
-          <div className="grid gap-2 sm:grid-cols-3">
+          <div className="grid grid-cols-3 gap-2">
             <InfoBox
               icon={
                 <CalendarDays
@@ -1802,6 +1978,94 @@ function SessionCard({
                 )}
             </div>
           )}
+
+          {!swapSession &&
+            session.meeting_url &&
+            !cancelled && (
+            <div className="mt-3 flex flex-wrap justify-start gap-2 xl:justify-end">
+              <button
+                type="button"
+                onClick={() =>
+                  window.open(
+                    session.meeting_url,
+                    "_blank",
+                    "noopener,noreferrer"
+                  )
+                }
+                className="inline-flex min-h-10 items-center gap-2 bg-[#c7ff39] px-4 text-xs font-semibold text-[#071008] transition hover:bg-[#d4ff66]"
+              >
+                <Video
+                  size={13}
+                />
+
+                Open meeting
+
+                <ExternalLink
+                  size={11}
+                />
+              </button>
+            </div>
+          )}
+
+          {canManageMentorSession &&
+            !completed &&
+            !cancelled && (
+            <div className="mt-3 flex flex-wrap justify-start gap-2 xl:justify-end">
+              <button
+                type="button"
+                disabled={
+                  busy
+                }
+                onClick={() =>
+                  onCompleteMentorSession(
+                    session
+                  )
+                }
+                className="inline-flex min-h-10 items-center gap-2 border border-[#c7ff39]/25 bg-[#c7ff39]/[0.04] px-4 text-xs text-[#c7ff39] transition hover:bg-[#c7ff39]/[0.08] disabled:opacity-50"
+              >
+                {actionId ===
+                mentorCompleteKey ? (
+                  <Loader2
+                    size={13}
+                    className="animate-spin"
+                  />
+                ) : (
+                  <CheckCircle2
+                    size={13}
+                  />
+                )}
+
+                Complete session
+              </button>
+
+              <button
+                type="button"
+                disabled={
+                  busy
+                }
+                onClick={() =>
+                  onCancelMentorSession(
+                    session
+                  )
+                }
+                className="inline-flex min-h-10 items-center gap-2 border border-white/10 px-4 text-xs text-[#a1a1aa] transition hover:border-[#ff6b6b]/30 hover:text-[#ff8b8b] disabled:opacity-50"
+              >
+                {actionId ===
+                mentorCancelKey ? (
+                  <Loader2
+                    size={13}
+                    className="animate-spin"
+                  />
+                ) : (
+                  <XCircle
+                    size={13}
+                  />
+                )}
+
+                Cancel session
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </article>
@@ -1818,7 +2082,7 @@ function InfoBox({
   value,
 }) {
   return (
-    <div className="border border-white/10 bg-[#060807] p-3">
+    <div className="min-w-0 border border-white/10 bg-[#060807] p-3">
       <div className="flex items-center gap-1.5 text-white/30">
         {
           icon
@@ -1831,7 +2095,7 @@ function InfoBox({
         </p>
       </div>
 
-      <p className="mt-2 text-[11px] text-[#f2f4ef]">
+      <p className="mt-2 break-words text-[11px] text-[#f2f4ef]">
         {
           value
         }
@@ -1856,7 +2120,7 @@ function EmptyState({
       : tab ===
           "cancelled"
         ? "Cancelled sessions will appear here."
-        : "Your next mentor or Skill Swap meeting will appear here.";
+        : "Scheduled mentor and Skill Swap meetings will appear here.";
 
   return (
     <div className="p-8 text-center md:p-12">

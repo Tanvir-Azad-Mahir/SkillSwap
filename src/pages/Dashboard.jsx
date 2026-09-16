@@ -178,6 +178,11 @@ export default function Dashboard() {
   ] = useState([]);
 
   const [
+    skillSwaps,
+    setSkillSwaps,
+  ] = useState([]);
+
+  const [
     wallet,
     setWallet,
   ] = useState(null);
@@ -952,6 +957,24 @@ export default function Dashboard() {
           =================================================== */
 
           if (
+            skillSwapsResult.error
+          ) {
+            console.warn(
+              "SKILL SWAPS ERROR:",
+              skillSwapsResult.error
+            );
+
+            setSkillSwaps(
+              []
+            );
+          } else {
+            setSkillSwaps(
+              skillSwapsResult.data ||
+                []
+            );
+          }
+
+          if (
             swapSessionsResult.error
           ) {
             console.warn(
@@ -1684,6 +1707,60 @@ export default function Dashboard() {
       profile?.role
     );
 
+  const swapCounts =
+    useMemo(() => {
+      if (
+        !isSwapMaster ||
+        !user?.id
+      ) {
+        return {
+          incoming: 0,
+          sent: 0,
+          active: 0,
+        };
+      }
+
+      return {
+        incoming:
+          skillSwaps.filter(
+            (swap) =>
+              swap.partner_id ===
+                user.id &&
+              String(
+                swap.status ||
+                  ""
+              ).toLowerCase() ===
+                "pending"
+          ).length,
+
+        sent:
+          skillSwaps.filter(
+            (swap) =>
+              swap.requester_id ===
+                user.id &&
+              String(
+                swap.status ||
+                  ""
+              ).toLowerCase() ===
+                "pending"
+          ).length,
+
+        active:
+          skillSwaps.filter(
+            (swap) =>
+              String(
+                swap.status ||
+                  ""
+              ).toLowerCase() ===
+              "accepted"
+          ).length,
+      };
+    }, [
+      isSwapMaster,
+      skillSwaps,
+      user,
+    ]);
+
   /* =========================================================
      SKILL MAP
   ========================================================= */
@@ -2263,7 +2340,16 @@ export default function Dashboard() {
                           size={16}
                         />
 
-                        Find skill swaps
+                        Skill swaps
+
+                        {swapCounts.incoming >
+                          0 && (
+                          <span className="ml-1 inline-flex min-w-5 items-center justify-center rounded-full bg-[#c7ff39] px-1.5 py-0.5 text-[10px] font-bold text-[#071008]">
+                            {
+                              swapCounts.incoming
+                            }
+                          </span>
+                        )}
                       </button>
                     )}
 
@@ -2380,21 +2466,94 @@ export default function Dashboard() {
               STATS
           ================================================= */}
 
-          <DashboardStats
-            takenCourses={
-              takenCourses.length
-            }
-            finishedCourses={
-              finishedCourses.length
-            }
-            upcomingSessions={
-              sessionItems.length
-            }
-            credits={
-              wallet?.balance ??
-              0
-            }
-          />
+          {isMentor ? (
+            <section className="mt-8 grid overflow-hidden border border-white/10 bg-[#0a0d0b]/70 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="border-b border-white/10 p-5 sm:border-r xl:border-b-0">
+                <GraduationCap
+                  size={17}
+                  className="text-[#c7ff39]"
+                />
+
+                <p className="mt-4 text-2xl font-medium tracking-[-0.045em]">
+                  {
+                    myCourses.length
+                  }
+                </p>
+
+                <p className="mt-1 text-[9px] uppercase tracking-[0.15em] text-[#a1a1aa]">
+                  Courses created
+                </p>
+              </div>
+
+              <div className="border-b border-white/10 p-5 xl:border-b-0 xl:border-r">
+                <BookOpen
+                  size={17}
+                  className="text-[#c7ff39]"
+                />
+
+                <p className="mt-4 text-2xl font-medium tracking-[-0.045em]">
+                  {
+                    activeCourses.length
+                  }
+                </p>
+
+                <p className="mt-1 text-[9px] uppercase tracking-[0.15em] text-[#a1a1aa]">
+                  Active courses
+                </p>
+              </div>
+
+              <div className="border-b border-white/10 p-5 sm:border-b-0 sm:border-r">
+                <CalendarDays
+                  size={17}
+                  className="text-[#c7ff39]"
+                />
+
+                <p className="mt-4 text-2xl font-medium tracking-[-0.045em]">
+                  {
+                    sessionItems.length
+                  }
+                </p>
+
+                <p className="mt-1 text-[9px] uppercase tracking-[0.15em] text-[#a1a1aa]">
+                  Upcoming sessions
+                </p>
+              </div>
+
+              <div className="p-5">
+                <WalletCards
+                  size={17}
+                  className="text-[#c7ff39]"
+                />
+
+                <p className="mt-4 text-2xl font-medium tracking-[-0.045em]">
+                  {
+                    wallet?.balance ??
+                    0
+                  }
+                </p>
+
+                <p className="mt-1 text-[9px] uppercase tracking-[0.15em] text-[#a1a1aa]">
+                  SS Credits
+                </p>
+              </div>
+            </section>
+          ) : (
+            <DashboardStats
+              takenCourses={
+                takenCourses.length
+              }
+              finishedCourses={
+                finishedCourses.length
+              }
+              upcomingSessions={
+                sessionItems.length
+              }
+              credits={
+                wallet?.balance ??
+                0
+              }
+            />
+          )}
 
           {/* =================================================
               COURSE STUDIO
@@ -2702,21 +2861,48 @@ export default function Dashboard() {
                           </p>
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={() =>
-                            navigate(
-                              "/profile/edit?tab=learning"
-                            )
-                          }
-                          className="inline-flex min-h-10 items-center justify-center gap-2 border border-white/15 px-4 text-xs font-medium transition hover:border-[#c7ff39]/30"
-                        >
-                          Refine skills
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              navigate(
+                                "/swaps"
+                              )
+                            }
+                            className="inline-flex min-h-10 items-center justify-center gap-2 bg-[#c7ff39] px-4 text-xs font-semibold text-[#071008] transition hover:bg-[#d4ff66]"
+                          >
+                            <Repeat2
+                              size={13}
+                            />
 
-                          <ArrowRight
-                            size={13}
-                          />
-                        </button>
+                            Open skill swaps
+
+                            {swapCounts.incoming >
+                              0 && (
+                              <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-[#071008] px-1.5 py-0.5 text-[10px] font-bold text-[#c7ff39]">
+                                {
+                                  swapCounts.incoming
+                                }
+                              </span>
+                            )}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              navigate(
+                                "/profile/edit?tab=learning"
+                              )
+                            }
+                            className="inline-flex min-h-10 items-center justify-center gap-2 border border-white/15 px-4 text-xs font-medium transition hover:border-[#c7ff39]/30"
+                          >
+                            Refine skills
+
+                            <ArrowRight
+                              size={13}
+                            />
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       <p className="text-sm leading-6 text-[#a1a1aa]">

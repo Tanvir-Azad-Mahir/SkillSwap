@@ -7,6 +7,7 @@ import {
 
 import {
   ArrowLeft,
+  CalendarDays,
   Check,
   CheckCircle2,
   Clock3,
@@ -187,6 +188,36 @@ export default function MentorshipRequests() {
     success,
     setSuccess,
   ] = useState("");
+
+  const [
+    scheduleRequest,
+    setScheduleRequest,
+  ] = useState(null);
+
+  const [
+    scheduleTitle,
+    setScheduleTitle,
+  ] = useState("");
+
+  const [
+    scheduleDescription,
+    setScheduleDescription,
+  ] = useState("");
+
+  const [
+    scheduleMeetingUrl,
+    setScheduleMeetingUrl,
+  ] = useState("");
+
+  const [
+    scheduleAt,
+    setScheduleAt,
+  ] = useState("");
+
+  const [
+    scheduleDuration,
+    setScheduleDuration,
+  ] = useState("60");
 
   /* =========================================================
      LOAD
@@ -630,6 +661,318 @@ export default function MentorshipRequests() {
     };
 
   /* =========================================================
+     SCHEDULE MENTOR SESSION
+  ========================================================= */
+
+  const openScheduleModal =
+    (request) => {
+      if (
+        !request ||
+        request.status !==
+          "Accepted"
+      ) {
+        return;
+      }
+
+      const next =
+        new Date(
+          Date.now() +
+            60 * 60 * 1000
+        );
+
+      const pad =
+        (value) =>
+          String(value).padStart(
+            2,
+            "0"
+          );
+
+      const localValue =
+        `${next.getFullYear()}-${pad(
+          next.getMonth() + 1
+        )}-${pad(
+          next.getDate()
+        )}T${pad(
+          next.getHours()
+        )}:${pad(
+          next.getMinutes()
+        )}`;
+
+      setScheduleRequest(
+        request
+      );
+
+      setScheduleAt(
+        localValue
+      );
+
+      setScheduleDuration(
+        "60"
+      );
+
+      setError("");
+      setSuccess("");
+    };
+
+  const closeScheduleModal =
+    () => {
+      if (actionId) {
+        return;
+      }
+
+      setScheduleRequest(
+        null
+      );
+
+      setScheduleTitle("");
+      setScheduleDescription("");
+      setScheduleMeetingUrl("");
+      setScheduleAt("");
+      setScheduleDuration(
+        "60"
+      );
+    };
+
+  const scheduleSession =
+    async () => {
+      if (
+        !scheduleRequest?.request_id ||
+        !scheduleTitle.trim() ||
+        !scheduleAt ||
+        actionId
+      ) {
+        return;
+      }
+
+      const scheduledDate =
+        new Date(
+          scheduleAt
+        );
+
+      if (
+        Number.isNaN(
+          scheduledDate.getTime()
+        )
+      ) {
+        setError(
+          "Choose a valid date and time."
+        );
+        return;
+      }
+
+      if (
+        scheduledDate.getTime() <=
+        Date.now()
+      ) {
+        setError(
+          "The session must be scheduled for a future time."
+        );
+        return;
+      }
+
+      const duration =
+        Number(
+          scheduleDuration
+        );
+
+      const key =
+        `schedule-${scheduleRequest.request_id}`;
+
+      try {
+        setActionId(
+          key
+        );
+
+        setError("");
+        setSuccess("");
+
+        const {
+          error:
+            scheduleError,
+        } =
+          await supabase.rpc(
+            "schedule_mentorship_session",
+            {
+              p_request_id:
+                scheduleRequest.request_id,
+              p_title:
+                scheduleTitle.trim(),
+              p_description:
+                scheduleDescription.trim() ||
+                null,
+              p_scheduled_at:
+                scheduledDate.toISOString(),
+              p_duration_minutes:
+                duration,
+              p_meeting_url:
+                scheduleMeetingUrl.trim() ||
+                null,
+            }
+          );
+
+        if (
+          scheduleError
+        ) {
+          throw scheduleError;
+        }
+
+        setScheduleRequest(
+          null
+        );
+
+        setScheduleAt("");
+        setScheduleDuration(
+          "60"
+        );
+
+        setSuccess(
+          "Mentor session scheduled. It is now available on the Sessions page."
+        );
+      } catch (err) {
+        console.error(
+          "SCHEDULE MENTORSHIP SESSION ERROR:",
+          err
+        );
+
+        const message =
+          String(
+            err?.message ||
+              ""
+          );
+
+        if (
+          message.includes(
+            "MENTORSHIP_NOT_ACCEPTED"
+          )
+        ) {
+          setError(
+            "Only accepted mentorships can schedule sessions."
+          );
+        } else if (
+          message.includes(
+            "SESSION_TIME_MUST_BE_FUTURE"
+          )
+        ) {
+          setError(
+            "Choose a future date and time."
+          );
+        } else {
+          setError(
+            err?.message ||
+              "The mentor session could not be scheduled."
+          );
+        }
+      } finally {
+        setActionId("");
+      }
+    };
+
+  /* =========================================================
+     COMPLETE MENTORSHIP
+  ========================================================= */
+
+  const completeMentorship =
+    async (request) => {
+      if (
+        !request?.request_id ||
+        request.status !==
+          "Accepted" ||
+        actionId
+      ) {
+        return;
+      }
+
+      const confirmed =
+        window.confirm(
+          `Complete the mentorship for ${
+            request.skill_name ||
+            "this skill"
+          }?`
+        );
+
+      if (!confirmed) {
+        return;
+      }
+
+      const key =
+        `complete-mentorship-${request.request_id}`;
+
+      try {
+        setActionId(
+          key
+        );
+
+        setError("");
+        setSuccess("");
+
+        const {
+          error:
+            completeError,
+        } =
+          await supabase.rpc(
+            "complete_mentorship",
+            {
+              p_request_id:
+                request.request_id,
+            }
+          );
+
+        if (
+          completeError
+        ) {
+          throw completeError;
+        }
+
+        setRequests(
+          (current) =>
+            current.map(
+              (item) =>
+                item.request_id ===
+                request.request_id
+                  ? {
+                      ...item,
+                      status:
+                        "Completed",
+                    }
+                  : item
+            )
+        );
+
+        setSuccess(
+          "Mentorship marked completed."
+        );
+      } catch (err) {
+        console.error(
+          "COMPLETE MENTORSHIP ERROR:",
+          err
+        );
+
+        const message =
+          String(
+            err?.message ||
+              ""
+          );
+
+        if (
+          message.includes(
+            "COMPLETED_SESSION_REQUIRED"
+          )
+        ) {
+          setError(
+            "Complete at least one mentor session before completing the mentorship."
+          );
+        } else {
+          setError(
+            err?.message ||
+              "The mentorship could not be completed."
+          );
+        }
+      } finally {
+        setActionId("");
+      }
+    };
+
+  /* =========================================================
      LOADING
   ========================================================= */
 
@@ -875,6 +1218,16 @@ export default function MentorshipRequests() {
                           request.learner_id
                         )
                       }
+                      onSchedule={() =>
+                        openScheduleModal(
+                          request
+                        )
+                      }
+                      onCompleteMentorship={() =>
+                        completeMentorship(
+                          request
+                        )
+                      }
                       last={
                         index ===
                         visibleRequests.length -
@@ -906,6 +1259,214 @@ export default function MentorshipRequests() {
           </section>
         </div>
       </div>
+
+      {scheduleRequest && (
+        <div className="fixed inset-0 z-[90] grid place-items-center overflow-y-auto bg-black/75 p-4 backdrop-blur-sm">
+          <div className="my-8 w-full max-w-lg border border-white/10 bg-[#0a0d0b]">
+            <div className="flex items-start justify-between gap-4 border-b border-white/10 p-5">
+              <div>
+                <p className="text-[9px] uppercase tracking-[0.17em] text-[#c7ff39]">
+                  Mentor session
+                </p>
+
+                <h2 className="mt-2 text-2xl font-medium tracking-[-0.04em]">
+                  Schedule session
+                </h2>
+
+                <p className="mt-2 text-sm leading-6 text-[#a1a1aa]">
+                  {scheduleRequest.learner_full_name ||
+                    scheduleRequest.learner_username ||
+                    "Learner"}{" "}
+                  ·{" "}
+                  {scheduleRequest.skill_name ||
+                    "Mentorship"}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={
+                  closeScheduleModal
+                }
+                disabled={
+                  Boolean(actionId)
+                }
+                className="grid h-9 w-9 shrink-0 place-items-center border border-white/10 text-[#a1a1aa] transition hover:border-[#c7ff39]/30 hover:text-[#c7ff39] disabled:opacity-50"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="p-5">
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-[0.14em] text-[#a1a1aa]">
+                  Session name
+                </span>
+
+                <input
+                  value={
+                    scheduleTitle
+                  }
+                  onChange={(event) =>
+                    setScheduleTitle(
+                      event.target.value
+                    )
+                  }
+                  maxLength={120}
+                  placeholder="e.g. JavaScript fundamentals"
+                  className="mt-2 min-h-12 w-full border border-white/10 bg-[#060807] px-4 text-sm text-[#f2f4ef] outline-none transition placeholder:text-white/20 focus:border-[#c7ff39]/40"
+                />
+              </label>
+
+              <label className="mt-5 block">
+                <span className="text-[10px] uppercase tracking-[0.14em] text-[#a1a1aa]">
+                  Description
+                </span>
+
+                <textarea
+                  value={
+                    scheduleDescription
+                  }
+                  onChange={(event) =>
+                    setScheduleDescription(
+                      event.target.value
+                    )
+                  }
+                  maxLength={2000}
+                  rows={3}
+                  placeholder="What will you cover in this session?"
+                  className="mt-2 w-full resize-none border border-white/10 bg-[#060807] px-4 py-3 text-sm text-[#f2f4ef] outline-none transition placeholder:text-white/20 focus:border-[#c7ff39]/40"
+                />
+              </label>
+
+              <div className="mt-5 grid grid-cols-2 gap-4">
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.14em] text-[#a1a1aa]">
+                    Date and time
+                </span>
+
+                <input
+                  type="datetime-local"
+                  value={
+                    scheduleAt
+                  }
+                  onChange={(event) =>
+                    setScheduleAt(
+                      event.target.value
+                    )
+                  }
+                  className="mt-2 min-h-12 w-full border border-white/10 bg-[#060807] px-4 text-sm text-[#f2f4ef] outline-none transition focus:border-[#c7ff39]/40"
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-[0.14em] text-[#a1a1aa]">
+                  Duration
+                </span>
+
+                <select
+                  value={
+                    scheduleDuration
+                  }
+                  onChange={(event) =>
+                    setScheduleDuration(
+                      event.target.value
+                    )
+                  }
+                  className="mt-2 min-h-12 w-full border border-white/10 bg-[#060807] px-4 text-sm text-[#f2f4ef] outline-none transition focus:border-[#c7ff39]/40"
+                >
+                  <option value="30">
+                    30 minutes
+                  </option>
+                  <option value="45">
+                    45 minutes
+                  </option>
+                  <option value="60">
+                    60 minutes
+                  </option>
+                  <option value="90">
+                    90 minutes
+                  </option>
+                  <option value="120">
+                    120 minutes
+                  </option>
+                </select>
+              </label>
+              </div>
+
+              <label className="mt-5 block">
+                <span className="text-[10px] uppercase tracking-[0.14em] text-[#a1a1aa]">
+                  Meeting link
+                </span>
+
+                <input
+                  type="url"
+                  value={
+                    scheduleMeetingUrl
+                  }
+                  onChange={(event) =>
+                    setScheduleMeetingUrl(
+                      event.target.value
+                    )
+                  }
+                  placeholder="https://meet.google.com/..."
+                  className="mt-2 min-h-12 w-full border border-white/10 bg-[#060807] px-4 text-sm text-[#f2f4ef] outline-none transition placeholder:text-white/20 focus:border-[#c7ff39]/40"
+                />
+
+                <p className="mt-2 text-[10px] leading-5 text-white/30">
+                  Google Meet, Zoom, Microsoft Teams, or another meeting URL.
+                </p>
+              </label>
+
+              <p className="mt-4 text-xs leading-5 text-white/35">
+                The session will appear on both the mentor and learner Sessions pages.
+              </p>
+
+              <div className="mt-6 flex flex-col-reverse gap-2 border-t border-white/10 pt-5 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={
+                    closeScheduleModal
+                  }
+                  disabled={
+                    Boolean(actionId)
+                  }
+                  className="min-h-11 border border-white/10 px-5 text-sm text-[#a1a1aa] transition hover:text-white disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={
+                    scheduleSession
+                  }
+                  disabled={
+                    Boolean(actionId) ||
+                    !scheduleTitle.trim() ||
+                    !scheduleAt
+                  }
+                  className="inline-flex min-h-11 items-center justify-center gap-2 bg-[#c7ff39] px-5 text-sm font-semibold text-[#071008] transition hover:bg-[#d4ff66] disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-[#737373]"
+                >
+                  {actionId ===
+                  `schedule-${scheduleRequest.request_id}` ? (
+                    <Loader2
+                      size={14}
+                      className="animate-spin"
+                    />
+                  ) : (
+                    <CalendarDays
+                      size={14}
+                    />
+                  )}
+
+                  Schedule session
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
@@ -952,6 +1513,8 @@ function RequestCard({
   onAccept,
   onReject,
   onMessage,
+  onSchedule,
+  onCompleteMentorship,
   last,
 }) {
   const accepted =
@@ -970,6 +1533,12 @@ function RequestCard({
 
   const messageKey =
     `message-${request.learner_id}`;
+
+  const scheduleKey =
+    `schedule-${request.request_id}`;
+
+  const completeMentorshipKey =
+    `complete-mentorship-${request.request_id}`;
 
   const busy =
     Boolean(actionId);
@@ -1149,6 +1718,60 @@ function RequestCard({
 
               Message learner
             </button>
+          )}
+
+          {accepted && (
+            <>
+              <button
+                type="button"
+                onClick={
+                  onSchedule
+                }
+                disabled={
+                  busy
+                }
+                className="inline-flex min-h-10 items-center gap-2 border border-[#c7ff39]/25 bg-[#c7ff39]/[0.04] px-4 text-xs text-[#c7ff39] transition hover:bg-[#c7ff39]/[0.08] disabled:opacity-50"
+              >
+                {actionId ===
+                scheduleKey ? (
+                  <Loader2
+                    size={13}
+                    className="animate-spin"
+                  />
+                ) : (
+                  <CalendarDays
+                    size={13}
+                  />
+                )}
+
+                Schedule session
+              </button>
+
+              <button
+                type="button"
+                onClick={
+                  onCompleteMentorship
+                }
+                disabled={
+                  busy
+                }
+                className="inline-flex min-h-10 items-center gap-2 border border-white/10 px-4 text-xs text-[#a1a1aa] transition hover:border-[#c7ff39]/30 hover:text-[#c7ff39] disabled:opacity-50"
+              >
+                {actionId ===
+                completeMentorshipKey ? (
+                  <Loader2
+                    size={13}
+                    className="animate-spin"
+                  />
+                ) : (
+                  <CheckCircle2
+                    size={13}
+                  />
+                )}
+
+                Complete mentorship
+              </button>
+            </>
           )}
 
           {request.status ===
