@@ -27,6 +27,15 @@ import CourseLearn from "./pages/CourseLearn";
 import Certificate from "./pages/Certificate";
 import CertificateVerify from "./pages/CertificateVerify";
 import MentorshipRequests from "./pages/MentorshipRequests";
+import AdminRoute from "./components/admin/AdminRoute";
+import AdminLayout from "./components/admin/AdminLayout";
+
+import AdminOverview from "./pages/admin/AdminOverview";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminRoleRequests from "./pages/admin/AdminRoleRequests";
+import AdminCourses from "./pages/admin/AdminCourses";
+import AdminSkills from "./pages/admin/AdminSkills";
+import AdminActivityLog from "./pages/admin/AdminActivityLog";
 
 export default function App() {
   return (
@@ -161,6 +170,45 @@ export default function App() {
   path="/mentorship-requests"
   element={<MentorshipRequests />}
 />
+<Route
+  path="/admin"
+  element={
+    <AdminRoute>
+      <AdminLayout />
+    </AdminRoute>
+  }
+>
+  <Route
+    index
+    element={<AdminOverview />}
+  />
+
+  <Route
+    path="users"
+    element={<AdminUsers />}
+  />
+
+  <Route
+    path="role-requests"
+    element={<AdminRoleRequests />}
+  />
+
+  <Route
+    path="courses"
+    element={<AdminCourses />}
+  />
+
+  <Route
+    path="skills"
+    element={<AdminSkills />}
+  />
+  <Route
+    path="activity"
+    element={
+      <AdminActivityLog />
+    }
+  />
+  </Route>
         </Routes>
       </BrowserRouter>
     </ThemeProvider>

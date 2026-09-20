@@ -81,7 +81,53 @@ export default function Login() {
       );
 
       /* =====================================================
-         GET PROFILE
+         CHECK ADMIN ACCESS FIRST
+
+         Admin accounts use the same login page, but they should
+         never be routed through the normal user dashboard flow.
+      ===================================================== */
+
+      const {
+        data:
+          adminAccess,
+        error:
+          adminAccessError,
+      } =
+        await supabase.rpc(
+          "get_my_admin_access"
+        );
+
+      if (
+        adminAccessError
+      ) {
+        console.error(
+          "ADMIN ACCESS CHECK ERROR:",
+          adminAccessError
+        );
+
+        throw adminAccessError;
+      }
+
+      if (
+        adminAccess?.is_admin ===
+        true
+      ) {
+        console.log(
+          "Admin account -> Admin"
+        );
+
+        navigate(
+          "/admin",
+          {
+            replace: true,
+          }
+        );
+
+        return;
+      }
+
+      /* =====================================================
+         GET NORMAL USER PROFILE
       ===================================================== */
 
       const {

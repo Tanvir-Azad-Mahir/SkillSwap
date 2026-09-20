@@ -150,6 +150,96 @@
   grid-template-rows: 1fr;
 }
 
+.admin-shell {
+  --admin-lime: #c7ff39;
+  --admin-ink: #060807;
+  --admin-panel: rgba(14, 19, 16, 0.82);
+  --admin-line: rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 82% -10%, rgba(199, 255, 57, 0.11), transparent 28rem),
+    radial-gradient(circle at 10% 90%, rgba(35, 108, 75, 0.16), transparent 30rem),
+    #060807;
+}
+
+.admin-shell::before {
+  position: fixed;
+  inset: 0;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 48px 48px;
+  content: "";
+  mask-image: linear-gradient(to bottom, black, transparent 78%);
+  pointer-events: none;
+}
+
+.admin-sidebar {
+  background: linear-gradient(180deg, rgba(12, 18, 14, 0.98), rgba(7, 10, 8, 0.96));
+  box-shadow: 18px 0 50px rgba(0, 0, 0, 0.18);
+}
+
+.admin-page {
+  animation: admin-page-enter 500ms cubic-bezier(.16, 1, .3, 1) both;
+}
+
+.admin-page-header {
+  position: relative;
+}
+
+.admin-page-header::after {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 5rem;
+  height: 2px;
+  background: var(--admin-lime);
+  content: "";
+  box-shadow: 0 0 16px rgba(199, 255, 57, 0.45);
+}
+
+.admin-panel {
+  border: 1px solid var(--admin-line);
+  background: var(--admin-panel);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.12);
+  backdrop-filter: blur(16px);
+}
+
+.admin-table tbody tr {
+  transition: background-color 180ms ease;
+}
+
+.admin-table tbody tr:hover {
+  background: rgba(199, 255, 57, 0.035);
+}
+
+@keyframes admin-page-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+html.light .admin-shell {
+  --admin-panel: rgba(255, 255, 255, 0.78);
+  --admin-line: rgba(23, 32, 25, 0.14);
+  background:
+    radial-gradient(circle at 82% -10%, rgba(132, 204, 22, 0.14), transparent 28rem),
+    radial-gradient(circle at 10% 90%, rgba(14, 165, 233, 0.09), transparent 30rem),
+    #f7f9f5;
+}
+
+html.light .admin-shell::before {
+  background-image: linear-gradient(rgba(23, 32, 25, 0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(23, 32, 25, 0.025) 1px, transparent 1px);
+}
+
+html.light .admin-sidebar {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(242, 247, 239, 0.96));
+  box-shadow: 18px 0 50px rgba(23, 32, 25, 0.06);
+}
+
+html.light .admin-panel {
+  background: var(--admin-panel);
+  box-shadow: 0 18px 50px rgba(23, 32, 25, 0.06);
+}
+
 /* Existing screens use dark utility colors directly; remap them in light mode. */
 html.light body {
   background-color: #f7f9f5;
