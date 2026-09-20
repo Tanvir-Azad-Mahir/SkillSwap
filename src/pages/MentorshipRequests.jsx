@@ -1364,11 +1364,11 @@ export default function MentorshipRequests() {
                 />
               </label>
 
-              <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                <label className="block">
+              <div className="mt-5 grid min-w-0 gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(10rem,0.7fr)]">
+                <label className="block min-w-0">
                   <span className="text-[10px] uppercase tracking-[0.14em] text-[#a1a1aa]">
                     Date and time
-                </span>
+                  </span>
 
                 <input
                   type="datetime-local"
@@ -1380,11 +1380,11 @@ export default function MentorshipRequests() {
                       event.target.value
                     )
                   }
-                  className="mt-2 min-h-12 w-full border border-white/10 bg-[#060807] px-4 text-sm text-[#f2f4ef] outline-none transition focus:border-[#c7ff39]/40"
+                  className="mt-2 block min-h-12 w-full min-w-0 border border-white/10 bg-[#060807] px-3 text-sm text-[#f2f4ef] outline-none transition focus:border-[#c7ff39]/40 sm:px-4"
                 />
               </label>
 
-              <label className="mt-5 block">
+              <label className="block min-w-0">
                 <span className="text-[10px] uppercase tracking-[0.14em] text-[#a1a1aa]">
                   Duration
                 </span>
@@ -1398,7 +1398,7 @@ export default function MentorshipRequests() {
                       event.target.value
                     )
                   }
-                  className="mt-2 min-h-12 w-full border border-white/10 bg-[#060807] px-4 text-sm text-[#f2f4ef] outline-none transition focus:border-[#c7ff39]/40"
+                  className="mt-2 block min-h-12 w-full min-w-0 border border-white/10 bg-[#060807] px-3 text-sm text-[#f2f4ef] outline-none transition focus:border-[#c7ff39]/40 sm:px-4"
                 >
                   <option value="30">
                     30 minutes
