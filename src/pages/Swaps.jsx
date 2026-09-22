@@ -12,7 +12,6 @@ import {
   Check,
   CheckCircle2,
   Clock3,
-  ExternalLink,
   GraduationCap,
   Loader2,
   MapPin,
@@ -224,7 +223,6 @@ export default function Swaps() {
     scheduledAt:
       defaultSessionTime(),
     durationMinutes: 60,
-    meetingUrl: "",
   });
 
   /* =========================================================
@@ -1183,7 +1181,6 @@ export default function Swaps() {
         scheduledAt:
           defaultSessionTime(),
         durationMinutes: 60,
-        meetingUrl: "",
       });
 
       setSessionModalSwap(
@@ -1291,9 +1288,9 @@ export default function Swaps() {
                 Number(
                   sessionForm.durationMinutes
                 ),
+              // Keep the existing RPC signature for compatibility.
+              // New swap sessions use SkillMeet, so no external URL is stored.
               p_meeting_url:
-                sessionForm.meetingUrl
-                  .trim() ||
                 null,
             }
           );
@@ -1309,7 +1306,7 @@ export default function Swaps() {
         );
 
         setSuccess(
-          "Shared swap session scheduled."
+          "SkillMeet swap session scheduled."
         );
 
         await loadSwaps(
@@ -1515,21 +1512,42 @@ export default function Swaps() {
 
   const openMeeting =
     (
-      meetingUrl
+      session
     ) => {
       if (
-        !meetingUrl
+        !session?.id
       ) {
         setError(
-          "No meeting link has been added for this session."
+          "This SkillMeet session is unavailable."
         );
         return;
       }
 
-      window.open(
-        meetingUrl,
-        "_blank",
-        "noopener,noreferrer"
+      const externalUrl =
+        String(
+          session.meeting_url ||
+            ""
+        ).trim();
+
+      /*
+       * Migration behavior:
+       * - Existing swap sessions with a saved URL keep opening
+       *   Google Meet / Zoom / Teams externally.
+       * - New swap sessions have no meeting_url and therefore
+       *   use the built-in SkillMeet room.
+       */
+      if (externalUrl) {
+        window.open(
+          externalUrl,
+          "_blank",
+          "noopener,noreferrer"
+        );
+
+        return;
+      }
+
+      navigate(
+        `/skillmeet/swap/${session.id}`
       );
     };
 
@@ -2658,7 +2676,7 @@ function SwapList({
                             )
                           ) : (
                             <p className="text-xs leading-5 text-[#a1a1aa]">
-                              No shared meetings scheduled yet.
+                              No SkillMeet sessions scheduled yet.
                             </p>
                           )}
                         </div>
@@ -2681,7 +2699,7 @@ function SwapList({
                             size={14}
                           />
 
-                          Schedule session
+                          Schedule SkillMeet
                         </button>
                       </div>
 
@@ -2996,27 +3014,27 @@ function SessionRow({
 
       {!cancelled && (
         <div className="mt-3 flex flex-wrap gap-2">
-          {session.meeting_url && (
-            <button
-              type="button"
-              onClick={() =>
-                onOpenMeeting(
-                  session.meeting_url
-                )
-              }
-              className="inline-flex min-h-8 items-center gap-1.5 border border-white/10 px-2.5 text-[10px] text-[#f2f4ef] transition hover:border-[#c7ff39]/30 hover:text-[#c7ff39]"
-            >
-              <Video
-                size={11}
-              />
+          <button
+            type="button"
+            onClick={() =>
+              onOpenMeeting(
+                session
+              )
+            }
+            className={`inline-flex min-h-8 items-center gap-1.5 border px-2.5 text-[10px] transition ${
+              session.meeting_url
+                ? "border-white/10 text-[#f2f4ef] hover:border-[#c7ff39]/30 hover:text-[#c7ff39]"
+                : "border-[#c7ff39]/25 bg-[#c7ff39]/[0.04] text-[#c7ff39] hover:bg-[#c7ff39]/[0.08]"
+            }`}
+          >
+            <Video
+              size={11}
+            />
 
-              Open meeting
-
-              <ExternalLink
-                size={10}
-              />
-            </button>
-          )}
+            {session.meeting_url
+              ? "Open external meeting"
+              : "Join SkillMeet"}
+          </button>
 
           {scheduled && (
             <>
@@ -3104,16 +3122,16 @@ function SessionModal({
               />
 
               <p className="text-[10px] uppercase tracking-[0.16em]">
-                Shared swap meeting
+                SkillMeet swap session
               </p>
             </div>
 
             <h2 className="mt-2 text-xl font-medium tracking-[-0.035em]">
-              Schedule a session
+              Schedule SkillMeet
             </h2>
 
             <p className="mt-2 text-xs leading-5 text-[#a1a1aa]">
-              Both Swap Masters will use this same meeting to teach each other.
+              Both Swap Masters will join the same built-in SkillMeet room to teach each other.
             </p>
           </div>
 
@@ -3280,37 +3298,21 @@ function SessionModal({
             </label>
           </div>
 
-          <label className="mt-4 block">
-            <span className="text-[10px] uppercase tracking-[0.13em] text-[#a1a1aa]">
-              Meeting link
-            </span>
+          <div className="mt-4 border border-[#c7ff39]/20 bg-[#c7ff39]/[0.035] p-4">
+            <div className="flex items-center gap-2 text-[#c7ff39]">
+              <Video
+                size={14}
+              />
 
-            <input
-              type="url"
-              value={
-                form.meetingUrl
-              }
-              onChange={(
-                event
-              ) =>
-                setForm(
-                  (
-                    current
-                  ) => ({
-                    ...current,
-                    meetingUrl:
-                      event.target.value,
-                  })
-                )
-              }
-              placeholder="https://meet.google.com/..."
-              className="mt-2 min-h-11 w-full border border-white/10 bg-[#060807] px-3 text-sm outline-none transition placeholder:text-white/20 focus:border-[#c7ff39]/40"
-            />
+              <p className="text-[10px] uppercase tracking-[0.14em]">
+                SkillMeet included
+              </p>
+            </div>
 
-            <p className="mt-2 text-[10px] leading-5 text-white/30">
-              Google Meet, Zoom, Microsoft Teams, or another meeting URL.
+            <p className="mt-2 text-xs leading-6 text-[#a1a1aa]">
+              No external meeting link is required. SkillSwap will create a private SkillMeet room automatically for both Swap Masters after the session is scheduled.
             </p>
-          </label>
+          </div>
 
           <div className="mt-6 flex flex-col-reverse gap-3 border-t border-white/10 pt-5 sm:flex-row sm:justify-end">
             <button
@@ -3344,7 +3346,7 @@ function SessionModal({
                 />
               )}
 
-              Schedule session
+              Schedule SkillMeet
             </button>
           </div>
         </form>

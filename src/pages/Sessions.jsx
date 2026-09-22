@@ -207,6 +207,121 @@ function isUpcoming(
   );
 }
 
+function getMeetingProvider(
+  session
+) {
+  const explicit =
+    String(
+      session?.meeting_provider ||
+        ""
+    )
+      .trim()
+      .toLowerCase();
+
+  if (
+    explicit ===
+      "skillmeet" ||
+    explicit ===
+      "skill_meet"
+  ) {
+    return "skillmeet";
+  }
+
+  if (
+    explicit ===
+      "googlemeet" ||
+    explicit ===
+      "google_meet"
+  ) {
+    return "googlemeet";
+  }
+
+  const meetingUrl =
+    String(
+      session?.meeting_url ||
+        ""
+    ).trim();
+
+  if (
+    meetingUrl.startsWith(
+      "/skillmeet/"
+    )
+  ) {
+    return "skillmeet";
+  }
+
+  if (
+    /meet\.google\.com/i.test(
+      meetingUrl
+    )
+  ) {
+    return "googlemeet";
+  }
+
+  if (
+    /^https?:\/\//i.test(
+      meetingUrl
+    )
+  ) {
+    return "external";
+  }
+
+  // New SkillSwap+ sessions default to the
+  // built-in meeting experience.
+  return "skillmeet";
+}
+
+function getSkillMeetPath(
+  session
+) {
+  const type =
+    session?.session_type ===
+    "swap"
+      ? "swap"
+      : "mentor";
+
+  const storedPath =
+    String(
+      session?.meeting_url ||
+        ""
+    ).trim();
+
+  if (
+    storedPath.startsWith(
+      "/skillmeet/"
+    )
+  ) {
+    return storedPath;
+  }
+
+  return `/skillmeet/${type}/${session.id}`;
+}
+
+function getMeetingButtonLabel(
+  session
+) {
+  const provider =
+    getMeetingProvider(
+      session
+    );
+
+  if (
+    provider ===
+    "skillmeet"
+  ) {
+    return "Join SkillMeet";
+  }
+
+  if (
+    provider ===
+    "googlemeet"
+  ) {
+    return "Open Google Meet";
+  }
+
+  return "Open meeting";
+}
+
 const TABS = [
   {
     id: "upcoming",
@@ -1017,6 +1132,56 @@ export default function Sessions() {
     );
 
   /* =========================================================
+     MEETING
+  ========================================================= */
+
+  const openMeeting =
+    useCallback(
+      (session) => {
+        if (!session?.id) {
+          return;
+        }
+
+        const provider =
+          getMeetingProvider(
+            session
+          );
+
+        if (
+          provider ===
+          "skillmeet"
+        ) {
+          navigate(
+            getSkillMeetPath(
+              session
+            )
+          );
+          return;
+        }
+
+        const meetingUrl =
+          String(
+            session.meeting_url ||
+              ""
+          ).trim();
+
+        if (!meetingUrl) {
+          setError(
+            "This session does not have a meeting link."
+          );
+          return;
+        }
+
+        window.open(
+          meetingUrl,
+          "_blank",
+          "noopener,noreferrer"
+        );
+      },
+      [navigate]
+    );
+
+  /* =========================================================
      SWAP SESSION ACTIONS
   ========================================================= */
 
@@ -1558,6 +1723,9 @@ export default function Sessions() {
                       actionId={
                         actionId
                       }
+                      onOpenMeeting={
+                        openMeeting
+                      }
                       onOpenSwap={() =>
                         navigate(
                           "/swaps"
@@ -1646,6 +1814,7 @@ function SessionMetric({
 function SessionCard({
   session,
   actionId,
+  onOpenMeeting,
   onOpenSwap,
   onCompleteSwapSession,
   onCancelSwapSession,
@@ -1704,6 +1873,27 @@ function SessionCard({
 
   const cancelled =
     isCancelled(
+      session
+    );
+
+  const meetingProvider =
+    getMeetingProvider(
+      session
+    );
+
+  const canOpenMeeting =
+    !completed &&
+    !cancelled &&
+    (
+      meetingProvider ===
+        "skillmeet" ||
+      Boolean(
+        session.meeting_url
+      )
+    );
+
+  const meetingLabel =
+    getMeetingButtonLabel(
       session
     );
 
@@ -1879,30 +2069,30 @@ function SessionCard({
 
           {swapSession && (
             <div className="mt-3 flex flex-wrap justify-start gap-2 xl:justify-end">
-              {session.meeting_url &&
-                !cancelled && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      window.open(
-                        session.meeting_url,
-                        "_blank",
-                        "noopener,noreferrer"
-                      )
-                    }
-                    className="inline-flex min-h-10 items-center gap-2 bg-[#c7ff39] px-4 text-xs font-semibold text-[#071008] transition hover:bg-[#d4ff66]"
-                  >
-                    <Video
-                      size={13}
-                    />
+              {canOpenMeeting && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    onOpenMeeting(
+                      session
+                    )
+                  }
+                  className="inline-flex min-h-10 items-center gap-2 bg-[#c7ff39] px-4 text-xs font-semibold text-[#071008] transition hover:bg-[#d4ff66]"
+                >
+                  <Video
+                    size={13}
+                  />
 
-                    Open meeting
+                  {meetingLabel}
 
+                  {meetingProvider !==
+                    "skillmeet" && (
                     <ExternalLink
                       size={11}
                     />
-                  </button>
-                )}
+                  )}
+                </button>
+              )}
 
               <button
                 type="button"
@@ -1980,16 +2170,13 @@ function SessionCard({
           )}
 
           {!swapSession &&
-            session.meeting_url &&
-            !cancelled && (
+            canOpenMeeting && (
             <div className="mt-3 flex flex-wrap justify-start gap-2 xl:justify-end">
               <button
                 type="button"
                 onClick={() =>
-                  window.open(
-                    session.meeting_url,
-                    "_blank",
-                    "noopener,noreferrer"
+                  onOpenMeeting(
+                    session
                   )
                 }
                 className="inline-flex min-h-10 items-center gap-2 bg-[#c7ff39] px-4 text-xs font-semibold text-[#071008] transition hover:bg-[#d4ff66]"
@@ -1998,11 +2185,14 @@ function SessionCard({
                   size={13}
                 />
 
-                Open meeting
+                {meetingLabel}
 
-                <ExternalLink
-                  size={11}
-                />
+                {meetingProvider !==
+                  "skillmeet" && (
+                  <ExternalLink
+                    size={11}
+                  />
+                )}
               </button>
             </div>
           )}

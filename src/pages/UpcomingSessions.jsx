@@ -7,6 +7,10 @@ import {
   ArrowRight,
 } from "lucide-react";
 
+import {
+  useNavigate,
+} from "react-router-dom";
+
 /* =========================================================
    HELPERS
 ========================================================= */
@@ -61,6 +65,122 @@ function normalizeStatus(value) {
   )
     .trim()
     .toLowerCase();
+}
+
+function getMeetingProvider(
+  session
+) {
+  const explicit =
+    String(
+      session?.meeting_provider ||
+        ""
+    )
+      .trim()
+      .toLowerCase();
+
+  if (
+    explicit ===
+      "skillmeet" ||
+    explicit ===
+      "skill_meet"
+  ) {
+    return "skillmeet";
+  }
+
+  if (
+    explicit ===
+      "googlemeet" ||
+    explicit ===
+      "google_meet"
+  ) {
+    return "googlemeet";
+  }
+
+  const meetingUrl =
+    String(
+      session?.meeting_url ||
+        session?.meetingUrl ||
+        ""
+    ).trim();
+
+  if (
+    meetingUrl.startsWith(
+      "/skillmeet/"
+    )
+  ) {
+    return "skillmeet";
+  }
+
+  if (
+    /meet\.google\.com/i.test(
+      meetingUrl
+    )
+  ) {
+    return "googlemeet";
+  }
+
+  if (
+    /^https?:\/\//i.test(
+      meetingUrl
+    )
+  ) {
+    return "external";
+  }
+
+  return "skillmeet";
+}
+
+function getSkillMeetPath(
+  session
+) {
+  const type =
+    isSwapSession(
+      session
+    )
+      ? "swap"
+      : "mentor";
+
+  const storedPath =
+    String(
+      session?.meeting_url ||
+        session?.meetingUrl ||
+        ""
+    ).trim();
+
+  if (
+    storedPath.startsWith(
+      "/skillmeet/"
+    )
+  ) {
+    return storedPath;
+  }
+
+  return `/skillmeet/${type}/${session.id}`;
+}
+
+function getMeetingButtonLabel(
+  session
+) {
+  const provider =
+    getMeetingProvider(
+      session
+    );
+
+  if (
+    provider ===
+    "skillmeet"
+  ) {
+    return "Join SkillMeet";
+  }
+
+  if (
+    provider ===
+    "googlemeet"
+  ) {
+    return "Open Google Meet";
+  }
+
+  return "Open meeting";
 }
 
 function isSwapSession(
@@ -197,6 +317,9 @@ export default function UpcomingSessions({
   onOpenMeeting,
   onOpenSwap,
 }) {
+  const navigate =
+    useNavigate();
+
   const visibleSessions =
     [...sessions]
       .filter(
@@ -285,6 +408,23 @@ export default function UpcomingSessions({
                 session.meeting_url ||
                 session.meetingUrl ||
                 "";
+
+              const meetingProvider =
+                getMeetingProvider(
+                  session
+                );
+
+              const canOpenMeeting =
+                meetingProvider ===
+                  "skillmeet" ||
+                Boolean(
+                  meetingUrl
+                );
+
+              const meetingLabel =
+                getMeetingButtonLabel(
+                  session
+                );
 
               return (
                 <article
@@ -396,14 +536,26 @@ export default function UpcomingSessions({
                         )}
                       </div>
 
-                      {(meetingUrl ||
+                      {(canOpenMeeting ||
                         (swap &&
                           onOpenSwap)) && (
                         <div className="mt-4 flex flex-wrap gap-2">
-                          {meetingUrl && (
+                          {canOpenMeeting && (
                             <button
                               type="button"
                               onClick={() => {
+                                if (
+                                  meetingProvider ===
+                                  "skillmeet"
+                                ) {
+                                  navigate(
+                                    getSkillMeetPath(
+                                      session
+                                    )
+                                  );
+                                  return;
+                                }
+
                                 if (
                                   onOpenMeeting
                                 ) {
@@ -411,7 +563,9 @@ export default function UpcomingSessions({
                                     meetingUrl,
                                     session
                                   );
-                                } else {
+                                } else if (
+                                  meetingUrl
+                                ) {
                                   window.open(
                                     meetingUrl,
                                     "_blank",
@@ -425,7 +579,7 @@ export default function UpcomingSessions({
                                 size={12}
                               />
 
-                              Open meeting
+                              {meetingLabel}
                             </button>
                           )}
 

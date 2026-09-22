@@ -1,6 +1,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -16,6 +17,8 @@ import {
   Layers3,
   Loader2,
   LockKeyhole,
+  Mic,
+  MicOff,
   Plus,
   Save,
   Trash2,
@@ -299,6 +302,189 @@ export default function CourseManage() {
     setSuccess,
   ] =
     useState("");
+
+  /* =========================================================
+     VOICE TYPING
+  ========================================================= */
+
+  const recognitionRef = useRef(null);
+  const voiceTargetRef = useRef(null);
+
+  const [
+    voiceTarget,
+    setVoiceTarget,
+  ] = useState(null);
+
+  const [
+    voiceLanguage,
+    setVoiceLanguage,
+  ] = useState("en-US");
+
+  const [
+    voiceSupported,
+    setVoiceSupported,
+  ] = useState(true);
+
+  useEffect(() => {
+    const SpeechRecognition =
+      window.SpeechRecognition ||
+      window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setVoiceSupported(false);
+      return;
+    }
+
+    const recognition =
+      new SpeechRecognition();
+
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = voiceLanguage;
+
+    recognition.onresult = (event) => {
+      let finalTranscript = "";
+
+      for (
+        let index = event.resultIndex;
+        index < event.results.length;
+        index += 1
+      ) {
+        const result =
+          event.results[index];
+
+        if (result.isFinal) {
+          finalTranscript +=
+            result[0].transcript;
+        }
+      }
+
+      const cleanTranscript =
+        finalTranscript.trim();
+
+      if (!cleanTranscript) {
+        return;
+      }
+
+      const appendText = (currentValue) => {
+        const existing =
+          String(currentValue || "").trimEnd();
+
+        return existing
+          ? `${existing} ${cleanTranscript}`
+          : cleanTranscript;
+      };
+
+      if (voiceTargetRef.current === "lecture") {
+        setLectureForm((current) => ({
+          ...current,
+          content: appendText(
+            current.content
+          ),
+        }));
+      }
+
+      if (voiceTargetRef.current === "note") {
+        setNoteForm((current) => ({
+          ...current,
+          content: appendText(
+            current.content
+          ),
+        }));
+      }
+    };
+
+    recognition.onerror = (event) => {
+      if (
+        event.error !== "no-speech" &&
+        event.error !== "aborted"
+      ) {
+        setError(
+          `Voice typing error: ${event.error}.`
+        );
+      }
+    };
+
+    recognition.onend = () => {
+      voiceTargetRef.current = null;
+      setVoiceTarget(null);
+    };
+
+    recognitionRef.current =
+      recognition;
+
+    return () => {
+      try {
+        recognition.abort();
+      } catch {
+        // Ignore cleanup errors.
+      }
+
+      recognitionRef.current =
+        null;
+    };
+  }, []);
+
+  const startVoiceTyping = (
+    target
+  ) => {
+    if (!voiceSupported) {
+      setError(
+        "Voice typing is not supported in this browser. Try Chrome or Edge."
+      );
+      return;
+    }
+
+    const recognition =
+      recognitionRef.current;
+
+    if (!recognition) {
+      setError(
+        "Voice recognition is not ready yet."
+      );
+      return;
+    }
+
+    try {
+      setError("");
+      setSuccess("");
+
+      if (
+        voiceTargetRef.current &&
+        voiceTargetRef.current !== target
+      ) {
+        recognition.stop();
+      }
+
+      recognition.lang =
+        voiceLanguage;
+
+      voiceTargetRef.current = target;
+      setVoiceTarget(target);
+      recognition.start();
+    } catch (err) {
+      if (
+        err?.name !==
+        "InvalidStateError"
+      ) {
+        setError(
+          err?.message ||
+            "Voice typing could not start."
+        );
+      }
+    }
+  };
+
+  const stopVoiceTyping = () => {
+    try {
+      recognitionRef.current?.stop();
+    } catch {
+      // Ignore stop errors.
+    }
+
+    voiceTargetRef.current = null;
+    setVoiceTarget(null);
+  };
 
   /* =========================================================
      FORMS
@@ -1651,6 +1837,10 @@ export default function CourseManage() {
 
   const addLecture =
     async () => {
+      if (voiceTarget === "lecture") {
+        stopVoiceTyping();
+      }
+
       if (
         !lectureForm.module_id
       ) {
@@ -1830,6 +2020,10 @@ export default function CourseManage() {
 
   const addNote =
     async () => {
+      if (voiceTarget === "note") {
+        stopVoiceTyping();
+      }
+
       const title =
         noteForm.title.trim();
 
@@ -3276,6 +3470,95 @@ export default function CourseManage() {
                         className="mt-3 w-full resize-y border border-white/10 bg-white/[0.025] p-3 text-sm outline-none transition focus:border-[#c7ff39]/40"
                       />
 
+                      <div className="mt-3 flex flex-col gap-3 border border-white/10 bg-white/[0.015] p-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            disabled={
+                              !voiceSupported ||
+                              (
+                                voiceTarget &&
+                                voiceTarget !==
+                                  "lecture"
+                              )
+                            }
+                            onClick={() => {
+                              if (
+                                voiceTarget ===
+                                "lecture"
+                              ) {
+                                stopVoiceTyping();
+                              } else {
+                                startVoiceTyping(
+                                  "lecture"
+                                );
+                              }
+                            }}
+                            className={`inline-flex min-h-9 items-center gap-2 border px-3 text-[10px] font-medium uppercase tracking-[0.11em] transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                              voiceTarget ===
+                              "lecture"
+                                ? "border-[#ff6b6b]/30 bg-[#ff6b6b]/[0.04] text-[#ff8b8b]"
+                                : "border-[#c7ff39]/25 text-[#c7ff39] hover:bg-[#c7ff39]/[0.05]"
+                            }`}
+                          >
+                            {voiceTarget ===
+                            "lecture" ? (
+                              <MicOff
+                                size={14}
+                              />
+                            ) : (
+                              <Mic
+                                size={14}
+                              />
+                            )}
+
+                            {voiceTarget ===
+                            "lecture"
+                              ? "Stop voice typing"
+                              : "Voice type lecture"}
+                          </button>
+
+                          {voiceTarget ===
+                            "lecture" && (
+                            <span className="text-xs text-[#ffca80]">
+                              Listening…
+                            </span>
+                          )}
+                        </div>
+
+                        <select
+                          value={
+                            voiceLanguage
+                          }
+                          disabled={
+                            Boolean(
+                              voiceTarget
+                            )
+                          }
+                          onChange={(
+                            event
+                          ) =>
+                            setVoiceLanguage(
+                              event.target.value
+                            )
+                          }
+                          className="min-h-9 border border-white/10 bg-[#0a0d0b] px-3 text-xs text-[#a1a1aa] outline-none focus:border-[#c7ff39]/40 disabled:opacity-50"
+                        >
+                          <option value="en-US">
+                            English
+                          </option>
+                          <option value="bn-BD">
+                            বাংলা
+                          </option>
+                        </select>
+                      </div>
+
+                      {!voiceSupported && (
+                        <p className="mt-2 text-xs text-[#ffca80]">
+                          Voice typing is not supported in this browser. Manual typing still works normally.
+                        </p>
+                      )}
+
                       <input
                         value={
                           lectureForm.video_url
@@ -3871,6 +4154,95 @@ export default function CourseManage() {
                       rows={7}
                       className="mt-3 w-full border border-white/10 bg-white/[0.025] p-3 text-sm outline-none focus:border-[#c7ff39]/40"
                     />
+
+                    <div className="mt-3 flex flex-col gap-3 border border-white/10 bg-white/[0.015] p-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          disabled={
+                            !voiceSupported ||
+                            (
+                              voiceTarget &&
+                              voiceTarget !==
+                                "note"
+                            )
+                          }
+                          onClick={() => {
+                            if (
+                              voiceTarget ===
+                              "note"
+                            ) {
+                              stopVoiceTyping();
+                            } else {
+                              startVoiceTyping(
+                                "note"
+                              );
+                            }
+                          }}
+                          className={`inline-flex min-h-9 items-center gap-2 border px-3 text-[10px] font-medium uppercase tracking-[0.11em] transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                            voiceTarget ===
+                            "note"
+                              ? "border-[#ff6b6b]/30 bg-[#ff6b6b]/[0.04] text-[#ff8b8b]"
+                              : "border-[#c7ff39]/25 text-[#c7ff39] hover:bg-[#c7ff39]/[0.05]"
+                          }`}
+                        >
+                          {voiceTarget ===
+                          "note" ? (
+                            <MicOff
+                              size={14}
+                            />
+                          ) : (
+                            <Mic
+                              size={14}
+                            />
+                          )}
+
+                          {voiceTarget ===
+                          "note"
+                            ? "Stop voice typing"
+                            : "Voice type note"}
+                        </button>
+
+                        {voiceTarget ===
+                          "note" && (
+                          <span className="text-xs text-[#ffca80]">
+                            Listening…
+                          </span>
+                        )}
+                      </div>
+
+                      <select
+                        value={
+                          voiceLanguage
+                        }
+                        disabled={
+                          Boolean(
+                            voiceTarget
+                          )
+                        }
+                        onChange={(
+                          event
+                        ) =>
+                          setVoiceLanguage(
+                            event.target.value
+                          )
+                        }
+                        className="min-h-9 border border-white/10 bg-[#0a0d0b] px-3 text-xs text-[#a1a1aa] outline-none focus:border-[#c7ff39]/40 disabled:opacity-50"
+                      >
+                        <option value="en-US">
+                          English
+                        </option>
+                        <option value="bn-BD">
+                          বাংলা
+                        </option>
+                      </select>
+                    </div>
+
+                    {!voiceSupported && (
+                      <p className="mt-2 text-xs text-[#ffca80]">
+                        Voice typing is not supported in this browser. Manual typing still works normally.
+                      </p>
+                    )}
 
                     <input
                       value={
