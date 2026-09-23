@@ -7,7 +7,7 @@ import {
   Users,
 } from "lucide-react";
 
-export default function QuickActions({ role, navigate }) {
+export default function QuickActions({ role, navigate, onFindMentor }) {
   const actions =
     role === "learner"
       ? [
@@ -15,18 +15,19 @@ export default function QuickActions({ role, navigate }) {
             label: "Find a mentor",
             description: "Discover people who can teach what you want to learn.",
             icon: Search,
+            onClick: onFindMentor,
           },
           {
             label: "Explore skills",
             description: "Update or expand the skills you want to learn.",
             icon: BookOpen,
-            onClick: () => navigate("/profile-setup"),
+            onClick: () => navigate("/profile/edit?tab=learning"),
           },
           {
             label: "Teach something",
             description: "Optional: add a skill and start earning SS Credits.",
             icon: GraduationCap,
-            onClick: () => navigate("/profile-setup"),
+            onClick: () => navigate("/profile/edit?tab=teaching"),
           },
         ]
       : role === "mentor"
@@ -35,12 +36,13 @@ export default function QuickActions({ role, navigate }) {
             label: "Teaching requests",
             description: "Review learners looking for the skills you teach.",
             icon: Users,
+            onClick: () => navigate("/mentorship-requests"),
           },
           {
             label: "Manage teaching",
             description: "Update your teaching skills and experience.",
             icon: GraduationCap,
-            onClick: () => navigate("/profile-setup"),
+            onClick: () => navigate("/profile/edit?tab=teaching"),
           },
         ]
       : [
@@ -48,17 +50,19 @@ export default function QuickActions({ role, navigate }) {
             label: "Find a swap",
             description: "Discover complementary two-way skill exchanges.",
             icon: Repeat2,
+            onClick: () => navigate("/swaps"),
           },
           {
             label: "Find a mentor",
             description: "Explore mentors for your learning goals.",
             icon: Search,
+            onClick: onFindMentor,
           },
           {
             label: "Manage skills",
             description: "Update both learning and teaching skills.",
             icon: GraduationCap,
-            onClick: () => navigate("/profile-setup"),
+            onClick: () => navigate("/profile/edit?tab=learning"),
           },
         ];
 

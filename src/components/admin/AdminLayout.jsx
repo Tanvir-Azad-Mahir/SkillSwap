@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import {
+  Link,
   NavLink,
   Outlet,
   useNavigate,
@@ -74,8 +75,8 @@ export default function AdminLayout() {
       <aside className="admin-sidebar fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-white/10 lg:block">
         <div className="flex h-full flex-col">
           <div className="border-b border-white/10 px-6 py-6">
-            <a
-              href="/"
+            <Link
+              to="/admin"
               aria-label="SkillSwap home"
               className="skillswap-logo group inline-flex items-center gap-2 rounded-sm text-xl font-black tracking-[-0.045em] text-white"
             >
@@ -85,7 +86,7 @@ export default function AdminLayout() {
               <span className="text-[#c7ff39] transition-transform duration-300 group-hover:rotate-12">
                 +
               </span>
-            </a>
+            </Link>
             <p className="mt-3 text-[9px] uppercase tracking-[0.18em] text-[#a1a1aa]">
               Admin console
             </p>
@@ -153,8 +154,8 @@ export default function AdminLayout() {
         <header className="sticky top-0 z-30 border-b border-white/10 bg-[#080b09]/90 backdrop-blur-xl lg:hidden">
           <div className="flex min-h-[68px] items-center justify-between px-4">
             <div>
-              <a
-                href="/"
+              <Link
+                to="/admin"
                 aria-label="SkillSwap home"
                 className="skillswap-logo group inline-flex items-center gap-2 rounded-sm text-xl font-black tracking-[-0.045em] text-white"
               >
@@ -164,7 +165,7 @@ export default function AdminLayout() {
                 <span className="text-[#c7ff39] transition-transform duration-300 group-hover:rotate-12">
                   +
                 </span>
-              </a>
+              </Link>
               <p className="mt-1 text-[8px] uppercase tracking-[0.18em] text-[#a1a1aa]">
                 Admin console
               </p>

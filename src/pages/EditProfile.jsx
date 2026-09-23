@@ -24,6 +24,10 @@ import {
   logActivity,
 } from "../lib/activityLog";
 
+import {
+  useTheme,
+} from "../lib/ThemeContext";
+
 import EditProfileHeader from "../components/EditProfileHeader";
 import ProfileEditTab from "../components/ProfileEditTab";
 import TeachingEditTab from "../components/TeachingEditTab";
@@ -209,6 +213,9 @@ function setsEqual(
 export default function EditProfile() {
   const navigate =
     useNavigate();
+
+  const { setTheme } =
+    useTheme();
 
   const location =
     useLocation();
@@ -2671,6 +2678,10 @@ export default function EditProfile() {
         ===================================================== */
 
         await saveSettings();
+
+        setTheme(
+          preferences.theme
+        );
 
         console.log(
           "5. Settings saved"

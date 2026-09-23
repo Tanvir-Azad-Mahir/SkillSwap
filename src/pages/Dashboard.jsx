@@ -2460,6 +2460,14 @@ export default function Dashboard() {
             navigate={
               navigate
             }
+            onFindMentor={() => {
+              document
+                .getElementById("recommended-mentors")
+                ?.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start",
+                });
+            }}
           />
 
           {/* =================================================

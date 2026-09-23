@@ -8,13 +8,16 @@ import {
 
 import {
   ArrowLeft,
+  Ban,
   Loader2,
   MessageSquare,
+  MoreVertical,
   Plus,
   RefreshCcw,
   Reply,
   Search,
   Send,
+  UserRoundCheck,
   Users,
   X,
 } from "lucide-react";
@@ -90,6 +93,13 @@ function getInitials(name) {
     .toUpperCase();
 }
 
+
+function hasErrorCode(error, code) {
+  return String(
+    error?.message || ""
+  ).includes(code);
+}
+
 export default function Messages() {
   const navigate = useNavigate();
   const { conversationId } = useParams();
@@ -114,6 +124,23 @@ export default function Messages() {
   const [userResults, setUserResults] = useState([]);
   const [userSearchLoading, setUserSearchLoading] = useState(false);
   const [startingConversation, setStartingConversation] = useState("");
+
+  const [blockStatus, setBlockStatus] = useState({
+    blocked_by_me: false,
+    blocked_me: false,
+    can_message: true,
+  });
+
+  const [blockStatusLoading, setBlockStatusLoading] =
+    useState(false);
+
+  const [blockActionLoading, setBlockActionLoading] =
+    useState(false);
+
+  const [chatMenuOpen, setChatMenuOpen] = useState(false);
+
+  const [confirmBlockOpen, setConfirmBlockOpen] =
+    useState(false);
 
   const loadConversations = useCallback(
     async ({ silent = false } = {}) => {
@@ -244,13 +271,229 @@ export default function Messages() {
   }, [messages.length]);
 
   const selectedConversation = useMemo(() => {
-    return (
+    const match =
       conversations.find(
         (item) =>
           item.conversation_id === conversationId
-      ) || null
-    );
+      ) || null;
+
+    console.log("MESSAGES selectedConversation", {
+      conversationId,
+      match,
+      conversationsCount: conversations.length,
+    });
+
+    return match;
   }, [conversations, conversationId]);
+
+
+  /* =========================================================
+     BLOCK STATUS
+  ========================================================= */
+
+  const loadBlockStatus = useCallback(
+    async ({ silent = false } = {}) => {
+      const otherUserId =
+        selectedConversation?.other_user_id;
+
+      if (!otherUserId) {
+        setBlockStatus({
+          blocked_by_me: false,
+          blocked_me: false,
+          can_message: true,
+        });
+
+        return;
+      }
+
+      try {
+        if (!silent) {
+          setBlockStatusLoading(true);
+        }
+
+        const {
+          data,
+          error: blockError,
+        } = await supabase.rpc(
+          "get_user_block_status",
+          {
+            p_user_id: otherUserId,
+          }
+        );
+
+        if (blockError) {
+          throw blockError;
+        }
+
+        const row =
+          Array.isArray(data)
+            ? data[0]
+            : data;
+
+        console.log("MESSAGES block status", {
+          otherUserId,
+          raw: data,
+          row,
+          canMessage: row?.can_message,
+        });
+
+        setBlockStatus({
+          blocked_by_me:
+            row?.blocked_by_me === true,
+          blocked_me:
+            row?.blocked_me === true,
+          can_message:
+            row?.can_message !== false,
+        });
+      } catch (err) {
+        console.error(
+          "BLOCK STATUS ERROR:",
+          err
+        );
+
+        if (!silent) {
+          setError(
+            err?.message ||
+              "Block status could not be loaded."
+          );
+        }
+      } finally {
+        if (!silent) {
+          setBlockStatusLoading(false);
+        }
+      }
+    },
+    [selectedConversation?.other_user_id]
+  );
+
+  useEffect(() => {
+    loadBlockStatus();
+  }, [loadBlockStatus]);
+
+  useEffect(() => {
+    if (!selectedConversation?.other_user_id) {
+      return undefined;
+    }
+
+    const interval =
+      window.setInterval(
+        () => {
+          loadBlockStatus({
+            silent: true,
+          });
+        },
+        5000
+      );
+
+    return () =>
+      window.clearInterval(
+        interval
+      );
+  }, [
+    loadBlockStatus,
+    selectedConversation?.other_user_id,
+  ]);
+
+  const blockUser =
+    async () => {
+      const otherUserId =
+        selectedConversation?.other_user_id;
+
+      if (!otherUserId) {
+        return;
+      }
+
+      try {
+        setBlockActionLoading(
+          true
+        );
+
+        setError("");
+
+        const {
+          error: blockError,
+        } = await supabase.rpc(
+          "block_user",
+          {
+            p_user_id:
+              otherUserId,
+          }
+        );
+
+        if (blockError) {
+          throw blockError;
+        }
+
+        setDraft("");
+        setReplyingTo(null);
+        setConfirmBlockOpen(
+          false
+        );
+        await loadBlockStatus();
+      } catch (err) {
+        console.error(
+          "BLOCK USER ERROR:",
+          err
+        );
+
+        setError(
+          err?.message ||
+            "This user could not be blocked."
+        );
+      } finally {
+        setBlockActionLoading(
+          false
+        );
+      }
+    };
+
+  const unblockUser =
+    async () => {
+      const otherUserId =
+        selectedConversation?.other_user_id;
+
+      if (!otherUserId) {
+        return;
+      }
+
+      try {
+        setBlockActionLoading(
+          true
+        );
+
+        setError("");
+
+        const {
+          error: unblockError,
+        } = await supabase.rpc(
+          "unblock_user",
+          {
+            p_user_id:
+              otherUserId,
+          }
+        );
+
+        if (unblockError) {
+          throw unblockError;
+        }
+
+        await loadBlockStatus();
+      } catch (err) {
+        console.error(
+          "UNBLOCK USER ERROR:",
+          err
+        );
+
+        setError(
+          err?.message ||
+            "This user could not be unblocked."
+        );
+      } finally {
+        setBlockActionLoading(
+          false
+        );
+      }
+    };
 
   const filteredConversations = useMemo(() => {
     const query = conversationSearch.trim().toLowerCase();
@@ -292,6 +535,16 @@ export default function Messages() {
 
     if (!conversationId) return;
 
+    if (!blockStatus.can_message) {
+      setError(
+        blockStatus.blocked_by_me
+          ? "Unblock this user before sending a message."
+          : "Messaging is unavailable between you and this user."
+      );
+
+      return;
+    }
+
     const content = draft.trim();
 
     if (!content) return;
@@ -319,12 +572,30 @@ export default function Messages() {
     } catch (err) {
       console.error("SEND MESSAGE ERROR:", err);
 
-      setError(
-        err?.message === "MESSAGE_TOO_LONG"
-          ? "Messages can be up to 5000 characters."
-          : err?.message ||
-              "Your message could not be sent."
-      );
+      if (
+        hasErrorCode(
+          err,
+          "MESSAGING_BLOCKED"
+        )
+      ) {
+        await loadBlockStatus({
+          silent: true,
+        });
+
+        setError(
+          "Messaging is unavailable between you and this user."
+        );
+      } else {
+        setError(
+          hasErrorCode(
+            err,
+            "MESSAGE_TOO_LONG"
+          )
+            ? "Messages can be up to 5000 characters."
+            : err?.message ||
+                "Your message could not be sent."
+        );
+      }
     } finally {
       setSending(false);
     }
@@ -404,8 +675,13 @@ export default function Messages() {
       console.error("START CONVERSATION ERROR:", err);
 
       setError(
-        err?.message ||
-          "The conversation could not be started."
+        hasErrorCode(
+          err,
+          "MESSAGING_BLOCKED"
+        )
+          ? "Messaging is unavailable between you and this user."
+          : err?.message ||
+              "The conversation could not be started."
       );
     } finally {
       setStartingConversation("");
@@ -672,13 +948,87 @@ export default function Messages() {
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => loadMessages()}
-                    className="grid h-10 w-10 place-items-center border border-white/10 text-[#a1a1aa] hover:text-[#c7ff39]"
-                  >
-                    <RefreshCcw size={14} />
-                  </button>
+                  <div className="relative flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setChatMenuOpen((open) => !open)
+                      }
+                      aria-label="Open conversation actions"
+                      className="grid h-10 w-10 place-items-center border border-white/10 text-[#a1a1aa] transition hover:border-[#c7ff39]/30 hover:text-[#c7ff39]"
+                      title="Conversation actions"
+                    >
+                      <MoreVertical size={16} />
+                    </button>
+
+                    {chatMenuOpen && (
+                      <div className="absolute right-0 top-full z-20 mt-2 w-52 border border-white/10 bg-[#0b0d0b] shadow-2xl">
+                        {selectedConversation?.other_user_id && (
+                          blockStatus.blocked_by_me ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setChatMenuOpen(false);
+                                unblockUser();
+                              }}
+                              disabled={
+                                blockStatusLoading ||
+                                blockActionLoading
+                              }
+                              className="flex w-full items-center gap-2 border-b border-white/10 px-3 py-3 text-left text-xs font-medium text-[#c7ff39] transition hover:bg-white/[0.025] disabled:opacity-50"
+                            >
+                              {blockActionLoading ||
+                              blockStatusLoading ? (
+                                <Loader2
+                                  size={14}
+                                  className="animate-spin"
+                                />
+                              ) : (
+                                <UserRoundCheck size={14} />
+                              )}
+                              Unblock user
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setChatMenuOpen(false);
+                                setConfirmBlockOpen(true);
+                              }}
+                              disabled={
+                                blockStatusLoading ||
+                                blockActionLoading
+                              }
+                              className="flex w-full items-center gap-2 border-b border-white/10 px-3 py-3 text-left text-xs font-medium text-[#ff8b8b] transition hover:bg-white/[0.025] disabled:opacity-50"
+                            >
+                              {blockStatusLoading ? (
+                                <Loader2
+                                  size={14}
+                                  className="animate-spin"
+                                />
+                              ) : (
+                                <Ban size={14} />
+                              )}
+                              Block user
+                            </button>
+                          )
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setChatMenuOpen(false);
+                            loadMessages();
+                            loadBlockStatus();
+                          }}
+                          className="flex w-full items-center gap-2 px-3 py-3 text-left text-xs text-[#a1a1aa] transition hover:bg-white/[0.025]"
+                        >
+                          <RefreshCcw size={14} />
+                          Refresh
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6">
@@ -772,72 +1122,151 @@ export default function Messages() {
 
                 <div className="border-t border-white/10 bg-[#080b09]/90 p-4 sm:px-6">
                   <div className="mx-auto max-w-4xl">
-                    {replyingTo && (
-                      <div className="mb-3 flex items-start justify-between gap-4 border border-white/10 bg-white/[0.025] px-4 py-3">
-                        <div className="min-w-0">
-                          <p className="text-[9px] uppercase tracking-[0.13em] text-[#c7ff39]">
-                            Replying to
-                          </p>
+                    {blockStatusLoading ? (
+                      <div className="flex min-h-12 items-center justify-center gap-2 border border-white/10 bg-white/[0.02] px-4 text-xs text-[#a1a1aa]">
+                        <Loader2
+                          size={14}
+                          className="animate-spin text-[#c7ff39]"
+                        />
+                        Checking messaging availability
+                      </div>
+                    ) : !blockStatus.can_message ? (
+                      <div className="flex flex-col gap-4 border border-[#ff6b6b]/20 bg-[#ff6b6b]/[0.035] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <Ban
+                              size={14}
+                              className="text-[#ff8b8b]"
+                            />
 
-                          <p className="mt-1 truncate text-xs text-[#a1a1aa]">
-                            {replyingTo.content}
+                            <p className="text-sm font-medium text-[#f2f4ef]">
+                              {blockStatus.blocked_by_me
+                                ? "You blocked this user"
+                                : "Messaging unavailable"}
+                            </p>
+                          </div>
+
+                          <p className="mt-1.5 text-xs leading-5 text-[#a1a1aa]">
+                            {blockStatus.blocked_by_me
+                              ? "Existing messages remain visible. Unblock this user to send messages again."
+                              : "Messaging is unavailable between you and this user. Existing conversation history remains visible."}
                           </p>
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={() => setReplyingTo(null)}
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    )}
-
-                    <form
-                      onSubmit={sendMessage}
-                      className="flex items-end gap-3"
-                    >
-                      <textarea
-                        value={draft}
-                        onChange={(event) =>
-                          setDraft(event.target.value)
-                        }
-                        onKeyDown={(event) => {
-                          if (
-                            event.key === "Enter" &&
-                            !event.shiftKey
-                          ) {
-                            event.preventDefault();
-
-                            if (
-                              draft.trim() &&
-                              !sending
-                            ) {
-                              sendMessage(event);
+                        {blockStatus.blocked_by_me && (
+                          <button
+                            type="button"
+                            onClick={
+                              unblockUser
                             }
-                          }
-                        }}
-                        placeholder="Write a message..."
-                        rows={1}
-                        maxLength={5000}
-                        className="max-h-40 min-h-12 flex-1 resize-none border border-white/10 bg-white/[0.025] px-4 py-3 text-sm outline-none focus:border-[#c7ff39]/40"
-                      />
+                            disabled={
+                              blockActionLoading
+                            }
+                            className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 border border-[#c7ff39]/25 bg-[#c7ff39]/[0.04] px-4 text-xs font-medium text-[#c7ff39] transition hover:bg-[#c7ff39]/[0.08] disabled:opacity-50"
+                          >
+                            {blockActionLoading ? (
+                              <Loader2
+                                size={14}
+                                className="animate-spin"
+                              />
+                            ) : (
+                              <UserRoundCheck
+                                size={14}
+                              />
+                            )}
 
-                      <button
-                        type="submit"
-                        disabled={sending || !draft.trim()}
-                        className="grid h-12 w-12 place-items-center bg-[#c7ff39] text-[#071008] disabled:opacity-40"
-                      >
-                        {sending ? (
-                          <Loader2
-                            size={16}
-                            className="animate-spin"
-                          />
-                        ) : (
-                          <Send size={16} />
+                            Unblock
+                          </button>
                         )}
-                      </button>
-                    </form>
+                      </div>
+                    ) : (
+                      <>
+                        {replyingTo && (
+                          <div className="mb-3 flex items-start justify-between gap-4 border border-white/10 bg-white/[0.025] px-4 py-3">
+                            <div className="min-w-0">
+                              <p className="text-[9px] uppercase tracking-[0.13em] text-[#c7ff39]">
+                                Replying to
+                              </p>
+
+                              <p className="mt-1 truncate text-xs text-[#a1a1aa]">
+                                {replyingTo.content}
+                              </p>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setReplyingTo(
+                                  null
+                                )
+                              }
+                            >
+                              <X
+                                size={14}
+                              />
+                            </button>
+                          </div>
+                        )}
+
+                        <form
+                          onSubmit={
+                            sendMessage
+                          }
+                          className="flex items-end gap-3"
+                        >
+                          <textarea
+                            value={draft}
+                            onChange={(event) =>
+                              setDraft(
+                                event.target.value
+                              )
+                            }
+                            onKeyDown={(event) => {
+                              if (
+                                event.key ===
+                                  "Enter" &&
+                                !event.shiftKey
+                              ) {
+                                event.preventDefault();
+
+                                if (
+                                  draft.trim() &&
+                                  !sending
+                                ) {
+                                  sendMessage(
+                                    event
+                                  );
+                                }
+                              }
+                            }}
+                            placeholder="Write a message..."
+                            rows={1}
+                            maxLength={5000}
+                            className="max-h-40 min-h-12 flex-1 resize-none border border-white/10 bg-white/[0.025] px-4 py-3 text-sm outline-none focus:border-[#c7ff39]/40"
+                          />
+
+                          <button
+                            type="submit"
+                            disabled={
+                              sending ||
+                              !draft.trim()
+                            }
+                            className="grid h-12 w-12 place-items-center bg-[#c7ff39] text-[#071008] disabled:opacity-40"
+                          >
+                            {sending ? (
+                              <Loader2
+                                size={16}
+                                className="animate-spin"
+                              />
+                            ) : (
+                              <Send
+                                size={16}
+                              />
+                            )}
+                          </button>
+                        </form>
+                      </>
+                    )}
                   </div>
                 </div>
               </>
@@ -845,6 +1274,78 @@ export default function Messages() {
           </section>
         </div>
       </div>
+
+      {confirmBlockOpen &&
+        selectedConversation && (
+          <div className="fixed inset-0 z-[70] grid place-items-center bg-black/75 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-md border border-white/10 bg-[#0a0d0b]">
+              <div className="border-b border-white/10 p-5">
+                <div className="flex items-center gap-2 text-[#ff8b8b]">
+                  <Ban
+                    size={15}
+                  />
+
+                  <p className="text-[10px] uppercase tracking-[0.16em]">
+                    Block user
+                  </p>
+                </div>
+
+                <h2 className="mt-3 text-xl font-medium">
+                  Block{" "}
+                  {selectedConversation.other_full_name ||
+                    selectedConversation.other_username ||
+                    "this user"}
+                  ?
+                </h2>
+
+                <p className="mt-3 text-sm leading-6 text-[#a1a1aa]">
+                  Neither of you will be able to send new messages while the block is active. Existing messages will remain visible.
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-3 p-5">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setConfirmBlockOpen(
+                      false
+                    )
+                  }
+                  disabled={
+                    blockActionLoading
+                  }
+                  className="min-h-10 border border-white/10 px-4 text-xs text-[#a1a1aa] transition hover:text-white disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={
+                    blockUser
+                  }
+                  disabled={
+                    blockActionLoading
+                  }
+                  className="inline-flex min-h-10 items-center gap-2 bg-[#ff5f57] px-4 text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                >
+                  {blockActionLoading ? (
+                    <Loader2
+                      size={14}
+                      className="animate-spin"
+                    />
+                  ) : (
+                    <Ban
+                      size={14}
+                    />
+                  )}
+
+                  Block user
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       {newChatOpen && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur-sm">

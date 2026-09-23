@@ -9,7 +9,10 @@ export default function RecommendedMentors({
   const visible = mentors.slice(0, 4);
 
   return (
-    <section className="mt-8 border border-white/10 bg-[#0a0d0b]/65">
+    <section
+      id="recommended-mentors"
+      className="mt-8 border border-white/10 bg-[#0a0d0b]/65"
+    >
       <div className="flex flex-col gap-4 border-b border-white/10 p-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-[10px] uppercase tracking-[0.16em] text-[#a1a1aa]">

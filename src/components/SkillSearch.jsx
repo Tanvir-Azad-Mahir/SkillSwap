@@ -1,7 +1,11 @@
-import { useMemo, useState } from "react";
 import {
-  Search,
+  useMemo,
+  useState,
+} from "react";
+
+import {
   Plus,
+  Search,
   X,
 } from "lucide-react";
 
@@ -11,19 +15,18 @@ export default function SkillSearch({
   onSelect,
   placeholder = "Search skills...",
 }) {
-  const [query, setQuery] =
-    useState("");
+  const [
+    query,
+    setQuery,
+  ] = useState("");
 
-  const [focused, setFocused] =
-    useState(false);
+  const [
+    focused,
+    setFocused,
+  ] = useState(false);
 
   /* =========================================================
      NORMALIZE EXCLUDED IDS
-
-     Supports:
-     - Set
-     - Array
-     - undefined
   ========================================================= */
 
   const excludedSet =
@@ -49,14 +52,6 @@ export default function SkillSearch({
 
   /* =========================================================
      CLEAN SKILLS
-
-     Current database skill shape:
-
-     {
-       id,
-       name,
-       category_id
-     }
   ========================================================= */
 
   const availableSkills =
@@ -77,7 +72,6 @@ export default function SkillSearch({
         .map(
           (skill) => ({
             ...skill,
-
             name: String(
               skill.name
             ).trim(),
@@ -110,11 +104,6 @@ export default function SkillSearch({
           .trim()
           .toLowerCase();
 
-      /*
-        Before typing:
-        show first 10 available skills.
-      */
-
       if (!cleanQuery) {
         return availableSkills.slice(
           0,
@@ -124,14 +113,12 @@ export default function SkillSearch({
 
       return availableSkills
         .filter(
-          (skill) => {
-            const name =
-              skill.name.toLowerCase();
-
-            return name.includes(
-              cleanQuery
-            );
-          }
+          (skill) =>
+            skill.name
+              .toLowerCase()
+              .includes(
+                cleanQuery
+              )
         )
         .sort(
           (a, b) => {
@@ -140,8 +127,6 @@ export default function SkillSearch({
 
             const bName =
               b.name.toLowerCase();
-
-            /* Exact match */
 
             if (
               aName ===
@@ -160,8 +145,6 @@ export default function SkillSearch({
             ) {
               return 1;
             }
-
-            /* Starts with query */
 
             const aStarts =
               aName.startsWith(
@@ -186,8 +169,6 @@ export default function SkillSearch({
             ) {
               return 1;
             }
-
-            /* Word begins with query */
 
             const aWordStarts =
               aName
@@ -251,11 +232,14 @@ export default function SkillSearch({
         return;
       }
 
-      onSelect(skill);
+      onSelect(
+        skill
+      );
 
       setQuery("");
-
-      setFocused(false);
+      setFocused(
+        false
+      );
     };
 
   /* =========================================================
@@ -264,10 +248,6 @@ export default function SkillSearch({
 
   return (
     <div className="relative w-full">
-      {/* =====================================================
-          INPUT
-      ===================================================== */}
-
       <div className="relative">
         <Search
           size={18}
@@ -282,15 +262,16 @@ export default function SkillSearch({
             placeholder
           }
           autoComplete="off"
-          onFocus={() => {
-            setFocused(true);
-          }}
+          onFocus={() =>
+            setFocused(
+              true
+            )
+          }
           onChange={(
             event
           ) => {
             setQuery(
-              event.target
-                .value
+              event.target.value
             );
 
             setFocused(
@@ -308,11 +289,6 @@ export default function SkillSearch({
                 false
               );
             }
-
-            /*
-              Press Enter to select
-              first search result.
-            */
 
             if (
               event.key ===
@@ -347,8 +323,6 @@ export default function SkillSearch({
           "
         />
 
-        {/* CLEAR */}
-
         {query && (
           <button
             type="button"
@@ -359,7 +333,6 @@ export default function SkillSearch({
             }
             onClick={() => {
               setQuery("");
-
               setFocused(
                 true
               );
@@ -373,17 +346,6 @@ export default function SkillSearch({
           </button>
         )}
       </div>
-
-      {/* =====================================================
-          SEARCH RESULTS
-
-          IMPORTANT:
-          Kept in normal document flow instead of absolute
-          positioning.
-
-          This prevents parent containers with overflow
-          rules from hiding the dropdown.
-      ===================================================== */}
 
       {focused && (
         <div className="relative z-[9999] mt-2 max-h-[340px] overflow-y-auto border border-white/15 bg-[#0a0d0b] shadow-2xl">
@@ -399,11 +361,6 @@ export default function SkillSearch({
                   onMouseDown={(
                     event
                   ) => {
-                    /*
-                      Prevent focus loss
-                      before click.
-                    */
-
                     event.preventDefault();
                   }}
                   onClick={() =>
@@ -430,8 +387,6 @@ export default function SkillSearch({
                     focus:outline-none
                   "
                 >
-                  {/* SKILL */}
-
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-[#f2f4ef]">
                       {
@@ -440,16 +395,10 @@ export default function SkillSearch({
                     </p>
                   </div>
 
-                  {/* ADD */}
-
                   <div className="grid h-8 w-8 shrink-0 place-items-center border border-white/10 text-[#a1a1aa] transition group-hover:border-[#c7ff39]/40 group-hover:bg-[#c7ff39]/10 group-hover:text-[#c7ff39]">
                     <Plus
-                      size={
-                        15
-                      }
-                      strokeWidth={
-                        1.8
-                      }
+                      size={15}
+                      strokeWidth={1.8}
                     />
                   </div>
                 </button>
@@ -461,34 +410,21 @@ export default function SkillSearch({
               0 ? (
                 <>
                   <p className="text-sm text-[#a1a1aa]">
-                    Skills
-                    are
-                    unavailable
-                    right
-                    now.
+                    Skills are unavailable right now.
                   </p>
 
                   <p className="mt-1 text-xs text-white/30">
-                    No
-                    available
-                    skills
-                    were
-                    received.
+                    No available skills were received.
                   </p>
                 </>
               ) : (
                 <>
                   <p className="text-sm text-[#a1a1aa]">
-                    No
-                    matching
-                    skill
-                    found.
+                    No matching skill found.
                   </p>
 
                   <p className="mt-1 text-xs text-white/30">
-                    Try
-                    another
-                    keyword.
+                    Try another keyword.
                   </p>
                 </>
               )}
@@ -496,20 +432,6 @@ export default function SkillSearch({
           )}
         </div>
       )}
-
-      {/* =====================================================
-          DEBUG COUNTER
-
-          Useful while fixing the page.
-          You can remove this later.
-      ===================================================== */}
-
-      <p className="mt-2 text-[10px] uppercase tracking-[0.12em] text-white/25">
-        {
-          availableSkills.length
-        }{" "}
-        skills available
-      </p>
     </div>
   );
 }

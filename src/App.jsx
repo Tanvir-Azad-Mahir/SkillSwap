@@ -28,6 +28,7 @@ import Certificate from "./pages/Certificate";
 import CertificateVerify from "./pages/CertificateVerify";
 import MentorshipRequests from "./pages/MentorshipRequests";
 import SkillMeet from "./pages/SkillMeet";
+import SkillMatch from "./pages/SkillMatch";
 
 import AdminRoute from "./components/admin/AdminRoute";
 import AdminLayout from "./components/admin/AdminLayout";
@@ -107,6 +108,12 @@ export default function App() {
           <Route
             path="/dashboard"
             element={<Dashboard />}
+          />
+
+          {/* Skill Match */}
+          <Route
+            path="/skill-match/:skillId"
+            element={<SkillMatch />}
           />
 
           {/* Courses */}
