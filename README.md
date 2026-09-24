@@ -161,7 +161,7 @@ PROFILE SETUP
 | Certificate verification | ✅ |
 | Activity / history tracking | ✅ |
 | SS credit economy | ✅ |
-| Message block / unblock | 🚧 |
+| Message block / unblock | ✅ |
 | Reviews / endorsements | 🚧 |
 | Smart skill recommendations | 🚧 |
 
@@ -352,16 +352,6 @@ SkillSwap+ includes an internal messaging system for communication between membe
 - Server-side message RPCs
 - Message length validation
 
-Sensitive messaging operations are handled through PostgreSQL RPC functions such as:
-
-```text
-get_my_conversations
-get_conversation_messages
-get_or_create_conversation
-mark_conversation_read
-search_message_users
-send_message
-```
 
 ### Block / unblock
 
