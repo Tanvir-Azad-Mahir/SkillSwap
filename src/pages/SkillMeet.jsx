@@ -694,11 +694,11 @@ export default function SkillMeet() {
           "Connection failed"
         );
 
-        if (!HAS_TURN) {
-          setError(
-            "The browsers reached the same SkillMeet room, but the direct WebRTC media connection failed. Configure a TURN server for reliable calls across different networks."
-          );
-        }
+        setError(
+          HAS_TURN
+            ? "The browsers reached the same SkillMeet room, but media could not connect. Check the TURN server URL, credentials, and network access."
+            : "The browsers reached the same SkillMeet room, but the direct media connection failed. Configure a TURN server for reliable calls across different networks."
+        );
 
         if (isInitiatorRef.current) {
           offerSentRef.current = false;
@@ -759,10 +759,9 @@ export default function SkillMeet() {
         await peer.setLocalDescription(offer);
 
         /*
-          Wait for ICE gathering so the SDP contains the
-          discovered candidates. This removes a common race
-          where trickled candidates are broadcast before the
-          other browser is ready to apply them.
+          Send the offer immediately and relay ICE candidates
+          as they are gathered. The receiving peer queues early
+          candidates until the remote description is applied.
         */
         if (!peer.localDescription) {
           throw new Error(
@@ -1149,6 +1148,10 @@ export default function SkillMeet() {
           );
 
         roomChannel.subscribe(async (status) => {
+          if (disposed) {
+            return;
+          }
+
           console.log(
             "SKILLMEET REALTIME STATUS:",
             status
@@ -1192,8 +1195,12 @@ export default function SkillMeet() {
             status === "CHANNEL_ERROR" ||
             status === "TIMED_OUT"
           ) {
+            setJoining(false);
             setConnectionStatus(
               "Realtime connection problem"
+            );
+            setError(
+              "Could not connect to SkillMeet signaling. Check your internet connection and the Supabase Realtime configuration, then rejoin."
             );
           }
         });
