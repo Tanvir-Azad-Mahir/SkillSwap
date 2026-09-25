@@ -27,15 +27,18 @@ import { supabase } from "../lib/supabase";
 /* =========================================================
    WEBRTC CONFIG
    ---------------------------------------------------------
-   STUN is enough for many networks, but not all of them.
-   For reliable production calls, configure a TURN server in
-   your Vite .env file:
+   STUN discovers public addresses. TURN relays media when a
+   direct path is impossible, which is required for reliable
+   calls across mobile, office, university and CGNAT networks.
 
-   VITE_TURN_URL=turn:your-turn-server.example.com:3478
+   Configure these in Netlify Environment Variables:
+
+   VITE_TURN_URL=turn:turn.example.com:3478?transport=udp,turn:turn.example.com:3478?transport=tcp,turns:turn.example.com:5349?transport=tcp
    VITE_TURN_USERNAME=your_username
    VITE_TURN_CREDENTIAL=your_password
 
-   Multiple TURN URLs can be comma-separated.
+   Optional diagnostic flag:
+   VITE_FORCE_TURN=true
 ========================================================= */
 
 function buildIceServers() {
@@ -44,6 +47,8 @@ function buildIceServers() {
       urls: [
         "stun:stun.l.google.com:19302",
         "stun:stun1.l.google.com:19302",
+        "stun:stun2.l.google.com:19302",
+        "stun:stun3.l.google.com:19302",
       ],
     },
   ];
@@ -82,59 +87,23 @@ const HAS_TURN = ICE_SERVERS.some((server) => {
   );
 });
 
+const FORCE_TURN =
+  String(import.meta.env.VITE_FORCE_TURN || "")
+    .trim()
+    .toLowerCase() === "true";
+
+if (import.meta.env.PROD && !HAS_TURN) {
+  console.warn(
+    "SkillMeet is running without TURN. Calls may fail between different networks."
+  );
+}
+
 function getProfileName(profile) {
   return (
     profile?.full_name ||
     profile?.username ||
     "SkillSwap member"
   );
-}
-
-function waitForIceGatheringComplete(
-  peer,
-  timeoutMs = 8000
-) {
-  if (!peer) {
-    return Promise.resolve();
-  }
-
-  if (peer.iceGatheringState === "complete") {
-    return Promise.resolve();
-  }
-
-  return new Promise((resolve) => {
-    let finished = false;
-
-    const finish = () => {
-      if (finished) {
-        return;
-      }
-
-      finished = true;
-      peer.removeEventListener(
-        "icegatheringstatechange",
-        handleState
-      );
-      clearTimeout(timer);
-      resolve();
-    };
-
-    const handleState = () => {
-      if (peer.iceGatheringState === "complete") {
-        finish();
-      }
-    };
-
-    const timer = window.setTimeout(
-      finish,
-      timeoutMs
-    );
-
-    peer.addEventListener(
-      "icegatheringstatechange",
-      handleState
-    );
-  });
 }
 
 export default function SkillMeet() {
@@ -159,6 +128,7 @@ export default function SkillMeet() {
   const reconnectTimerRef = useRef(null);
   const screenTrackRef = useRef(null);
   const leavingRef = useRef(false);
+  const pendingIceCandidatesRef = useRef([]);
 
   const [user, setUser] = useState(null);
   const [meeting, setMeeting] = useState(null);
@@ -570,6 +540,29 @@ export default function SkillMeet() {
     []
   );
 
+  const flushPendingIceCandidates = useCallback(
+    async (peer) => {
+      if (!peer?.remoteDescription?.type) {
+        return;
+      }
+
+      const queued = pendingIceCandidatesRef.current;
+      pendingIceCandidatesRef.current = [];
+
+      for (const candidate of queued) {
+        try {
+          await peer.addIceCandidate(candidate);
+        } catch (err) {
+          console.warn(
+            "SKILLMEET QUEUED ICE CANDIDATE ERROR:",
+            err
+          );
+        }
+      }
+    },
+    []
+  );
+
   const createPeerConnection = useCallback(() => {
     const existing = peerConnectionRef.current;
 
@@ -582,7 +575,10 @@ export default function SkillMeet() {
 
     const peer = new RTCPeerConnection({
       iceServers: ICE_SERVERS,
+      iceTransportPolicy: FORCE_TURN ? "relay" : "all",
       iceCandidatePoolSize: 10,
+      bundlePolicy: "max-bundle",
+      rtcpMuxPolicy: "require",
     });
 
     const localStream = localStreamRef.current;
@@ -594,6 +590,31 @@ export default function SkillMeet() {
     }
 
     peer.ontrack = attachRemoteTrack;
+
+    peer.onicecandidate = (event) => {
+      if (!event.candidate) {
+        return;
+      }
+
+      const candidate =
+        typeof event.candidate.toJSON === "function"
+          ? event.candidate.toJSON()
+          : {
+              candidate: event.candidate.candidate,
+              sdpMid: event.candidate.sdpMid,
+              sdpMLineIndex: event.candidate.sdpMLineIndex,
+              usernameFragment: event.candidate.usernameFragment,
+            };
+
+      sendSignal("ice-candidate", {
+        candidate,
+      }).catch((err) => {
+        console.warn(
+          "SKILLMEET ICE CANDIDATE SEND ERROR:",
+          err
+        );
+      });
+    };
 
     peer.oniceconnectionstatechange = () => {
       console.log(
@@ -708,6 +729,7 @@ export default function SkillMeet() {
   }, [
     attachRemoteTrack,
     clearReconnectTimer,
+    sendSignal,
   ]);
 
   const createOffer = useCallback(
@@ -742,8 +764,6 @@ export default function SkillMeet() {
           where trickled candidates are broadcast before the
           other browser is ready to apply them.
         */
-        await waitForIceGatheringComplete(peer);
-
         if (!peer.localDescription) {
           throw new Error(
             "Local WebRTC offer was not created."
@@ -830,10 +850,10 @@ export default function SkillMeet() {
           new RTCSessionDescription(payload.sdp)
         );
 
+        await flushPendingIceCandidates(peer);
+
         const answer = await peer.createAnswer();
         await peer.setLocalDescription(answer);
-
-        await waitForIceGatheringComplete(peer);
 
         if (!peer.localDescription) {
           throw new Error(
@@ -893,6 +913,8 @@ export default function SkillMeet() {
           new RTCSessionDescription(payload.sdp)
         );
 
+        await flushPendingIceCandidates(peer);
+
         setConnectionStatus("Connecting");
       } catch (err) {
         console.error(
@@ -903,6 +925,36 @@ export default function SkillMeet() {
         setError(
           err?.message ||
             "The remote SkillMeet answer could not be applied."
+        );
+      }
+    };
+
+    const handleIceCandidate = async ({ payload }) => {
+      if (
+        disposed ||
+        !payload?.candidate ||
+        payload?.sender === userRef.current?.id
+      ) {
+        return;
+      }
+
+      try {
+        const candidate = new RTCIceCandidate(
+          payload.candidate
+        );
+
+        const peer = peerConnectionRef.current;
+
+        if (!peer?.remoteDescription?.type) {
+          pendingIceCandidatesRef.current.push(candidate);
+          return;
+        }
+
+        await peer.addIceCandidate(candidate);
+      } catch (err) {
+        console.warn(
+          "SKILLMEET REMOTE ICE CANDIDATE ERROR:",
+          err
         );
       }
     };
@@ -932,6 +984,7 @@ export default function SkillMeet() {
       peerConnectionRef.current = null;
       offerSentRef.current = false;
       offerInFlightRef.current = false;
+      pendingIceCandidatesRef.current = [];
 
       resetRemoteMedia();
     };
@@ -1081,6 +1134,11 @@ export default function SkillMeet() {
           )
           .on(
             "broadcast",
+            { event: "ice-candidate" },
+            handleIceCandidate
+          )
+          .on(
+            "broadcast",
             { event: "leave" },
             handleLeave
           )
@@ -1176,6 +1234,7 @@ export default function SkillMeet() {
       peerConnectionRef.current = null;
       offerSentRef.current = false;
       offerInFlightRef.current = false;
+      pendingIceCandidatesRef.current = [];
 
       localStreamRef.current
         ?.getTracks()
@@ -1199,6 +1258,7 @@ export default function SkillMeet() {
     clearReconnectTimer,
     createOffer,
     createPeerConnection,
+    flushPendingIceCandidates,
     loading,
     meeting?.id,
     sendSignal,
