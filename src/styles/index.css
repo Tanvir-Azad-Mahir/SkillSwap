@@ -429,6 +429,256 @@ html.light .community-quote {
   color: #344339 !important;
 }
 
+html.light .public-profile-page {
+  background-color: #f6f8f4 !important;
+  color: #172019 !important;
+}
+
+html.light .public-profile-page > .noise {
+  opacity: 0.16;
+}
+
+html.light .public-profile-page > .public-profile-glow {
+  background:
+    radial-gradient(ellipse at 12% 5%, rgba(132, 180, 35, 0.12), transparent 32%),
+    radial-gradient(ellipse at 88% 42%, rgba(73, 145, 114, 0.08), transparent 34%) !important;
+}
+
+html.light .public-profile-page > header {
+  border-color: rgba(23, 32, 25, 0.1) !important;
+  background-color: rgba(255, 255, 255, 0.88) !important;
+}
+
+html.light .public-profile-page [class~="bg-[#060807]/75"] {
+  background-color: rgba(255, 255, 255, 0.88) !important;
+}
+
+html.light .public-profile-hero {
+  border-color: #dce5da !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 24px 70px rgba(23, 32, 25, 0.1) !important;
+}
+
+html.light .public-profile-hero > .pointer-events-none {
+  background:
+    radial-gradient(circle at 12% 12%, rgba(132, 180, 35, 0.1), transparent 32%),
+    radial-gradient(circle at 88% 0%, rgba(23, 32, 25, 0.025), transparent 28%) !important;
+}
+
+html.light .public-profile-banner {
+  border-color: rgba(23, 32, 25, 0.08) !important;
+  background: linear-gradient(105deg, #e4efdb, #f0f5eb 54%, #e8f0e2) !important;
+}
+
+html.light .public-profile-banner > div[class*="rounded-full"] {
+  border-color: rgba(95, 128, 24, 0.18);
+}
+
+html.light .public-profile-role-badge {
+  border-color: rgba(78, 114, 20, 0.28) !important;
+  background-color: rgba(132, 180, 35, 0.14) !important;
+  color: #456313 !important;
+}
+
+html.light .public-profile-avatar-placeholder {
+  border-color: #ffffff !important;
+  background: linear-gradient(135deg, #e5f1d8, #cfe2bc) !important;
+  color: #4e7214 !important;
+  box-shadow: 0 18px 35px rgba(23, 32, 25, 0.16) !important;
+}
+
+html.light .public-profile-snapshot {
+  border-color: rgba(23, 32, 25, 0.09) !important;
+  background-color: #f4f7f1 !important;
+}
+
+html.light .public-profile-surface {
+  border-color: #e0e7de !important;
+  background: linear-gradient(145deg, #ffffff, #f8faf6) !important;
+  box-shadow: 0 10px 28px rgba(23, 32, 25, 0.045) !important;
+}
+
+html.light .public-profile-surface:hover {
+  border-color: rgba(95, 128, 24, 0.35) !important;
+  box-shadow: 0 16px 34px rgba(23, 32, 25, 0.08) !important;
+}
+
+html.light .public-profile-modal {
+  border-color: #dce5da !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 24px 80px rgba(23, 32, 25, 0.2) !important;
+}
+
+html.light .public-profile-page [class~="text-[#8c938c]"],
+html.light .public-profile-page [class~="text-[#929a92]"],
+html.light .public-profile-page [class~="text-[#b2b8b2]"],
+html.light .public-profile-page [class~="text-[#aeb5ae]"],
+html.light .public-profile-page [class~="text-[#b5bcb5]"],
+html.light .public-profile-page [class~="text-[#b3bbb3]"],
+html.light .public-profile-page [class~="text-[#b1b8b1]"],
+html.light .public-profile-page [class~="text-[#8c958c]"],
+html.light .public-profile-page [class~="text-[#a0a69f]"],
+html.light .public-profile-page [class~="text-[#525252]"] {
+  color: #59665b !important;
+}
+
+html.light .public-profile-page [class~="border-[#0b100d]"] {
+  border-color: #ffffff !important;
+}
+
+.skillmeet-local-preview-mirrored {
+  transform: scaleX(-1);
+}
+
+.skillmeet-page:fullscreen {
+  height: 100%;
+  overflow-y: auto;
+  width: 100%;
+}
+
+html.light .skillmeet-page {
+  background-color: #f3f6f1 !important;
+  color: #1b251c !important;
+}
+
+html.light .skillmeet-page > .skillmeet-ambient {
+  background:
+    radial-gradient(circle at 15% 10%, rgba(132, 180, 35, 0.08), transparent 30%),
+    radial-gradient(circle at 85% 15%, rgba(73, 111, 255, 0.045), transparent 26%),
+    radial-gradient(circle at 50% 100%, rgba(132, 180, 35, 0.04), transparent 30%) !important;
+}
+
+html.light .skillmeet-page > .noise {
+  opacity: 0.12;
+}
+
+html.light .skillmeet-page [class~="bg-[#060807]"] {
+  background-color: #f3f6f1 !important;
+}
+
+html.light .skillmeet-page [class~="bg-[#0a0d0b]"] {
+  background-color: #ffffff !important;
+}
+
+html.light .skillmeet-page [class~="text-[#f2f4ef]"],
+html.light .skillmeet-page [class~="text-[#f4f7f1]"] {
+  color: #1b251c !important;
+}
+
+html.light .skillmeet-page [class~="text-[#a1a1aa]"],
+html.light .skillmeet-page [class~="text-[#a4aaa2]"] {
+  color: #5d6a5e !important;
+}
+
+html.light .skillmeet-page [class~="text-[#ff8b8b]"] {
+  color: #a83232 !important;
+}
+
+html.light .skillmeet-header {
+  border-color: #dce5da !important;
+  background-color: rgba(255, 255, 255, 0.9) !important;
+}
+
+html.light .skillmeet-header [class*="border-white/"] {
+  border-color: #dce5da !important;
+}
+
+html.light .skillmeet-header [class~="border-[#c7ff39]/20"] {
+  border-color: rgba(82, 116, 20, 0.24) !important;
+}
+
+html.light .skillmeet-header [class~="bg-white/[0.025]"] {
+  background-color: #ffffff !important;
+}
+
+html.light .skillmeet-header [class~="text-white/35"],
+html.light .skillmeet-header [class~="text-[#a4aaa2]"] {
+  color: #5d6a5e !important;
+}
+
+html.light .skillmeet-header [class~="text-[#c7ff39]"] {
+  color: #527414 !important;
+}
+
+html.light .skillmeet-header button:hover {
+  border-color: rgba(82, 116, 20, 0.38) !important;
+  background-color: rgba(132, 180, 35, 0.09) !important;
+  color: #456313 !important;
+}
+
+html.light .skillmeet-controls {
+  border-color: #e0e7de !important;
+  background-color: rgba(255, 255, 255, 0.97) !important;
+}
+
+html.light .skillmeet-controls button {
+  border-color: #dce5da !important;
+  background-color: #ffffff !important;
+  color: #263326 !important;
+}
+
+html.light .skillmeet-controls button:hover {
+  border-color: rgba(82, 116, 20, 0.38) !important;
+  background-color: #f2f7e9 !important;
+}
+
+html.light .skillmeet-controls button[class~="border-[#ff6b6b]/25"] {
+  border-color: rgba(168, 50, 50, 0.3) !important;
+  background-color: #fff3f1 !important;
+  color: #a83232 !important;
+}
+
+html.light .skillmeet-controls button[class~="bg-[#c7ff39]/[0.08]"] {
+  border-color: rgba(82, 116, 20, 0.3) !important;
+  background-color: #edf5df !important;
+  color: #456313 !important;
+}
+
+html.light .skillmeet-controls [class~="bg-white/10"] {
+  background-color: #dce5da !important;
+}
+
+html.light .skillmeet-panel {
+  border-color: #e0e7de !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 10px 28px rgba(23, 32, 25, 0.055);
+}
+
+html.light .skillmeet-panel [class*="border-white/"] {
+  border-color: #e5ebe3 !important;
+}
+
+html.light .skillmeet-panel [class*="divide-white/"] > :not([hidden]) ~ :not([hidden]) {
+  border-color: #e5ebe3 !important;
+}
+
+html.light .skillmeet-panel [class*="text-white/"] {
+  color: #657165 !important;
+}
+
+html.light .skillmeet-panel [class~="text-[#d7dbd4]"],
+html.light .skillmeet-panel [class~="text-[#777d75]"] {
+  color: #536154 !important;
+}
+
+html.light .skillmeet-panel [class~="text-[#c7ff39]"] {
+  color: #527414 !important;
+}
+
+html.light .skillmeet-panel [class~="border-[#c7ff39]/15"] {
+  border-color: rgba(82, 116, 20, 0.22) !important;
+}
+
+html.light .skillmeet-panel [class~="bg-[#c7ff39]/[0.04]"] {
+  background-color: rgba(132, 180, 35, 0.09) !important;
+}
+
+html.light .skillmeet-page [role="alert"] {
+  border-color: rgba(168, 50, 50, 0.22) !important;
+  background-color: #fff3f1 !important;
+  color: #a83232 !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .reveal,
   .reveal.is-visible {

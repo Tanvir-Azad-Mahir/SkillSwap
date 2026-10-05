@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "./lib/ThemeContext";
 
 import Landing from "./pages/landing";
+import Home from "./pages/Home";
+import Profile from "./pages/profile";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -98,10 +100,22 @@ export default function App() {
             element={<EditProfile />}
           />
 
+          {/* User profile overview */}
+          <Route
+            path="/profile"
+            element={<Profile />}
+          />
+
           {/* Public user profile */}
           <Route
             path="/profile/:username"
             element={<PublicProfile />}
+          />
+
+          {/* Home */}
+          <Route
+            path="/home"
+            element={<Home />}
           />
 
           {/* Dashboard */}
