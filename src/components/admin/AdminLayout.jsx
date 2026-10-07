@@ -20,6 +20,8 @@ import {
 import { supabase } from "../../lib/supabase";
 import { useTheme } from "../../lib/ThemeContext";
 
+//navbar title and icon for each page in the admin console
+
 const NAV_ITEMS = [
   {
     to: "/admin",
