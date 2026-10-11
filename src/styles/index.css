@@ -3,17 +3,46 @@
 @import "tailwindcss";
 
 @layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
   html,
   body,
   #root {
     min-height: 100vh;
+    width: 100%;
+  }
+
+  html {
+    scroll-behavior: smooth;
   }
 
   body {
     @apply font-['Poppins'] bg-slate-950 text-slate-100 antialiased;
+    min-width: 320px;
+    overflow-x: hidden;
     background-image:
       radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 18%),
       radial-gradient(circle at bottom right, rgba(168, 85, 247, 0.12), transparent 24%);
+  }
+
+  img,
+  svg,
+  video,
+  canvas {
+    display: block;
+    max-width: 100%;
+  }
+
+  a,
+  button,
+  input,
+  textarea,
+  select {
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
