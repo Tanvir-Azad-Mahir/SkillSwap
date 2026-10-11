@@ -15,7 +15,9 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-111?style=flat-square&logo=postgresql&logoColor=4169E1)](https://www.postgresql.org/)
 [![WebRTC](https://img.shields.io/badge/WebRTC-SkillMeet-111?style=flat-square&logo=webrtc&logoColor=FF5F57)](https://webrtc.org/)
 
-**SkillSwap+ is a peer-to-peer learning platform that combines skill discovery, mentorship, courses, reciprocal skill exchange, messaging, live video sessions and an internal credit economy in one system.**
+**SkillSwap+ is a peer-to-peer learning platform that combines skill discovery, mentorship, structured courses, reciprocal skill exchange, messaging, live video sessions, reviews, certificates and an internal SS credit economy in one system.**
+
+**Project status: 100% implementation complete and tested.**
 
 </div>
 
@@ -29,67 +31,49 @@ Most learning platforms follow one direction:
 
 SkillSwap+ changes that into a network:
 
-> **Learn ↔ Teach ↔ Swap ↔ Earn**
+> **Learn ↔ Teach ↔ Swap ↔ Earn ↔ Grow**
 
-A user can learn one skill, teach another, join courses, find mentors, exchange skills directly, communicate through messaging, attend live SkillMeet sessions and build a visible history of learning and contribution.
+A member can learn one skill, teach another, discover courses, request mentorship, exchange skills directly, communicate through messaging, attend live SkillMeet sessions, earn or spend SS credits, receive certificates and build a visible history of learning and contribution.
 
 ---
 
 ## 02 · User roles
 
-<table>
-<tr>
-<td width="33%" valign="top">
-
 ### 🎓 Learner
-
-**Focus:** Learn
-
-- Discover skills
-- Search courses
-- Request enrollment
-- Find mentors
-- Join learning sessions
+- Discover skills and people
+- Search and join courses
+- Request mentorship
+- Attend SkillMeet sessions
 - Spend SS credits
-- Track progress and history
-
-</td>
-<td width="33%" valign="top">
+- Complete courses
+- Receive certificates
+- Review completed courses
+- Review mentors after completed mentorship sessions
+- Track history, messages and notifications
 
 ### 🧑‍🏫 Mentor
-
-**Focus:** Teach
-
 - Add teaching skills
 - Create and manage courses
-- Accept enrollment requests
+- Review enrollment requests
 - Receive mentorship requests
+- Schedule mentorship sessions
 - Conduct SkillMeet sessions
 - Earn SS credits
-- Build teaching history
-
-</td>
-<td width="33%" valign="top">
+- Receive learner reviews
+- Build teaching history and reputation
 
 ### ⚡ Swap Master
-
-**Focus:** Learn + Teach
-
 - Maintain learning and teaching skills
-- Create courses
+- Create and join courses
 - Find reciprocal skill matches
 - Exchange skills directly
-- Join SkillMeet sessions
-- Earn swap rewards
-- Use the full SkillSwap ecosystem
-
-</td>
-</tr>
-</table>
+- Conduct or join SkillMeet sessions
+- Earn and spend SS credits
+- Use the complete SkillSwap+ ecosystem
 
 ---
 
-## 03 · Core experience
+## 03 · Complete platform flow
 
 ```text
 SIGN UP / LOGIN
@@ -102,39 +86,45 @@ PROFILE SETUP
       └── Swap Master ─────► Learning + Teaching
                                │
                                ▼
-                           DASHBOARD
+                            DASHBOARD
                                │
-          ┌────────────────────┼────────────────────┐
-          ▼                    ▼                    ▼
-       SEARCH                COURSES              SWAPS
-          │                    │                    │
-          ▼                    ▼                    ▼
-   Skills / Profiles      Enrollment          Match / Request
-          │                    │                    │
-          └──────────────┬─────┴──────────────┬─────┘
-                         ▼                    ▼
-                      MESSAGES              SESSIONS
-                         │                    │
-                         └────────────┬───────┘
-                                      ▼
-                                  SKILLMEET
-                                      │
-                                      ▼
-                              HISTORY / CREDITS
+              ┌────────────────┼────────────────┐
+              ▼                ▼                ▼
+           SEARCH            COURSES           SWAPS
+              │                │                │
+              ▼                ▼                ▼
+      Skills / Profiles    Enrollment       Match / Request
+              │                │                │
+              └──────────┬─────┴──────┬─────────┘
+                         ▼            ▼
+                    MESSAGES       SESSIONS
+                         │            │
+                         └──────┬─────┘
+                                ▼
+                            SKILLMEET
+                                │
+                   ┌────────────┼────────────┐
+                   ▼            ▼            ▼
+                REVIEWS     CERTIFICATES   HISTORY
+                                │
+                                ▼
+                           SS CREDIT FLOW
 ```
 
 ---
 
-## 04 · Current feature status
+## 04 · Final project status
 
 | Feature | Status |
 |---|:---:|
 | Email/password authentication | ✅ |
 | Google login for existing users | ✅ |
+| Password recovery | ✅ |
 | Profile setup | ✅ |
 | Edit profile | ✅ |
 | Public profiles | ✅ |
 | Avatar uploads | ✅ |
+| Learner / Mentor / Swap Master roles | ✅ |
 | Teaching / learning skills | ✅ |
 | Role-based dashboard | ✅ |
 | Skill search | ✅ |
@@ -146,103 +136,122 @@ PROFILE SETUP
 | Course management | ✅ |
 | Enrollment requests | ✅ |
 | My Courses | ✅ |
+| Course modules / lectures / notes | ✅ |
 | Course learning flow | ✅ |
-| Messaging | ✅ |
-| Reply to messages | ✅ |
-| Unread message count | ✅ |
-| Notifications | ✅ |
-| Skill swaps | ✅ |
+| Course completion workflow | ✅ |
+| Course reviews | ✅ |
 | Mentorship requests | ✅ |
-| Sessions | ✅ |
-| Upcoming sessions | ✅ |
+| Mentorship scheduling | ✅ |
+| Mentor reviews | ✅ |
+| Skill swaps | ✅ |
+| Swap sessions | ✅ |
+| Sessions / upcoming sessions | ✅ |
+| Messaging | ✅ |
+| Message replies | ✅ |
+| Unread message count | ✅ |
+| Block / unblock | ✅ |
+| Notifications | ✅ |
 | SkillMeet video calling | ✅ |
-| Screen sharing in SkillMeet | ✅ |
+| Camera / microphone controls | ✅ |
+| Screen sharing | ✅ |
+| TURN fallback for WebRTC | ✅ |
 | Certificates | ✅ |
 | Certificate verification | ✅ |
 | Activity / history tracking | ✅ |
 | SS credit economy | ✅ |
-| Message block / unblock | ✅ |
-| Reviews / endorsements | 🚧 |
-| Smart skill recommendations | 🚧 |
+| Row Level Security | ✅ |
+
+**Implementation completion: 100%**
 
 ---
 
-## 05 · Search and discovery
+## 05 · Authentication and identity
 
-SkillSwap+ now separates search by purpose.
+SkillSwap+ uses Supabase Authentication for user identity and session handling.
+
+Supported flows:
+- Email/password registration
+- Email/password login
+- Google login for existing SkillSwap+ users
+- Password reset
+- Auth callback handling
+- Profile-completion routing
+- Active/inactive account checks
+- Role-aware application access
+
+Google authentication is used as a **login-only flow for existing SkillSwap+ accounts**. New registration remains email/password based.
+
+---
+
+## 06 · Profiles and skills
+
+Profiles are the identity layer of the platform.
+
+Users can maintain:
+- Full name
+- Username
+- Avatar
+- Bio
+- Location
+- Career goal
+- Role
+- Learning skills
+- Teaching skills
+
+Public profiles show relevant member information, skill areas and mentor reputation. Mentor and Swap Master profiles can also display mentorship ratings and reviews.
+
+---
+
+## 07 · Search and discovery
 
 ### Profile setup search
-
-`SkillSearch.jsx`
-
-Used when selecting learning and teaching skills.
-
-```text
-Search skill
-    │
-    ▼
-Select skill
-    │
-    ▼
-Add to profile
-```
+`SkillSearch.jsx` is used when selecting learning and teaching skills.
 
 ### Dashboard search
-
-`SearchSkillsProfiles.jsx`
-
-Searches both skills and people.
+`SearchSkillsProfiles.jsx` searches both skills and public profiles.
 
 ```text
 Search
   │
-  ├── Skill ─────► SkillMatch
-  │                  │
-  │                  ▼
-  │            Related Courses
+  ├── Skill ─────► SkillMatch ─────► Related Courses
   │
   └── Profile ───► Public Profile
 ```
 
 ### SkillMatch
-
-A selected skill opens its own discovery page:
+Selected skills open:
 
 ```text
-JavaScript
-    │
-    ▼
 /skill-match/:skillId
-    │
-    ▼
-Courses related to JavaScript
 ```
-
-This creates a foundation for future discovery of:
-
-`Courses` · `Mentors` · `Swap Partners` · `Challenges`
 
 ---
 
-## 06 · Course ecosystem
+## 08 · Course ecosystem
 
-### Create
+Mentors and Swap Masters can create and manage structured courses.
 
-Mentors and Swap Masters can create courses for the skills they teach.
+Course capabilities:
+- Course creation
+- Skill association
+- Course level
+- SS credit price
+- Course discovery
+- Course details
+- Modules
+- Lectures
+- Notes
+- Quizzes
+- Assignments
+- Enrollment requests
+- Instructor approval
+- Learning workspace
+- Completion requests
+- Final completion
+- Certificates
+- Course reviews
 
-### Manage
-
-Course creators can manage their courses, enrollment activity and learning flow.
-
-### Discover
-
-Users can search and browse courses by skill, title, instructor, level and SS price.
-
-Typical course levels:
-
-`Beginner` · `Intermediate` · `Advanced`
-
-### Learning flow
+### Course learning flow
 
 ```text
 Course Discovery
@@ -266,56 +275,132 @@ My Courses
 Course Learning
       │
       ▼
-Completion / Certificate
+Completion Request
+      │
+      ▼
+Instructor Completion
+      │
+      ├──► Certificate
+      └──► Course Review
 ```
 
 ---
 
-## 07 · Skill swaps
+## 09 · Course reviews
+
+Learners can review courses only after completing them.
+
+Rules:
+- Only completed learners can create a review
+- One active review per learner per course
+- Rating range: **1–5**
+- Optional written comment
+- Learners can delete their own review at any time
+- After deletion, they can submit a new review
+- Reviews appear on the Course Details page
+- Average rating and review count are displayed
+
+Database-level uniqueness prevents duplicate active reviews:
+
+```text
+UNIQUE(course_id, reviewer_id)
+```
+
+---
+
+## 10 · Mentorship
+
+```text
+Learner
+   │
+   ▼
+Public Mentor Profile
+   │
+   ▼
+Mentorship Request
+   │
+   ▼
+Mentor Accepts
+   │
+   ▼
+Schedule Session
+   │
+   ▼
+SkillMeet
+   │
+   ▼
+Session Completion
+   │
+   ▼
+Learner Reviews Mentor
+```
+
+Mentorship sessions use **SkillMeet only**.
+
+---
+
+## 11 · Mentor reviews
+
+Mentor reviews are tied to completed mentorship sessions.
+
+Rules:
+- Only the learner from the completed mentorship session can review the mentor
+- Rating range: **1–5**
+- Optional comment
+- Duplicate reviews for the same session are blocked
+- Mentors can see reviews they received
+- Visitors to public mentor profiles can see public mentor ratings and reviews
+- Public review access is exposed through a safer RPC
+- Swap sessions do not use this mentorship review flow
+
+---
+
+## 12 · Skill swaps
 
 SkillSwap+ supports reciprocal peer-to-peer skill exchange.
 
 ```text
-┌────────────────────────┐       ┌────────────────────────┐
-│ USER A                 │       │ USER B                 │
-│                        │       │                        │
-│ Teaches: React         │◄─────►│ Teaches: UI/UX        │
-│ Wants:   UI/UX         │       │ Wants:   React        │
-└────────────────────────┘       └────────────────────────┘
-            │                              │
-            └──────────────┬───────────────┘
-                           ▼
-                      SWAP REQUEST
-                           │
-                           ▼
-                        SESSION
-                           │
-                           ▼
-                       SKILLMEET
-                           │
-                           ▼
-                       COMPLETION
+USER A: Teaches React / Wants UI-UX
+             ↕
+USER B: Teaches UI-UX / Wants React
+             │
+             ▼
+        SWAP REQUEST
+             │
+             ▼
+          SESSION
+             │
+             ▼
+          SKILLMEET
+             │
+             ▼
+         COMPLETION
 ```
 
 ---
 
-## 08 · SkillMeet
+## 13 · SkillMeet
 
 SkillMeet is the built-in one-to-one video meeting system inside SkillSwap+.
 
-It removes the need to manually create or exchange external meeting links.
-
-### Current capabilities
-
+Capabilities:
 - Authenticated participant access
+- Session-level authorization
+- Mentorship session support
+- Swap session support
 - One-to-one WebRTC video calling
 - Camera control
 - Microphone control
 - Screen sharing
 - Supabase Realtime signaling
-- Peer-to-peer media connection
+- Presence tracking
+- ICE candidate trickling
+- Reconnection / ICE restart handling
+- STUN discovery
+- TURN relay fallback
 - Join / leave handling
-- Session-based meeting routes
+- Participant and connection status
+- Modern meeting interface
 
 ```text
 SkillSwap Session
@@ -324,23 +409,23 @@ SkillSwap Session
  /skillmeet/:type/:id
        │
        ▼
-Supabase Realtime Signaling
+Supabase Realtime
        │
        ▼
- WebRTC Peer Connection
+WebRTC Negotiation
+       │
+       ├── STUN
+       └── TURN fallback
        │
        ▼
-   Live Video Call
+ Live SkillMeet Call
 ```
 
 ---
 
-## 09 · Messaging
+## 14 · Messaging
 
-SkillSwap+ includes an internal messaging system for communication between members.
-
-### Current messaging features
-
+Messaging features:
 - Conversation list
 - Direct conversations
 - User search
@@ -351,44 +436,36 @@ SkillSwap+ includes an internal messaging system for communication between membe
 - Read tracking
 - Server-side message RPCs
 - Message length validation
-
-
-### Block / unblock
-
-A platform-level block system is being integrated.
-
-The design prevents new messages when either user has blocked the other while preserving existing conversation history.
+- Block / unblock support
 
 ```text
 User A blocks User B
         │
-        ├── New messages disabled
-        ├── New conversation disabled
-        ├── Blocked user removed from message search
-        └── Existing history remains visible
+        ├── New messages blocked
+        ├── New conversation blocked
+        └── Existing conversation history preserved
 ```
 
 ---
 
-## 10 · Notifications
+## 15 · Notifications
 
-The dashboard includes a notification system for important platform events.
-
-Examples include:
-
+Notifications cover:
 - Enrollment updates
+- Course activity
 - Credit activity
+- Mentorship updates
 - Swap updates
 - Session updates
-- Other account activity
+- Other account events
 
-The header also displays unread message and notification counts.
+Unread notification and message counts can be surfaced in the dashboard header.
 
 ---
 
-## 11 · SS economy
+## 16 · SS credit economy
 
-**SS** is SkillSwap+'s internal credit unit.
+**SS** is the internal SkillSwap+ credit unit.
 
 ```text
 Learner       ── SS ──► Mentor
@@ -397,37 +474,40 @@ Swap Master   ── SS ──► Mentor
 Swap Master   ── SS ──► Swap Master
 ```
 
-Credits are handled through controlled backend operations rather than direct client-side balance changes.
+Credits are controlled through backend operations rather than arbitrary client-side balance updates.
 
-This makes the SS system suitable for:
-
+SS is used for:
 - Course enrollment
 - Mentorship
 - Skill exchange rewards
-- Future challenges
-- Future marketplace-style learning services
+- Internal learning transactions
 
 ---
 
-## 12 · Certificates
-
-SkillSwap+ includes certificate generation and public verification.
+## 17 · Certificates
 
 ```text
-Course / Learning Completion
-          │
-          ▼
-      Certificate
-          │
-          ▼
- Verification Route
+Course Completion
+      │
+      ▼
+Certificate Issued
+      │
+      ▼
+Verification Code
+      │
+      ▼
+Public Verification Route
 ```
-
-This allows completed learning activity to become part of the user's visible SkillSwap journey.
 
 ---
 
-## 13 · Architecture
+## 18 · Activity and history
+
+The system records important activity related to courses, credits, sessions, swaps, mentorship, certificates and other key platform events.
+
+---
+
+## 19 · Architecture
 
 ```mermaid
 flowchart LR
@@ -444,12 +524,15 @@ flowchart LR
     DB --> US["user_skills"]
     DB --> C["courses"]
     DB --> CE["course_enrollments"]
+    DB --> CR["course_reviews"]
     DB --> SW["skill_swaps"]
     DB --> SE["sessions"]
+    DB --> RV["reviews"]
     DB --> M["messages"]
     DB --> N["notifications"]
     DB --> CT["credit_transactions"]
     DB --> UB["user_blocks"]
+    DB --> CERT["certificates"]
 
     STORAGE --> MEDIA["avatars / media"]
 
@@ -461,22 +544,16 @@ flowchart LR
     P --> C
     SK --> C
     C --> CE
+    C --> CR
+    SE --> RV
+    CE --> CERT
 ```
 
 ---
 
-## 14 · Technology stack
-
-<div align="center">
-
-<img src="https://skillicons.dev/icons?i=react,vite,tailwind,supabase,postgres,js,git,github" alt="SkillSwap+ technology stack" />
-
-</div>
-
-<br />
+## 20 · Technology stack
 
 ### Frontend
-
 - React 19
 - Vite
 - Tailwind CSS
@@ -484,85 +561,74 @@ flowchart LR
 - Lucide React
 
 ### Backend
-
 - Supabase Auth
 - PostgreSQL
-- PostgreSQL RPC
+- PostgreSQL RPC functions
 - Row Level Security
 - Supabase Realtime
 - Supabase Storage
 
 ### Real-time communication
-
 - WebRTC
 - Supabase Realtime signaling
+- STUN
+- TURN
 
 ### Deployment
-
 - Netlify / Vercel compatible
 
 ---
 
-## 15 · Database areas
-
-<details>
-<summary><b>Open database map</b></summary>
-
-<br />
+## 21 · Database areas
 
 | Domain | Main tables |
 |---|---|
 | Identity | `profiles` |
 | Settings | `user_settings` |
 | Skills | `skills`, `skill_categories`, `user_skills`, `user_interests` |
-| Courses | `courses`, `course_enrollments` |
+| Courses | `courses`, `course_modules`, `course_lectures`, `course_notes`, `course_quizzes`, `course_assignments` |
+| Enrollments | `course_enrollments`, `course_completion_requests` |
+| Course reviews | `course_reviews` |
 | Credits | `credit_transactions` |
-| Swaps | `skill_swaps` |
-| Sessions | `sessions`, session-related records |
+| Swaps | `skill_swaps`, swap session records |
+| Mentorship / sessions | `sessions`, mentorship-related records |
+| Mentor reviews | `reviews` |
 | Messaging | `conversations`, `conversation_members`, `messages` |
 | Blocking | `user_blocks` |
-| Reviews | review-related records |
+| Certificates | `certificates` |
 | History | `activity_logs` |
 | Notifications | `notifications` |
-| Media | storage-backed profile/course media |
-
-</details>
+| Media | Supabase Storage-backed media |
 
 ---
 
-## 16 · Security
+## 22 · Security model
 
 SkillSwap+ uses Supabase Row Level Security and PostgreSQL functions for sensitive operations.
 
 ```text
-✓ Users update their own profile data
-✓ Users manage their own skill selections
+✓ Users update only permitted profile data
+✓ Skill selections are user-scoped
 ✓ Conversation access requires membership
 ✓ Message sending is validated server-side
+✓ Block rules restrict communication
 ✓ Credit operations are handled server-side
 ✓ Course actions are permission-aware
-✓ SkillMeet access is tied to authenticated users
-✓ Block checks are enforced at the database layer
+✓ Enrollment actions are permission-aware
+✓ Only completed learners can review courses
+✓ Course-review duplication is blocked
+✓ Only eligible learners can review completed mentorship sessions
+✓ SkillMeet access is tied to real session participants
+✓ Certificates are tied to completed course records
 ```
-
-Google authentication is designed as **login-only for existing SkillSwap+ users**.
-
-New registration remains email/password based.
 
 ---
 
-## 17 · Run locally
-
-Clone the repository:
+## 23 · Local setup
 
 ```bash
 git clone <your-repository-url>
 cd <your-project-folder>
-```
-
-Install dependencies:
-
-```bash
 npm install
 ```
 
@@ -571,15 +637,21 @@ Create `.env`:
 ```env
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
+
+VITE_TURN_URL=turn:your-turn-server:3478?transport=udp,turn:your-turn-server:3478?transport=tcp,turns:your-turn-server:5349?transport=tcp
+VITE_TURN_USERNAME=your_turn_username
+VITE_TURN_CREDENTIAL=your_turn_credential
+
+VITE_FORCE_TURN=false
 ```
 
-Start the development server:
+Run:
 
 ```bash
 npm run dev
 ```
 
-Default Vite development URL:
+Default URL:
 
 ```text
 http://localhost:5173
@@ -587,33 +659,45 @@ http://localhost:5173
 
 ---
 
-## 18 · OAuth redirect setup
+## 24 · OAuth redirect setup
 
-For local Google authentication, add the local callback URL inside:
-
-**Supabase → Authentication → URL Configuration**
+Local:
 
 ```text
 http://localhost:5173/auth/callback
 ```
 
-For production:
+Production:
 
 ```text
 https://your-domain.com/auth/callback
 ```
 
-OAuth should use the current application origin:
+OAuth redirect:
 
 ```js
 redirectTo: `${window.location.origin}/auth/callback`
 ```
 
-This allows the same codebase to work locally and in production.
+---
+
+## 25 · SkillMeet network configuration
+
+For reliable calls across different networks, SkillMeet uses TURN fallback in addition to STUN.
+
+```env
+VITE_TURN_URL=turn:host:3478?transport=udp,turn:host:3478?transport=tcp,turns:host:5349?transport=tcp
+VITE_TURN_USERNAME=username
+VITE_TURN_CREDENTIAL=password
+```
+
+`VITE_FORCE_TURN=true` can be used temporarily for TURN diagnostics.
+
+**Do not commit real TURN credentials.**
 
 ---
 
-## 19 · Project structure
+## 26 · Project structure
 
 ```text
 src/
@@ -626,7 +710,8 @@ src/
 │   ├── ProfileEditTab.jsx
 │   ├── TeachingEditTab.jsx
 │   ├── LearningEditTab.jsx
-│   └── PreferencesEditTab.jsx
+│   ├── PreferencesEditTab.jsx
+│   └── SessionReviewModal.jsx
 │
 ├── pages/
 │   ├── Dashboard.jsx
@@ -657,7 +742,7 @@ src/
 
 ---
 
-## 20 · Design language
+## 27 · Design language
 
 | Token | Value |
 |---|---|
@@ -667,53 +752,115 @@ src/
 | Secondary text | `#A1A1AA` |
 | Accent | `#C7FF39` |
 
-**Design direction**
-
-`dark` · `minimal` · `sharp typography` · `thin borders` · `subtle glow` · `high contrast` · `low visual noise`
+**Direction:** dark · modern · minimal · sharp typography · thin borders · subtle glow · high contrast · responsive
 
 ---
 
-## 21 · Next development targets
+## 28 · Completed end-to-end journeys
 
+### Course
 ```text
-Block / Unblock
-      │
-      ▼
-Reviews + Skill Endorsements
-      │
-      ▼
-Availability / Booking
-      │
-      ▼
-Smart Skill Matching
-      │
-      ▼
-Skill Challenges
-      │
-      ▼
-Learning Goals / Roadmaps
+Discover → Details → Request Enrollment → Approval → SS Transfer
+→ Learn → Completion → Certificate → Review
 ```
 
-Future SkillMatch expansion:
-
+### Mentorship
 ```text
-Skill
-  │
-  ├── Courses
-  ├── Mentors
-  ├── Swap Partners
-  └── Challenges
+Discover Mentor → Public Profile → Request → Accept → Schedule
+→ SkillMeet → Complete → Review Mentor
+```
+
+### Swap
+```text
+Find Match → Create / Accept Swap → Schedule → SkillMeet → Complete
+```
+
+### Communication
+```text
+Find Member → Conversation → Message / Reply → Read Tracking
+→ Notifications → Optional Block / Unblock
 ```
 
 ---
 
-## 22 · Vision
+## 29 · Future implementation ideas
 
-SkillSwap+ is designed to make knowledge itself useful inside a community.
+The Software Lab implementation is complete. These are future extensions, not unfinished core features.
 
-A user does not need to be only a student or only an instructor.
+### Intelligent discovery
+- Personalized skill recommendations
+- AI-assisted mentor matching
+- Better reciprocal swap ranking
+- Recommendation scoring based on interests, history and goals
 
-They can be both.
+### Learning intelligence
+- Personalized learning roadmaps
+- Automated progress insights
+- Skill-gap analysis
+- Suggested next courses
+
+### Community
+- Skill challenges
+- Group learning rooms
+- Community posts
+- Public achievements and badges
+- Skill endorsements
+
+### SkillMeet
+- Group video rooms
+- In-call chat
+- Collaborative whiteboard
+- Session recording with consent
+- Live captions
+- Calendar integration
+
+### Course expansion
+- Richer quiz engine
+- Assignment submissions
+- Automated grading for supported question types
+- Course analytics
+- Learning streaks and progress dashboards
+
+### Platform expansion
+- Administrative analytics
+- Moderation tooling
+- Mobile application
+- Push notifications
+- Multi-language support
+
+---
+
+## 30 · Project completion
+
+SkillSwap+ has reached the final implementation stage for the Software Lab project.
+
+The completed platform combines:
+
+```text
+AUTHENTICATION
++ PROFILES & ROLES
++ SKILL DISCOVERY
++ COURSES
++ MENTORSHIP
++ SKILL SWAPS
++ MESSAGING
++ NOTIFICATIONS
++ SS CREDITS
++ SKILLMEET
++ REVIEWS
++ CERTIFICATES
++ HISTORY
+```
+
+The system has been integrated and tested as a connected product rather than a collection of isolated pages.
+
+---
+
+## 31 · Vision
+
+> **Knowledge becomes more valuable when people can exchange it directly.**
+
+A user does not need to be only a student or only an instructor. They can be both.
 
 <div align="center">
 
@@ -724,5 +871,7 @@ They can be both.
 ### SkillSwap+
 
 `LEARN  /  TEACH  /  SWAP  /  GROW`
+
+**Software Lab Project — Final Implementation Complete**
 
 </div>

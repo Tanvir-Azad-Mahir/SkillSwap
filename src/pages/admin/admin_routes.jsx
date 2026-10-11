@@ -12,7 +12,7 @@ import AdminCourses from "./pages/admin/AdminCourses";
 import AdminSkills from "./pages/admin/AdminSkills";
 
 
-// Inside <Routes>:
+// Inside <Routes> for admin routes, add the following:
 
 <Route
   path="/admin"
