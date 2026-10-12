@@ -1,4 +1,5 @@
 import { ArrowDown, ArrowUpRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import CommunityPulse from "./CommunityPulse";
 
 const HERO_IMAGE = "https://akpcainfbirpjvexinzt.supabase.co/storage/v1/object/sign/image/hero.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8xZDM3MGYyYy02Nzk4LTQ3MjItOWNmYy1lNmFlOWE0YTU1YzUiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJpbWFnZS9oZXJvLnBuZyIsInNjb3BlIjoiZG93bmxvYWQiLCJpYXQiOjE3ODYxMjc3MDEsImV4cCI6MTgxNzY2MzcwMX0.1yCWblTXX-1IVAabWU4Ix0i-CsgN4UrAisTmopU5RF4";
@@ -37,6 +38,21 @@ export default function Hero() {
             >
               How it works <ArrowDown size={16} />
             </a>
+          </div>
+
+          <div className="mt-3 flex gap-3 md:hidden">
+            <Link
+              to="/login"
+              className="inline-flex min-h-12 flex-1 items-center justify-center border border-white/15 px-5 text-sm font-medium text-white transition hover:border-white/30 hover:bg-white/[0.03] focus:outline-none focus:ring-2 focus:ring-[#c7ff39] focus:ring-offset-4 focus:ring-offset-[#060807]"
+            >
+              Sign in
+            </Link>
+            <Link
+              to="/signup"
+              className="inline-flex min-h-12 flex-1 items-center justify-center bg-[#c7ff39] px-5 text-sm font-semibold text-[#071008] transition hover:bg-[#d4ff67] focus:outline-none focus:ring-2 focus:ring-[#c7ff39] focus:ring-offset-4 focus:ring-offset-[#060807]"
+            >
+              Join SkillSwap+
+            </Link>
           </div>
         </div>
 

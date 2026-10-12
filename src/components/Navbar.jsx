@@ -122,13 +122,22 @@ export default function Navbar() {
               {label}
             </a>
           ))}
-          <Link
-            to="/signup"
-            onClick={() => setOpen(false)}
-            className="mt-8 inline-flex min-h-12 items-center justify-center bg-[#c7ff39] px-6 font-semibold text-[#071008]"
-          >
-            Join SkillSwap+
-          </Link>
+          <div className="mt-8 flex gap-3">
+            <Link
+              to="/login"
+              onClick={() => setOpen(false)}
+              className="inline-flex min-h-12 flex-1 items-center justify-center border border-white/15 px-5 font-medium text-white"
+            >
+              Sign in
+            </Link>
+            <Link
+              to="/signup"
+              onClick={() => setOpen(false)}
+              className="inline-flex min-h-12 flex-1 items-center justify-center bg-[#c7ff39] px-5 font-semibold text-[#071008]"
+            >
+              Join SkillSwap+
+            </Link>
+          </div>
         </nav>
       </div>
     </header>
