@@ -57,13 +57,13 @@ export default function Hero() {
         </div>
 
         <div className="reveal relative mx-auto w-full max-w-[31rem] lg:justify-self-end" style={{ transitionDelay: "110ms" }}>
-          <div className="group relative aspect-[4/5] overflow-hidden border border-white/10 bg-[#0a0d0b]">
+          <div className="hero-image-frame group relative aspect-[4/5] overflow-hidden border border-white/10 bg-[#0a0d0b]">
             <img
               src={HERO_IMAGE}
               alt="Abstract collaborative object representing SkillSwap connections"
-              className="h-full w-full object-cover grayscale transition duration-700 ease-[cubic-bezier(.16,1,.3,1)] group-hover:scale-[1.03] group-hover:grayscale-0"
+              className="hero-image h-full w-full object-cover grayscale transition duration-700 ease-[cubic-bezier(.16,1,.3,1)] group-hover:scale-[1.03] group-hover:grayscale-0"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#060807]/45 via-transparent to-transparent" />
+            <div className="hero-image-overlay absolute inset-0 bg-gradient-to-t from-[#060807]/45 via-transparent to-transparent" />
           </div>
           <CommunityPulse />
         </div>

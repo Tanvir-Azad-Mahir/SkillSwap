@@ -9,7 +9,7 @@ export default function PopularSkills() {
     <section id="discover" className="relative py-28 md:py-36 lg:py-40">
       <div className="noise absolute inset-0 -z-10 opacity-30" />
       <div className="mx-auto max-w-7xl px-5 md:px-8 lg:px-10">
-        <div className="reveal mb-12 flex flex-col justify-between gap-5 md:flex-row md:items-end">
+        <div className="reveal mb-12 flex flex-col gap-5">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#c7ff39]">/ Popular exchanges</p>
             <h2 className="mt-4 max-w-2xl text-4xl font-semibold tracking-[-0.045em] text-white md:text-5xl">Skills people are trading right now.</h2>

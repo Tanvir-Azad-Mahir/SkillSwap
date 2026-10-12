@@ -278,6 +278,18 @@ html.light body {
   color: #172019;
 }
 
+html.light .hero-image-frame {
+  background-color: #ffffff;
+}
+
+html.light .hero-image {
+  filter: grayscale(1) invert(1);
+}
+
+html.light .hero-image-overlay {
+  background-image: linear-gradient(to top, rgba(255, 255, 255, 0.28), transparent) !important;
+}
+
 html.light .signup-page {
   background: #f7f9f5;
   color: #172019;
